@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F172A" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Sourougnon Agent - Connexion</title>
+</head>
+<body>
+  <div class="login-screen">
+    <div class="splash__logo-wrap" style="margin-bottom:20px;">
+      <img src="assets/logo_sourougnon1.png" alt="Logo" class="splash__logo" />
+    </div>
+    <div class="splash__brand">Sourou<span>gnon</span></div>
+    <div class="splash__baseline">Crédit • Vente • Confiance</div>
+
+    <div class="login-card">
+      <h2>Bonjour !</h2>
+      <p class="muted" style="margin-bottom:18px;">Connectez-vous pour continuer</p>
+      <form id="loginForm">
+        <input type="text" id="identifiant" placeholder="Téléphone ou email" required />
+        <input type="password" id="password" placeholder="Mot de passe" required />
+        <button type="submit">SE CONNECTER</button>
+        <div id="loginError" class="login-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Anti-boucle : rediriger vers index si token présent, une seule fois
+    (function() {
+      const token = localStorage.getItem('agent_token');
+      if (token && !sessionStorage.getItem('redir_agent')) {
+        sessionStorage.setItem('redir_agent', '1');
+        location.replace('index.html');
+      }
+    })();
+
+    const API_BASE = 'https://sourougnon.alwaysdata.net';
+
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const identifiant = document.getElementById('identifiant').value.trim();
+      const password = document.getElementById('password').value;
+      const err = document.getElementById('loginError');
+      err.textContent = '';
+
+      try {
+        const res = await fetch(API_BASE + '/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: JSON.stringify({identifiant, password, role: 'agent'})
+        });
+        const data = await res.json();
+
+        if (data.token) {
+          localStorage.setItem('agent_token', data.token);
+          localStorage.setItem('agent_user', JSON.stringify(data.user || {}));
+          window.location.href = 'index.html?login=ok';
+        } else {
+          err.textContent = data.error || 'Identifiants incorrects.';
+        }
+      } catch (e) {
+        console.error('Erreur réseau login:', e);
+        err.textContent = 'Réseau indisponible. Vérifiez votre connexion.';
+      }
+    });
+  </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(err){ console.log('SW error', err); });
+}
+</script>
+</body>
+</html>

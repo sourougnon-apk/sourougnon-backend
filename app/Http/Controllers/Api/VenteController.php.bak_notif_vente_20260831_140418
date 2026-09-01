@@ -1,0 +1,244 @@
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Vente;
+use App\Models\Debiteur;
+use App\Models\User;
+use App\Models\Produit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+
+class VenteController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Vente::with(['debiteur:id,uuid,nom,prenom,telephone', 'agent:id,uuid,nom,prenom', 'produit:id,uuid,nom']);
+
+        if ($request->agent_id) {
+            $query->whereHas('agent', fn($q) => $q->where('uuid', $request->agent_id));
+        }
+        if ($request->debiteur_id) {
+            $query->whereHas('debiteur', fn($q) => $q->where('uuid', $request->debiteur_id));
+        }
+        if ($request->statut) {
+            $query->where('statut', $request->statut);
+        }
+        if ($request->type_vente) {
+            $query->where('type_vente', $request->type_vente);
+        }
+        if ($request->date_debut) {
+            $query->whereDate('date_debut', '>=', $request->date_debut);
+        }
+        if ($request->date_fin) {
+            $query->whereDate('date_fin', '<=', $request->date_fin);
+        }
+
+        $ventes = $query->withSum(['recouvrements as total_paye' => function($q) {
+            $q->where('statut', 'paye');
+        }], 'montant')->orderByDesc('created_at')->get();
+
+        return response()->json($ventes);
+    }
+
+    public function show(string $uuid)
+    {
+        $vente = Vente::where('uuid', $uuid)
+            ->with(['debiteur', 'agent', 'produit', 'recouvrements' => fn($q) => $q->orderByDesc('date_recouvrement')])
+            ->firstOrFail();
+        $vente->total_paye = $vente->totalPaye();
+        $vente->reste_a_payer = $vente->resteAPayer();
+        return response()->json($vente);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'debiteur_id' => 'required|exists:debiteurs,uuid',
+            'agent_id' => 'required|exists:users,uuid',
+            'type_vente' => 'required|in:comptant,credit',
+            'montant_total' => 'required|numeric|min:0',
+            'nombre_jours' => 'required_if:type_vente,credit|integer|min:1',
+            'epargne' => 'nullable|numeric|min:0',
+            'produit_id' => 'nullable|exists:produits,uuid',
+        ]);
+
+        $debiteur = Debiteur::where('uuid', $request->debiteur_id)->firstOrFail();
+        $agent = User::where('uuid', $request->agent_id)->firstOrFail();
+
+        // Contrôle anti-impayé : bloquer si le débiteur a un crédit en cours
+        if ($request->type_vente === 'credit') {
+            $creditEnCours = Vente::where('debiteur_id', $debiteur->id)
+                ->where('statut', 'en_cours')
+                ->exists();
+            if ($creditEnCours) {
+                return response()->json(['error' => 'Ce débiteur a déjà un crédit en cours. Remboursement complet requis avant une nouvelle vente à crédit.'], 422);
+            }
+        }
+
+        $produit = null;
+        if ($request->produit_id) {
+            $produit = Produit::where('uuid', $request->produit_id)->first();
+        }
+
+        $epargne = $request->epargne ?? 0;
+        $montantTotalAvecEpargne = $request->montant_total + $epargne;
+        $nombreJours = $request->type_vente === 'comptant' ? 1 : $request->nombre_jours;
+        $montantJournalier = $request->type_vente === 'comptant' ? $montantTotalAvecEpargne : round($montantTotalAvecEpargne / $nombreJours, 2);
+
+        $vente = Vente::create([
+            'uuid' => Str::uuid(),
+            'debiteur_id' => $debiteur->id,
+            'agent_id' => $agent->id,
+            'produit_id' => $produit ? $produit->id : null,
+            'type_vente' => $request->type_vente,
+            'montant_total' => $montantTotalAvecEpargne,
+            'montant_journalier' => $montantJournalier,
+            'nombre_jours' => $nombreJours,
+            'epargne' => $epargne,
+            'date_debut' => now()->toDateString(),
+            'date_fin' => now()->addDays($nombreJours - 1)->toDateString(),
+            'statut' => $request->type_vente === 'comptant' ? 'termine' : 'en_cours',
+        ]);
+
+        // Si comptant, créer automatiquement le recouvrement
+        if ($request->type_vente === 'comptant') {
+            \App\Models\Recouvrement::create([
+                'uuid' => Str::uuid(),
+                'vente_id' => $vente->id,
+                'agent_id' => $agent->id,
+                'montant' => $montantTotalAvecEpargne,
+                'date_recouvrement' => now()->toDateString(),
+                'mode_paiement' => 'especes',
+                'statut' => 'paye',
+                'synced' => true,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'uuid' => $vente->uuid,
+            'montant_journalier' => $montantJournalier,
+            'date_debut' => $vente->date_debut,
+            'date_fin' => $vente->date_fin,
+        ], 201);
+    }
+
+    public function annuler(string $uuid)
+    {
+        $vente = DB::transaction(function () use ($uuid) {
+            $vente = Vente::where('uuid', $uuid)->lockForUpdate()->firstOrFail();
+
+            if ($vente->statut === 'annule') return $vente;
+            if ($vente->statut === 'termine') abort(422, 'Une vente terminee ne peut pas etre annulee.');
+            if ($vente->echeances()->whereIn('statut', ['paye','partiel'])->exists()) {
+                abort(422, 'Vente deja partiellement payee : impossible d\'annuler.');
+            }
+
+            $userId = auth()->id() ?? $vente->agent_id ?? \App\Models\User::query()->value('id');
+            if (!$userId) abort(500, 'Aucun utilisateur identifiable pour tracer le mouvement de stock.');
+
+            $vente->load('venteProduits.produit', 'produit');
+
+            foreach ($vente->venteProduits as $vp) {
+                if (!$vp->produit) continue;
+                $avant = (int) $vp->produit->stock;
+                \App\Models\Produit::whereKey($vp->produit_id)
+                    ->update(['stock' => DB::raw('stock + ' . (int) $vp->quantite)]);
+                \App\Models\MouvementStock::create([
+                    'uuid' => Str::uuid(), 'produit_id' => $vp->produit_id, 'user_id' => $userId,
+                    'type' => 'retour', 'action' => 'annulation',
+                    'quantite' => $vp->quantite, 'prix_unitaire' => $vp->prix_unitaire,
+                    'stock_avant' => $avant, 'stock_apres' => $avant + $vp->quantite,
+                    'motif' => 'Annulation vente #' . substr($vente->uuid, 0, 8),
+                    'created_at' => now(),
+                ]);
+            }
+
+            if ($vente->produit && $vente->venteProduits->isEmpty()) {
+                $avant = (int) $vente->produit->stock;
+                \App\Models\Produit::whereKey($vente->produit_id)
+                    ->update(['stock' => DB::raw('stock + 1')]);
+                \App\Models\MouvementStock::create([
+                    'uuid' => Str::uuid(), 'produit_id' => $vente->produit_id, 'user_id' => $userId,
+                    'type' => 'retour', 'action' => 'annulation', 'quantite' => 1,
+                    'prix_unitaire' => $vente->produit->prix_vente ?? 0,
+                    'stock_avant' => $avant, 'stock_apres' => $avant + 1,
+                    'motif' => 'Annulation vente #' . substr($vente->uuid, 0, 8),
+                    'created_at' => now(),
+                ]);
+            }
+
+            $vente->echeances()->whereIn('statut', ['en_attente','en_retard'])
+                  ->update(['statut' => 'annule', 'jours_retard' => 0]);
+            $vente->update(['statut' => 'annule']);
+
+            $orig = \App\Models\Journal::where('vente_id', $vente->id)
+                        ->where('numero_ecriture', 'NOT LIKE', 'ANN-%')->first();
+            $ref  = 'ANNUL-' . substr($vente->uuid, 0, 8);
+            if ($orig && !\App\Models\Journal::where('reference', $ref)->exists()) {
+                \App\Models\Journal::create([
+                    'uuid' => Str::uuid(),
+                    'numero_ecriture' => 'ANN-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4)),
+                    'date_ecriture' => now()->toDateString(),
+                    'compte_debit' => $orig->compte_credit,
+                    'compte_credit' => $orig->compte_debit,
+                    'montant' => $orig->montant,
+                    'libelle' => 'Annulation vente #' . substr($vente->uuid, 0, 8),
+                    'reference' => $ref,
+                    'vente_id' => $vente->id,
+                    'user_id' => $userId,
+                ]);
+            }
+            return $vente;
+        });
+
+        if ($vente->debiteur) {
+            app(\App\Services\ScoreSolvabiliteService::class)->calculer($vente->debiteur);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Vente annulee, stock restitue.']);
+    }
+
+    public function update(Request $request, $uuid)
+    {
+        $vente = Vente::where('uuid', $uuid)->firstOrFail();
+        
+        if ($request->has('penalite_par_jour')) {
+            $vente->penalite_par_jour = $request->penalite_par_jour;
+            $vente->penalite_active = $request->penalite_active ?? true;
+            $vente->motif_penalite = $request->motif_penalite;
+            $vente->save();
+        }
+        
+        return response()->json(['success' => true, 'message' => 'Vente mise a jour']);
+    }
+
+
+    public function contrat($uuid)
+    {
+        $vente = Vente::where('uuid', $uuid)->with(['debiteur', 'produit', 'agent', 'venteProduits.produit'])->firstOrFail();
+        
+        $data = [
+            'numero' => strtoupper(substr($vente->uuid, 0, 8)),
+            'date' => $vente->date_debut->format('d/m/Y'),
+            'debiteur_nom' => $vente->debiteur?->nom . ' ' . $vente->debiteur?->prenom,
+            'debiteur_tel' => $vente->debiteur?->telephone,
+            'debiteur_quartier' => $vente->debiteur?->quartier,
+            'produit' => $vente->produit?->nom,
+            'produits' => $vente->produitsPanier(),
+            'prix_vente' => $vente->montant_total - ($vente->epargne_total ?? 0),
+            'epargne_par_jour' => $vente->epargne_par_jour,
+            'epargne_total' => $vente->epargne_total,
+            'montant_total' => $vente->montant_total,
+            'montant_journalier' => $vente->montant_journalier,
+            'nombre_jours' => $vente->nombre_jours,
+            'penalite_par_jour' => $vente->penalite_par_jour,
+            'date_fin' => $vente->date_fin->format('d/m/Y'),
+            'agent_nom' => $vente->agent?->nom . ' ' . $vente->agent?->prenom,
+        ];
+        
+        return response()->json(['success' => true, 'contrat' => $data]);
+    }
+
+}

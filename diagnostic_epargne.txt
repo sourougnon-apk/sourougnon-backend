@@ -1,0 +1,304 @@
+=== TABLES EPARGNES / PENALITES ===
+--- epargnes ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+montant (decimal(10,2))
+date_collecte (date)
+statut (enum('collecte','recuperee'))
+recuperee_par (bigint(20) unsigned)
+date_recuperation (date)
+confirmation_client (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+--- penalites ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+echeance_id (bigint(20) unsigned)
+recouvrement_id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+montant (decimal(10,2))
+jours_retard (int(11))
+date_appliquee (date)
+created_at (timestamp)
+updated_at (timestamp)
+--- ventes ---
+id (bigint(20) unsigned)
+uuid (char(36))
+debiteur_id (bigint(20) unsigned)
+agent_id (bigint(20) unsigned)
+created_by (bigint(20) unsigned)
+produit_id (bigint(20) unsigned)
+type_vente (enum('comptant','credit'))
+montant_total (decimal(12,2))
+montant_journalier (decimal(12,2))
+nombre_jours (int(11))
+delai_avant_echeances (tinyint(3) unsigned)
+epargne (decimal(12,2))
+epargne_par_jour (decimal(8,2))
+epargne_total (decimal(10,2))
+penalite_par_jour (decimal(8,2))
+penalite_active (tinyint(1))
+motif_penalite (text)
+mise_agent (decimal(8,2))
+date_debut (date)
+date_fin (date)
+heure_creation (time)
+statut (enum('en_cours','termine','defaut','annule'))
+created_at (timestamp)
+updated_at (timestamp)
+--- recouvrements ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+agent_id (bigint(20) unsigned)
+montant (decimal(12,2))
+date_recouvrement (date)
+heure_recouvrement (time)
+mode_paiement (enum('especes','mobile','autre'))
+statut (enum('paye','partiel','refus','absent','promesse'))
+commentaire (text)
+synced (tinyint(1))
+sync_uuid (char(36))
+created_at (timestamp)
+updated_at (timestamp)
+--- echeances ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+date_echeance (date)
+montant_prevu (decimal(12,2))
+montant_paye (decimal(12,2))
+statut (enum('en_attente','paye','partiel','en_retard','annule'))
+jours_retard (int(11))
+date_paiement (date)
+created_at (timestamp)
+updated_at (timestamp)
+--- caisses ---
+id (bigint(20) unsigned)
+uuid (char(36))
+user_id (bigint(20) unsigned)
+date_ouverture (date)
+date_fermeture (date)
+solde_initial (decimal(12,2))
+solde_theorique (decimal(12,2))
+solde_reel (decimal(12,2))
+ecart (decimal(12,2))
+statut (enum('ouverte','fermee'))
+notes (text)
+created_at (timestamp)
+updated_at (timestamp)
+periode (varchar(20))
+total_encaissements (decimal(12,2))
+total_decaissements (decimal(12,2))
+total_salaires (decimal(12,2))
+total_epargnes (decimal(12,2))
+total_penalites (decimal(12,2))
+--- journals ---
+id (bigint(20) unsigned)
+uuid (char(36))
+numero_ecriture (varchar(255))
+date_ecriture (date)
+compte_debit (varchar(255))
+compte_credit (varchar(255))
+montant (decimal(12,2))
+montant_ht (decimal(12,2))
+montant_tva (decimal(12,2))
+montant_ttc (decimal(12,2))
+taux_tva (decimal(5,2))
+libelle (varchar(255))
+reference (varchar(255))
+recouvrement_id (bigint(20) unsigned)
+vente_id (bigint(20) unsigned)
+mouvement_caisse_id (bigint(20) unsigned)
+user_id (bigint(20) unsigned)
+created_at (timestamp)
+updated_at (timestamp)
+
+=== SERVICES EPARGNE / PENALITE ===
+--- app/Services/EpargneService.php ---
+<?php
+namespace App\Services;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Epargne;
+use Illuminate\Support\Str;
+
+class EpargneService
+{
+    /**
+     * Enregistrer l'épargne quotidienne lors d'un encaissement.
+     * L'épargne va UNIQUEMENT dans la caisse, pas en comptabilité.
+     */
+    public static function collecter(Vente $vente, Recouvrement $recouvrement): void
+    {
+        if ($vente->epargne_par_jour <= 0) return;
+
+        Epargne::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'debiteur_id' => $vente->debiteur_id,
+            'montant' => $vente->epargne_par_jour,
+            'date_collecte' => $recouvrement->date_recouvrement,
+            'statut' => 'collecte',
+        ]);
+
+        // Enregistrer dans la caisse (pas en comptabilité)
+        CaisseService::enregistrerEpargne($vente, $vente->epargne_par_jour);
+    }
+
+    /**
+     * La gérante récupère l'épargne d'un client.
+     */
+    public static function recuperer(Epargne $epargne, $userId): void
+    {
+        $epargne->update([
+            'statut' => 'recuperee',
+            'recuperee_par' => $userId,
+            'date_recuperation' => now(),
+        ]);
+    }
+
+    /**
+     * Le client confirme avoir récupéré sa mise.
+     */
+    public static function confirmer(Epargne $epargne): void
+    {
+        $epargne->update(['confirmation_client' => true]);
+    }
+
+    /**
+     * Total épargne collectée (non récupérée) pour la caisse.
+     */
+    public static function totalCollecte(): float
+    {
+        return Epargne::where('statut', 'collecte')->sum('montant');
+    }
+}
+--- app/Services/PenaliteService.php ---
+<?php
+namespace App\Services;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Echeance;
+use App\Models\Penalite;
+use Illuminate\Support\Str;
+
+class PenaliteService
+{
+    /**
+     * Vérifier et appliquer les pénalités pour les échéances impayées.
+     * Les pénalités vont en caisse ET en comptabilité (divers).
+     */
+    public static function appliquer(Vente $vente, Recouvrement $recouvrement): void
+    {
+        $aujourdhui = now()->toDateString();
+        
+        $echeancesRetard = Echeance::where('vente_id', $vente->id)
+            ->whereDate('date_echeance', '<', $aujourdhui)
+            ->whereNotIn('statut', ['paye'])
+            ->get();
+
+        foreach ($echeancesRetard as $echeance) {
+            $jours = $echeance->date_echeance->diffInDays(now());
+            if ($jours <= 0) continue;
+
+            $montant = $jours * $vente->penalite_par_jour;
+
+            // Ne pas créer de doublon pour la même échéance
+            $existe = Penalite::where('echeance_id', $echeance->id)->exists();
+            if ($existe) continue;
+
+            $penalite = Penalite::create([
+                'uuid' => Str::uuid(),
+                'vente_id' => $vente->id,
+                'echeance_id' => $echeance->id,
+                'recouvrement_id' => $recouvrement->id,
+                'debiteur_id' => $vente->debiteur_id,
+                'montant' => $montant,
+                'jours_retard' => $jours,
+                'date_appliquee' => $aujourdhui,
+            ]);
+
+            // Enregistrer en caisse (divers)
+            CaisseService::enregistrerPenalite($penalite);
+            
+            // Enregistrer en comptabilité (divers)
+            ComptabiliteService::ecrirePenalite($penalite);
+        }
+    }
+}
+
+=== CONTROLEURS / ROUTES EXISTANTS ===
+app/Http/Controllers/Api/VenteController.php:62:            'epargne' => 'nullable|numeric|min:0',
+app/Http/Controllers/Api/VenteController.php:84:        $epargne = $request->epargne ?? 0;
+app/Http/Controllers/Api/VenteController.php:85:        $montantTotalAvecEpargne = $request->montant_total + $epargne;
+app/Http/Controllers/Api/VenteController.php:98:            'epargne' => $epargne,
+app/Http/Controllers/Api/VenteController.php:207:        if ($request->has('penalite_par_jour')) {
+app/Http/Controllers/Api/VenteController.php:208:            $vente->penalite_par_jour = $request->penalite_par_jour;
+app/Http/Controllers/Api/VenteController.php:209:            $vente->penalite_active = $request->penalite_active ?? true;
+app/Http/Controllers/Api/VenteController.php:210:            $vente->motif_penalite = $request->motif_penalite;
+app/Http/Controllers/Api/VenteController.php:230:            'prix_vente' => $vente->montant_total - ($vente->epargne_total ?? 0),
+app/Http/Controllers/Api/VenteController.php:231:            'epargne_par_jour' => $vente->epargne_par_jour,
+app/Http/Controllers/Api/VenteController.php:232:            'epargne_total' => $vente->epargne_total,
+app/Http/Controllers/Api/VenteController.php:236:            'penalite_par_jour' => $vente->penalite_par_jour,
+app/Http/Controllers/Api/AgentSpaceController.php:48:                    'epargne_par_jour' => $v->epargne_par_jour,
+app/Http/Controllers/Api/AgentSpaceController.php:49:                    'penalite_par_jour' => $v->penalite_par_jour,
+app/Http/Controllers/Api/ChefAgenceController.php:67:            'nombre_jours' => 1, 'epargne' => 0,
+app/Http/Controllers/Api/ChefAgenceController.php:88:            'epargne_par_jour' => 'nullable|numeric|min:0',
+app/Http/Controllers/Api/ChefAgenceController.php:119:        $epargneParJour = $request->epargne_par_jour ?? 300;
+app/Http/Controllers/Api/ChefAgenceController.php:120:        $epargneTotal = $epargneParJour * $request->jours;
+app/Http/Controllers/Api/ChefAgenceController.php:121:        $total = $request->montant + $epargneTotal;
+app/Http/Controllers/Api/ChefAgenceController.php:132:                $total = $totalProduits + $epargneTotal;
+app/Http/Controllers/Api/ChefAgenceController.php:145:            'epargne' => $epargneTotal,
+app/Http/Controllers/Api/ChefAgenceController.php:146:            'epargne_par_jour' => $epargneParJour,
+app/Http/Controllers/Api/ChefAgenceController.php:147:            'epargne_total' => $epargneTotal,
+app/Http/Controllers/Api/ChefAgenceController.php:148:            'penalite_par_jour' => $request->penalite_par_jour ?? 1000,
+app/Http/Controllers/Api/ChefAgenceController.php:149:            'mise_agent' => $epargneParJour,
+app/Http/Controllers/Api/ChefAgenceController.php:197:            'epargne_par_jour' => $epargneParJour,
+app/Http/Controllers/Api/ChefAgenceController.php:198:            'epargne_total' => $epargneTotal,
+app/Http/Controllers/Api/RemboursementController.php:48:            'montant_epargne_rembourse' => $vente->montantEpargnePaye(),
+
+=== MODELES ===
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Epargne extends Model
+{
+    protected $fillable = [
+        'uuid', 'vente_id', 'debiteur_id', 'montant',
+        'date_collecte', 'statut', 'recuperee_par',
+        'date_recuperation', 'confirmation_client',
+    ];
+
+    protected $casts = [
+        'date_collecte' => 'date',
+        'date_recuperation' => 'date',
+        'confirmation_client' => 'boolean',
+    ];
+
+    public function vente() { return $this->belongsTo(Vente::class); }
+    public function debiteur() { return $this->belongsTo(Debiteur::class); }
+    public function recupereePar() { return $this->belongsTo(User::class, 'recuperee_par'); }
+}
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Penalite extends Model
+{
+    protected $fillable = [
+        'uuid', 'vente_id', 'echeance_id', 'recouvrement_id',
+        'debiteur_id', 'montant', 'jours_retard', 'date_appliquee',
+    ];
+
+    protected $casts = ['date_appliquee' => 'date'];
+
+    public function vente() { return $this->belongsTo(Vente::class); }
+    public function echeance() { return $this->belongsTo(Echeance::class); }
+    public function recouvrement() { return $this->belongsTo(Recouvrement::class); }
+    public function debiteur() { return $this->belongsTo(Debiteur::class); }
+}

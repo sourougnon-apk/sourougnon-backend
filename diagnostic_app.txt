@@ -1,0 +1,1110 @@
+=== 1. PAGE MON ESPACE WEB (agent-functions.js) ===
+// === FONCTIONS AGENT (MON ESPACE) ===
+
+function loadAgentSpace(c){apiFetch('/agent-space/tournee').then(function(d){function f(v){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);}var s=d.stats;var tabs=['a_visiter','paye','absent','refus','promesse'];var labels={'a_visiter':'A visiter','paye':'Paye','absent':'Absent','refus':'Refus','promesse':'Promesse'};var currentTab='a_visiter';function renderTab(tab){var list=d[tab]||[];return list.map(function(v){var badgeRetard=v.statut_global==='en_retard'?'<span class=\"badge badge-danger\">En retard</span>':'<span class=\"badge badge-success\">A jour</span>';var onclick='openEncaisserModal(&#39;'+v.uuid+'&#39;,&#39;'+v.debiteur.replace(/'/g,'')+'&#39;,&#39;'+(v.quartier||'').replace(/'/g,'')+'&#39;,&#39;'+(v.telephone||'').replace(/'/g,'')+'&#39;,'+v.montant_journalier+','+v.reste_a_payer+',&#39;'+v.statut_global+'&#39;,&#39;'+v.statut_visite+'&#39;)';return '<tr><td class=\"font-medium\">'+v.debiteur+'</td><td>'+(v.quartier||'-')+'</td><td>'+(v.telephone||'-')+'</td><td>'+f(v.montant_journalier)+'</td><td>'+f(v.reste_a_payer)+'</td><td>'+(v.jours_payes||0)+'/'+(v.jours_total||0)+' j</td><td>'+badgeRetard+'</td><td><button onclick=\"'+onclick+'\" class=\"bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-700\">Encaisser</button></td></tr>';}).join('');}c.innerHTML='<div class=\"fade-in space-y-6\"><h3 class=\"text-xl font-bold\">Mon Espace Agent</h3><div class=\"kpi-grid\"><div class=\"kpi-card\" style=\"border-left:3px solid #0066ff\"><div class=\"kpi-label\">Total</div><div class=\"kpi-value\">'+s.nb_total+'</div></div><div class=\"kpi-card\" style=\"border-left:3px solid #00c853\"><div class=\"kpi-label\">Paye</div><div class=\"kpi-value\">'+s.nb_paye+'</div></div><div class=\"kpi-card\" style=\"border-left:3px solid #ef4444\"><div class=\"kpi-label\">Absent</div><div class=\"kpi-value\">'+s.nb_absent+'</div></div><div class=\"kpi-card\" style=\"border-left:3px solid #f59e0b\"><div class=\"kpi-label\">Attendu</div><div class=\"kpi-value\">'+f(s.montant_attendu)+'</div></div></div><div class=\"flex gap-2 overflow-x-auto pb-2\">'+tabs.map(function(t){return '<button onclick=\"switchAgentTab(&#39;'+t+'&#39;)\" class=\"agent-tab px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap '+(t===currentTab?'bg-accent text-white':'bg-slate-200 text-slate-700')+'\" data-tab=\"'+t+'\">'+labels[t]+' ('+(d[t]||[]).length+')</button>';}).join('')+'</div><div class=\"panel\"><div class=\"table-wrapper\"><table><thead><tr><th>Debiteur</th><th>Quartier</th><th>Tel</th><th>Journalier</th><th>Restant</th><th>Jours</th><th>Statut</th><th>Action</th></tr></thead><tbody id=\"agent-table-body\">'+renderTab(currentTab)+'</tbody></table></div></div></div>';window.switchAgentTab=function(tab){currentTab=tab;document.querySelectorAll('.agent-tab').forEach(function(b){b.className='agent-tab px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap '+(b.getAttribute('data-tab')===tab?'bg-accent text-white':'bg-slate-200 text-slate-700');});document.getElementById('agent-table-body').innerHTML=renderTab(tab);};}).catch(function(){c.innerHTML='<div class=\"panel text-center py-12\"><p class=\"text-muted\">Erreur chargement.</p></div>';});}
+
+function openEncaisserModal(uuid,debiteur,quartier,tel,attendu,reste,statutGlobal,statutVisite){var modal=document.getElementById('encaisser-modal'); if(modal){modal.classList.remove('hidden'); modal.style.display='flex';}document.getElementById('enc-vente-id').value=uuid;document.getElementById('enc-debiteur').textContent=debiteur;document.getElementById('enc-quartier').textContent=quartier||'-';document.getElementById('enc-telephone').textContent=tel||'-';document.getElementById('enc-attendu').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(attendu);document.getElementById('enc-reste').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(reste);document.getElementById('enc-statut-global').innerHTML=statutGlobal==='en_retard'?'<span class=\"badge badge-danger\">En retard</span>':'<span class=\"badge badge-success\">A jour</span>';document.getElementById('enc-montant').value=attendu;document.getElementById('enc-statut').value='paye';document.getElementById('enc-commentaire').value='';document.getElementById('enc-commentaire-obligatoire').classList.add('hidden');document.getElementById('encaisser-modal').classList.remove('hidden');}
+function closeEncaisserModal(){var modal=document.getElementById('encaisser-modal'); if(modal){modal.classList.add('hidden'); modal.style.display='none';}}
+function onStatutChange(){var s=document.getElementById('enc-statut').value;var o=document.getElementById('enc-commentaire-obligatoire');var c=document.getElementById('enc-commentaire');if(s==='absent'||s==='refus'||s==='promesse'){o.classList.remove('hidden');c.required=true;}else{o.classList.add('hidden');c.required=false;}}
+function submitEncaisser(e){e.preventDefault();var data={vente_id:document.getElementById('enc-vente-id').value,montant:parseFloat(document.getElementById('enc-montant').value)||0,mode_paiement:document.getElementById('enc-mode').value,statut:document.getElementById('enc-statut').value,commentaire:document.getElementById('enc-commentaire').value};apiFetch('/agent-space/encaisser',{method:'POST',body:JSON.stringify(data)}).then(function(r){if(r.error){alert(r.error);return;}closeEncaisserModal();alert(r.message||'OK');loadPage('agent-space');});}
+
+=== 2. MODALE ENCAISSER WEB ===
+115:<div id="encaisser-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+116-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto">
+117-        <h3 class="text-lg font-bold mb-4">💰 Encaisser</h3>
+118-        <form onsubmit="submitEncaisser(event)" class="space-y-3">
+119-            <input type="hidden" id="enc-vente-id">
+120-            <div class="bg-slate-100 rounded-xl p-3">
+121-                <p class="text-sm font-medium" id="enc-debiteur"></p>
+122-                <p class="text-xs text-muted">Quartier: <span id="enc-quartier"></span> | Tel: <span id="enc-telephone"></span></p>
+123-                <p class="text-xs text-muted">Attendu: <span id="enc-attendu" class="font-bold text-accent"></span> | Reste: <span id="enc-reste" class="font-bold text-red-600"></span></p>
+124-                <p class="text-xs" id="enc-statut-global"></p>
+125-            </div>
+126-            <div>
+127-                <label class="block text-sm font-medium text-slate-700 mb-1">Montant encaisse (FCFA)</label>
+128-                <input type="number" id="enc-montant" step="0.01" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+129-                <p class="text-xs text-muted mt-1">0 = pas d'argent collecte</p>
+130-            </div>
+131-            <div>
+132-                <label class="block text-sm font-medium text-slate-700 mb-1">Mode de paiement</label>
+133-                <select id="enc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+134-                    <option value="especes">Especes</option>
+135-                    <option value="mobile">Mobile Money</option>
+136-                    <option value="autre">Autre</option>
+137-                </select>
+138-            </div>
+139-            <div>
+140-                <label class="block text-sm font-medium text-slate-700 mb-1">Statut de la visite</label>
+141-                <select id="enc-statut" onchange="onStatutChange()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+142-                    <option value="paye">✅ Paye</option>
+143-                    <option value="partiel">🔶 Partiel</option>
+144-                    <option value="absent">❌ Absent</option>
+145-                    <option value="refus">🚫 Refus de payer</option>
+146-                    <option value="promesse">⏳ Promesse de payer</option>
+147-                </select>
+148-            </div>
+149-            <div id="enc-commentaire-group">
+150-                <label class="block text-sm font-medium text-slate-700 mb-1">Commentaire <span id="enc-commentaire-obligatoire" class="text-red-500 hidden">*</span></label>
+151-                <textarea id="enc-commentaire" rows="2" placeholder="Raison..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea>
+152-            </div>
+153-            <div class="flex gap-3 pt-2">
+154-                <button type="button" onclick="closeEncaisserModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+155-                <button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700">Valider</button>
+156-            </div>
+157-        </form>
+158-    </div>
+159-</div>
+160-
+113:<div id="encaisser-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+114-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto">
+115-        <h3 class="text-lg font-bold mb-4">💰 Encaisser</h3>
+116-        <form onsubmit="submitEncaisser(event)" class="space-y-3">
+117-            <input type="hidden" id="enc-vente-id">
+118-            <div class="bg-slate-100 rounded-xl p-3">
+119-                <p class="text-sm font-medium" id="enc-debiteur"></p>
+120-                <p class="text-xs text-muted">Quartier: <span id="enc-quartier"></span> | Tel: <span id="enc-telephone"></span></p>
+121-                <p class="text-xs text-muted">Attendu: <span id="enc-attendu" class="font-bold text-accent"></span> | Reste: <span id="enc-reste" class="font-bold text-red-600"></span></p>
+122-                <p class="text-xs" id="enc-statut-global"></p>
+123-            </div>
+124-            <div>
+125-                <label class="block text-sm font-medium text-slate-700 mb-1">Montant encaisse (FCFA)</label>
+126-                <input type="number" id="enc-montant" step="0.01" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+127-                <p class="text-xs text-muted mt-1">0 = pas d'argent collecte</p>
+128-            </div>
+129-            <div>
+130-                <label class="block text-sm font-medium text-slate-700 mb-1">Mode de paiement</label>
+131-                <select id="enc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+132-                    <option value="especes">Especes</option>
+133-                    <option value="mobile">Mobile Money</option>
+134-                    <option value="autre">Autre</option>
+135-                </select>
+136-            </div>
+137-            <div>
+138-                <label class="block text-sm font-medium text-slate-700 mb-1">Statut de la visite</label>
+139-                <select id="enc-statut" onchange="onStatutChange()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+140-                    <option value="paye">✅ Paye</option>
+141-                    <option value="partiel">🔶 Partiel</option>
+142-                    <option value="absent">❌ Absent</option>
+143-                    <option value="refus">🚫 Refus de payer</option>
+144-                    <option value="promesse">⏳ Promesse de payer</option>
+145-                </select>
+146-            </div>
+147-            <div id="enc-commentaire-group">
+148-                <label class="block text-sm font-medium text-slate-700 mb-1">Commentaire <span id="enc-commentaire-obligatoire" class="text-red-500 hidden">*</span></label>
+149-                <textarea id="enc-commentaire" rows="2" placeholder="Raison..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea>
+150-            </div>
+151-            <div class="flex gap-3 pt-2">
+152-                <button type="button" onclick="closeEncaisserModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+153-                <button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700">Valider</button>
+154-            </div>
+155-        </form>
+156-    </div>
+157-</div>
+158-
+
+=== 3. CONTROLLER AGENT SPACE ===
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Services\PaiementService;
+use App\Services\CaisseService;
+use App\Services\ComptabiliteService;
+use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AgentSpaceController extends Controller
+{
+    public function tournee(Request $request)
+    {
+        $user = $request->user();
+        $aujourdhui = now()->toDateString();
+        $query = Vente::where('statut', 'en_cours')
+            ->whereDate('date_debut', '<=', $aujourdhui)
+            ->whereDate('date_fin', '>=', $aujourdhui)
+            ->with(['debiteur', 'echeances' => fn($q) => $q->whereDate('date_echeance', $aujourdhui)]);
+
+        if ($user->role === 'agent') {
+            $query->where('agent_id', $user->id);
+        }
+
+        $ventes = $query->get()
+            ->map(function($v) use ($aujourdhui) {
+                $echeance = $v->echeances->first();
+                $enRetard = $v->echeances()
+                    ->whereDate('date_echeance', '<=', $aujourdhui)
+                    ->whereNotIn('statut', ['paye'])
+                    ->exists();
+
+                $joursTotal = max(1, $v->nombre_jours);
+                $joursPayes = $v->echeances()->where('statut', 'paye')->count();
+                return [
+                    'uuid' => $v->uuid,
+                    'debiteur' => $v->debiteur?->nom.' '.$v->debiteur?->prenom,
+                    'telephone' => $v->debiteur?->telephone,
+                    'quartier' => $v->debiteur?->quartier,
+                    'montant_journalier' => $echeance?->montant_prevu ?? $v->montant_journalier,
+                    'reste_a_payer' => $v->resteAPayer(),
+                    'statut_visite' => $echeance?->statut ?? 'en_attente',
+                    'statut_global' => $enRetard ? 'en_retard' : 'a_jour',
+                    'epargne_par_jour' => $v->epargne_par_jour,
+                    'penalite_par_jour' => $v->penalite_par_jour,
+                    'jours_payes' => $joursPayes,
+                    'jours_total' => $joursTotal,
+                ];
+            });
+
+        // Regrouper par statut de visite
+        $aVisiter = $ventes->whereIn('statut_visite', ['en_attente', 'en_retard'])->values();
+        $paye = $ventes->where('statut_visite', 'paye')->values();
+        $absent = $ventes->where('statut_visite', 'absent')->values();
+        $refus = $ventes->where('statut_visite', 'refus')->values();
+        $promesse = $ventes->where('statut_visite', 'promesse')->values();
+
+        return response()->json([
+            'a_visiter' => $aVisiter,
+            'paye' => $paye,
+            'absent' => $absent,
+            'refus' => $refus,
+            'promesse' => $promesse,
+            'stats' => [
+                'nb_total' => $ventes->count(),
+                'nb_paye' => $paye->count(),
+                'nb_absent' => $absent->count(),
+                'nb_refus' => $refus->count(),
+                'nb_promesse' => $promesse->count(),
+                'nb_a_visiter' => $aVisiter->count(),
+                'montant_attendu' => $ventes->sum('montant_journalier'),
+            ]
+        ]);
+    }
+
+    public function encaisser(Request $request)
+    {
+        $request->validate([
+            'vente_id' => 'required|exists:ventes,uuid',
+            'montant' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,mobile,autre',
+            'statut' => 'required|in:paye,partiel,absent,refus,promesse',
+            'commentaire' => 'nullable|string|required_if:statut,absent,refus,promesse',
+        ]);
+        
+        $vente = Vente::where('uuid', $request->vente_id)->firstOrFail();
+        
+        $rec = Recouvrement::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'agent_id' => $vente->debiteur->agent_id ?? $request->user()->id,
+            'montant' => $request->montant,
+            'date_recouvrement' => now()->toDateString(), 'heure_recouvrement' => now()->toTimeString(),
+            'mode_paiement' => $request->mode_paiement,
+            'statut' => $request->statut,
+            'commentaire' => $request->commentaire,
+            'synced' => true,
+        ]);
+
+        // Traiter le paiement avec le service
+        PaiementService::affecterPaiement($rec);
+
+        // Encaissements réels : caisse + compta
+        if (in_array($request->statut, ['paye', 'partiel']) && $request->montant > 0) {
+            CaisseService::enregistrerRecouvrement($rec);
+            ComptabiliteService::ecrireRecouvrement($rec);
+        }
+
+        // Notifications
+        NotificationService::generer();
+
+        return response()->json([
+            'success' => true,
+            'reste' => $vente->resteAPayer(),
+            'message' => self::messageStatut($request->statut),
+        ]);
+    }
+
+    private static function messageStatut($statut): string
+    {
+        return [
+            'paye' => 'Paiement enregistré.',
+            'partiel' => 'Paiement partiel enregistré.',
+            'absent' => 'Client absent signalé.',
+            'refus' => 'Refus de payer signalé.',
+            'promesse' => 'Promesse de paiement enregistrée.',
+        ][$statut] ?? 'OK';
+    }
+}
+
+=== 4. CONTROLLER DEBITEURS (showAgent/indexAgent) ===
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Debiteur;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class DebiteurController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Debiteur::where('actif', true)->with(['agent:id,uuid,nom,prenom', 'ancienAgent:id,uuid,nom,prenom']);
+        if ($request->agent_id) {
+            $query->whereHas('agent', fn($q) => $q->where('uuid', $request->agent_id));
+        }
+        if ($request->q) {
+            $q = $request->q;
+            $query->where(function($sql) use ($q) {
+                $sql->where('nom', 'LIKE', "%$q%")->orWhere('prenom', 'LIKE', "%$q%")->orWhere('telephone', 'LIKE', "%$q%")->orWhere('quartier', 'LIKE', "%$q%");
+            });
+        }
+        return response()->json($query->orderBy('nom')->get());
+    }
+
+    public function showAgent(Request $request, string $uuid)
+    {
+        $user = $request->user();
+        $debiteur = Debiteur::where('uuid', $uuid)
+            ->where('agent_id', $user->id)
+            ->with(['agent:id,uuid,nom,prenom', 'ventes' => fn($q) => $q->orderByDesc('created_at'), 'ventes.recouvrements'])
+            ->first();
+
+        if (!$debiteur) {
+            return response()->json(['error' => 'Débiteur introuvable ou non autorisé.'], 404);
+        }
+
+        return response()->json($debiteur);
+    }
+
+    public function indexAgent(Request $request)
+    {
+        $user = $request->user();
+        $debiteurs = Debiteur::where('agent_id', $user->id)
+            ->where('actif', true)
+            ->with(['agent:id,uuid,nom,prenom'])
+            ->orderBy('nom')
+            ->get();
+
+        return response()->json($debiteurs);
+    }
+
+    public function show(string $uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)
+            ->with(['agent:id,uuid,nom,prenom', 'ancienAgent:id,uuid,nom,prenom'])
+            ->firstOrFail();
+        $debiteur->load(['ventes' => fn($q) => $q->orderByDesc('created_at'), 'ventes.recouvrements']);
+        return response()->json($debiteur);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate(['agent_id' => 'required|exists:users,uuid', 'nom' => 'required|string|max:100']);
+        $agent = User::where('uuid', $request->agent_id)->firstOrFail();
+        $debiteur = Debiteur::create([
+            'uuid' => Str::uuid(),
+            'agent_id' => $agent->id,
+            'nom' => $request->nom,
+            'prenom' => $request->prenom ?? '',
+            'telephone' => $request->telephone ?? '',
+            'quartier' => $request->quartier ?? '',
+            'adresse' => $request->adresse ?? '',
+            'activite' => $request->activite ?? '',
+            'personne_reference_nom' => $request->personne_reference_nom ?? '',
+            'personne_reference_tel' => $request->personne_reference_tel ?? '',
+            'credits_autorises' => (int) ($request->credits_autorises ?? $request->limite_credit ?? 1),
+            'score_solvabilite' => 50,
+        ]);
+        return response()->json(['success' => true, 'uuid' => $debiteur->uuid], 201);
+    }
+
+    public function update(Request $request, string $uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        $debiteur->update($request->only(['nom','prenom','telephone','quartier','adresse','activite','credits_autorises','personne_reference_nom','personne_reference_tel']));
+        return response()->json(['success' => true]);
+    }
+
+    public function destroy(string $uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        $debiteur->update(['actif' => false]);
+        return response()->json(['success' => true]);
+    }
+}
+
+=== 5. MODELES DEBIT / VENTE / ECHEANCE ===
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Debiteur extends Model
+{
+    protected $attributes = [
+        'credits_autorises' => 1,
+        'actif' => true,
+    ];
+
+    protected $fillable = [
+        'uuid', 'code_client', 'agent_id', 'nom', 'prenom', 'telephone',
+        'quartier', 'adresse', 'personne_reference_nom', 'personne_reference_tel',
+        'activite', 'score_solvabilite', 'credits_autorises', 'actif',
+        'ancien_agent_id', 'date_transfert',
+        'taux_recouvrement_au_transfert', 'reste_a_payer_au_transfert',
+    ];
+
+    protected $casts = [
+        'actif' => 'boolean',
+        'date_transfert' => 'datetime',
+        'score_solvabilite' => 'float',
+        'credits_autorises' => 'integer',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $d) {
+            $d->uuid = $d->uuid ?: (string) \Illuminate\Support\Str::uuid();
+            if (blank($d->code_client)) {
+                do {
+                    $code = 'CLI-' . strtoupper(\Illuminate\Support\Str::random(8));
+                } while (self::where('code_client', $code)->exists());
+                $d->code_client = $code;
+            }
+        });
+    }
+
+    public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
+    public function ancienAgent() { return $this->belongsTo(User::class, 'ancien_agent_id'); }
+    public function ventes() { return $this->hasMany(Vente::class); }
+    public function score() { return $this->hasOne(ScoreSolvabilite::class); }
+}
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use App\Observers\VenteObserver;
+
+class Vente extends Model
+{
+    protected static function booted(): void
+    {
+        static::observe(VenteObserver::class);
+    }
+
+    protected $fillable = [
+        'uuid','debiteur_id','agent_id','created_by','produit_id',
+        'type_vente','montant_total','montant_journalier',
+        'nombre_jours','delai_avant_echeances','epargne','epargne_par_jour','epargne_total',
+        'penalite_par_jour','penalite_active','motif_penalite','mise_agent',
+        'date_debut','date_fin','heure_creation','statut',
+    ];
+    protected $casts = ['date_debut' => 'date','date_fin' => 'date'];
+
+    public function debiteur() { return $this->belongsTo(Debiteur::class); }
+    public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
+    public function createur() { return $this->belongsTo(User::class, 'created_by'); }
+    public function produit() { return $this->belongsTo(Produit::class); }
+    public function venteProduits() { return $this->hasMany(VenteProduit::class); }
+    public function recouvrements() { return $this->hasMany(Recouvrement::class); }
+    public function echeances() { return $this->hasMany(Echeance::class)->orderBy('date_echeance'); }
+    public function demandeRemboursement() { return $this->hasOne(DemandeRemboursement::class); }
+
+    public function ratioEpargne(): float
+    {
+        return $this->montant_total > 0 ? ($this->epargne_total ?? 0) / $this->montant_total : 0;
+    }
+
+    public function montantEpargnePaye(): float
+    {
+        return round($this->totalPaye() * $this->ratioEpargne(), 2);
+    }
+
+    public function montantCreditPaye(): float
+    {
+        return round($this->totalPaye() - $this->montantEpargnePaye(), 2);
+    }
+
+    public function scopeActives($q) { return $q->whereIn('statut', ['en_cours', 'termine', 'defaut']); }
+
+    public function totalPaye(): float
+    {
+        return $this->recouvrements()->where('statut', 'paye')->sum('montant');
+    }
+    public function resteAPayer(): float
+    {
+        return max(0, $this->montant_total - $this->totalPaye());
+    }
+
+    // Tous les articles du panier, avec repli sur le produit unique (ventes historiques)
+    public function produitsPanier(): array
+    {
+        $items = $this->venteProduits()->with('produit')->get()->map(function ($vp) {
+            return [
+                'nom'           => $vp->produit?->nom ?? '--',
+                'quantite'      => (int) $vp->quantite,
+                'prix_unitaire' => (float) $vp->prix_unitaire,
+                'total'         => (float) $vp->quantite * (float) $vp->prix_unitaire,
+            ];
+        })->values()->all();
+
+        if (empty($items) && $this->produit) {
+            $items[] = [
+                'nom'           => $this->produit->nom,
+                'quantite'      => 1,
+                'prix_unitaire' => (float) ($this->produit->prix_vente ?? 0),
+                'total'         => (float) ($this->produit->prix_vente ?? 0),
+            ];
+        }
+        return $items;
+    }
+
+    // Générer les échéances
+    public function genererEcheances(): void
+    {
+        if ($this->type_vente !== 'credit') return;
+        $this->echeances()->delete();
+        $delai = max(0, (int) ($this->delai_avant_echeances ?? 1));
+        $reste = $this->montant_total;
+        $jours = (int) $this->nombre_jours;
+        $journalier = $this->montant_journalier;
+        for ($i = 0; $i < $jours; $i++) {
+            $montant = ($i === $jours - 1) ? $reste : $journalier;
+            $this->echeances()->create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'date_echeance' => $this->date_debut->copy()->addDays($delai + $i),
+                'montant_prevu' => $montant,
+                'statut' => 'en_attente',
+            ]);
+            $reste -= $montant;
+        }
+    }
+
+    // Mettre à jour le statut global de la vente
+    public function mettreAJourStatutGlobal(): void
+    {
+        $toutesPayees = $this->echeances()->where('statut', '!=', 'paye')->doesntExist();
+        if ($toutesPayees && $this->echeances()->count() > 0) {
+            $this->update(['statut' => 'termine']);
+        }
+    }
+}
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Echeance extends Model
+{
+    protected $fillable = ['uuid','vente_id','date_echeance','montant_prevu','montant_paye','statut','jours_retard','date_paiement'];
+    protected $casts = ['date_echeance' => 'date', 'date_paiement' => 'date'];
+
+    public function vente() { return $this->belongsTo(Vente::class); }
+
+    public function restant(): float
+    {
+        return max(0, $this->montant_prevu - $this->montant_paye);
+    }
+
+    public function mettreAJourStatut(): void
+    {
+        if ($this->montant_paye >= $this->montant_prevu) {
+            $this->statut = 'paye';
+            $this->jours_retard = 0;
+        } elseif ($this->montant_paye > 0) {
+            $this->statut = 'partiel';
+        } elseif ($this->date_echeance->startOfDay()->lessThanOrEqualTo(now()->startOfDay())) {
+            $this->statut = 'en_retard';
+            $this->jours_retard = $this->date_echeance->startOfDay()->diffInDays(now()->startOfDay());
+        } else {
+            $this->statut = 'en_attente';
+            $this->jours_retard = 0;
+        }
+        $this->save();
+    }
+}
+
+=== 6. SERVICE SCORE SOLVABILITE ===
+<?php
+namespace App\Services;
+
+use App\Models\Debiteur;
+use App\Models\Vente;
+use App\Models\Echeance;
+use App\Models\Recouvrement;
+use App\Models\Penalite;
+use App\Models\ScoreSolvabilite;
+use App\Models\DerogationSolvabilite;
+use Illuminate\Http\Request;
+
+class ScoreSolvabiliteService
+{
+    private array $poids = [
+        'comportement_paiement' => 50,
+        'severite_retards'      => 20,
+        'credits_termines'     => 15,
+        'anciennete'           => 10,
+        'regularite'           => 5,
+    ];
+
+    public function calculer(Debiteur $debiteur): array
+    {
+        // 1. Mettre à jour proactivement les statuts des échéances du débiteur
+        $ventesCredit = Vente::where('debiteur_id', $debiteur->id)
+            ->where('type_vente', 'credit')
+            ->get();
+        
+        $ventesCreditIds = $ventesCredit->pluck('id');
+        
+        $echeances = Echeance::whereIn('vente_id', $ventesCreditIds)->get();
+        foreach ($echeances as $echeance) {
+            if (method_exists($echeance, 'mettreAJourStatut')) {
+                $echeance->mettreAJourStatut();
+            }
+        }
+        // Recharger la collection après mise à jour
+        $echeances = Echeance::whereIn('vente_id', $ventesCreditIds)->get();
+
+        $recouvrementsCredit = Recouvrement::whereIn('vente_id', $ventesCreditIds)->get();
+        $penalites = Penalite::where('debiteur_id', $debiteur->id)->get();
+
+        // Cold start : < 5 échéances observées
+        if ($echeances->count() < 5) {
+            return $this->scoreNeutre($debiteur, $echeances->count());
+        }
+
+        $comportement     = $this->calculerComportementPaiement($echeances);
+        $severite         = $this->calculerSeveriteRetards($echeances);
+        $creditsTermines = $this->calculerCreditsTermines($ventesCredit);
+        $anciennete       = $this->calculerAnciennete($debiteur);
+        $regularite       = $this->calculerRegularite($recouvrementsCredit);
+
+        $score = (
+            $comportement * $this->poids['comportement_paiement'] / 100 +
+            $severite * $this->poids['severite_retards'] / 100 +
+            $creditsTermines * $this->poids['credits_termines'] / 100 +
+            $anciennete * $this->poids['anciennete'] / 100 +
+            $regularite * $this->poids['regularite'] / 100
+        );
+
+        $score = max(0, min(100, round($score, 2)));
+
+        $details = [
+            'comportement_paiement' => round($comportement, 2),
+            'severite_retards'      => round($severite, 2),
+            'credits_termines'     => round($creditsTermines, 2),
+            'anciennete'           => round($anciennete, 2),
+            'regularite'           => round($regularite, 2),
+            'nb_echeances'          => $echeances->count(),
+            'nb_retards'            => $echeances->whereIn('statut', ['en_retard'])->count(),
+            'nb_partiels_tardifs'   => $echeances->where('statut', 'partiel')->where('date_echeance', '<', now())->count(),
+            'nb_penalites'          => $penalites->count(),
+            'poids'                 => $this->poids,
+        ];
+
+        ScoreSolvabilite::updateOrCreate(
+            ['debiteur_id' => $debiteur->id],
+            [
+                'score'                  => $score,
+                'nb_credits_total'       => $ventesCredit->count(),
+                'nb_credits_termines'    => $ventesCredit->where('statut', 'termine')->count(),
+                'nb_retards'             => $echeances->whereIn('statut', ['en_retard'])->count(),
+                'montant_total_rembourse' => $recouvrementsCredit->where('statut', 'paye')->sum('montant'),
+                'montant_total_du'       => $ventesCredit->sum('montant_total'),
+                'details_calcul'         => $details,
+                'historique_insuffisant' => false,
+                'date_calcul'            => now(),
+            ]
+        );
+
+        // Sécurisation : le score doit rester entre 0 et 100
+        $score = max(0, min(100, $score));
+        
+        $debiteur->score_solvabilite = $score;
+        $debiteur->save();
+
+        return [
+            'score'   => $score,
+            'details' => $details,
+            'label'   => $this->getLabel($score),
+        ];
+    }
+
+    private function scoreNeutre(Debiteur $debiteur, int $nbEcheances): array
+    {
+        ScoreSolvabilite::updateOrCreate(
+            ['debiteur_id' => $debiteur->id],
+            [
+                'score'                  => 50,
+                'historique_insuffisant' => true,
+                'details_calcul'         => ['raison' => 'Historique insuffisant (' . $nbEcheances . ' echeances)', 'score_neutre' => 50],
+                'date_calcul'            => now(),
+            ]
+        );
+
+        $debiteur->update(['score_solvabilite' => 50]);
+
+        return ['score' => 50, 'details' => ['historique_insuffisant' => true], 'label' => 'Neutre'];
+    }
+
+    private function calculerComportementPaiement($echeances): float
+    {
+        $score = 0;
+        $totalPoids = 0;
+        $now = now();
+
+        foreach ($echeances as $echeance) {
+            $joursEcoules = $echeance->date_echeance->diffInDays($now);
+            $poidsRecence = exp(-$joursEcoules / 90);
+
+            $scorePonctuel = match($echeance->statut) {
+                'paye'    => 100,
+                'partiel' => 50,
+                default   => 0,
+            };
+
+            $score += $scorePonctuel * $poidsRecence;
+            $totalPoids += $poidsRecence;
+        }
+
+        return $totalPoids > 0 ? $score / $totalPoids : 0;
+    }
+
+    private function calculerSeveriteRetards($echeances): float
+    {
+        $now = now();
+        $retards = $echeances->filter(function($e) use ($now) {
+            return $e->statut === 'en_retard' || 
+                   ($e->statut === 'partiel' && $e->date_echeance->isPast());
+        });
+
+        if ($retards->isEmpty()) return 100;
+
+        $score = 0;
+        $totalPoids = 0;
+
+        foreach ($retards as $retard) {
+            // Sévérité basée sur les jours de retard réels (stockés ou calculés)
+            $joursRetard = $retard->jours_retard ?: max(1, $retard->date_echeance->diffInDays($now));
+            
+            // Pondération temporelle (récence de l'échéance)
+            $joursDepuisEcheance = max(0, $retard->date_echeance->diffInDays($now));
+            $poidsRecence = exp(-$joursDepuisEcheance / 90);
+
+            // Pénalité progressive selon la durée du retard (perte de 10 points par jour de retard)
+            $severite = max(0, 100 - ($joursRetard * 10));
+            
+            $score += $severite * $poidsRecence;
+            $totalPoids += $poidsRecence;
+        }
+
+        return $totalPoids > 0 ? $score / $totalPoids : 0;
+    }
+
+    private function calculerCreditsTermines($ventesCredit): float
+    {
+        $creditsTermines = $ventesCredit->where('statut', 'termine')->count();
+        $ratio = min($creditsTermines / 5, 1);
+        return $ratio * 100;
+    }
+
+    private function calculerAnciennete(Debiteur $debiteur): float
+    {
+        $mois = $debiteur->created_at->diffInMonths(now());
+        $ratio = min($mois / 24, 1);
+        return $ratio * 100;
+    }
+
+    private function calculerRegularite($recouvrementsCredit): float
+    {
+        $montants = $recouvrementsCredit
+            ->where('statut', 'paye')
+            ->pluck('montant')
+            ->toArray();
+
+        if (count($montants) < 2) return 50;
+
+        $moyenne = array_sum($montants) / count($montants);
+        $variance = array_sum(array_map(fn($m) => pow($m - $moyenne, 2), $montants)) / count($montants);
+        $ecartType = sqrt($variance);
+
+        $ratio = max(0, 1 - ($ecartType / max($moyenne, 1)));
+        return $ratio * 100;
+    }
+
+    private function getLabel(float $score): string
+    {
+        if ($score >= 80) return 'Excellent';
+        if ($score >= 60) return 'Bon';
+        if ($score >= 40) return 'Moyen';
+        if ($score >= 20) return 'Risqué';
+        return 'Critique';
+    }
+
+    public function enregistrerDerogation(Debiteur $debiteur, $venteId, $motif, Request $request): void
+    {
+        DerogationSolvabilite::create([
+            'debiteur_id'      => $debiteur->id,
+            'vente_id'         => $venteId,
+            'user_id'          => $request->user()->id,
+            'score_au_moment'  => $debiteur->score_solvabilite ?? 0,
+            'motif'            => $motif,
+            'resultat_credit'  => 'en_cours',
+        ]);
+    }
+
+    public function mettreAJourResultatDerogation($venteId): void
+    {
+        $vente = Vente::findOrFail($venteId);
+        $derogation = DerogationSolvabilite::where('vente_id', $venteId)->first();
+        if (!$derogation) return;
+
+        if ($vente->statut === 'termine') {
+            $aDesRetards = Echeance::where('vente_id', $venteId)
+                ->where(function($q) {
+                    $q->where('statut', 'en_retard')
+                      ->orWhere(function($q2) {
+                          $q2->where('statut', 'partiel')
+                             ->where('date_echeance', '<', now());
+                      });
+                })
+                ->exists();
+            $derogation->resultat_credit = $aDesRetards ? 'termine_avec_retard' : 'termine_sans_retard';
+        } elseif ($vente->statut === 'annule') {
+            $derogation->resultat_credit = 'defaut';
+        }
+        $derogation->save();
+    }
+}
+
+=== 7. ROUTES AGENT / DEBITEURS ===
+47-    Route::post('/notifications/generer', [NotificationController::class, 'generer']);
+48-
+49-    // --- Espace terrain : agents, chef d'agence (PAS la gerante) ---
+50-    Route::middleware('role:agent,chef_agence')->group(function () {
+51:        Route::get('/agent-space/tournee', [AgentSpaceController::class, 'tournee']);
+52:        Route::post('/agent-space/encaisser', [AgentSpaceController::class, 'encaisser']);
+53-    });
+54-
+55-    // --- Espace terrain : agents uniquement ---
+56-    Route::middleware('role:agent')->group(function () {
+57:        Route::get('/agent/debiteurs', [DebiteurController::class, 'indexAgent']);
+58:        Route::get('/agent/debiteurs/{uuid}', [DebiteurController::class, 'showAgent']);
+59-    });
+60-
+61-    // --- Perimetre operationnel complet : chef d'agence + gerante ---
+62-    Route::middleware('role:chef_agence,gerante')->group(function () {
+63-
+64-        // Dashboard
+65-        Route::get('/dashboard', [DashboardController::class, 'index']);
+66-        Route::get('/chef-agence/dashboard', [ChefAgenceController::class, 'dashboard']);
+67-
+68-        // Ventes chef d'agence
+69-        Route::post('/chef-agence/vente-comptant', [ChefAgenceController::class, 'venteComptant']);
+70-        Route::post('/chef-agence/vente-credit', [ChefAgenceController::class, 'venteCredit']);
+
+=== 8. APP MOBILE ACTUELLE ===
+const AgentApp = {
+  API: 'https://sourougnon.alwaysdata.net',
+  token: localStorage.getItem('agent_token'),
+  user: JSON.parse(localStorage.getItem('agent_user') || '{}'),
+  tourneeData: null,
+  currentTab: 'tous',
+  currentClient: null,
+
+  async login(identifiant, password) {
+    try {
+      const res = await fetch(this.API + '/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({identifiant, password})
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('agent_token', data.token);
+        localStorage.setItem('agent_user', JSON.stringify(data.user || {}));
+        this.token = data.token;
+        this.user = data.user || {};
+        return {success: true};
+      }
+      return {error: data.error || 'Erreur de connexion'};
+    } catch (e) {
+      return {error: 'Réseau indisponible'};
+    }
+  },
+
+  logout() {
+    localStorage.removeItem('agent_token');
+    localStorage.removeItem('agent_user');
+    window.location.href = 'login.html';
+  },
+
+  async apiGet(path) {
+    const res = await fetch(this.API + '/api' + path, {
+      headers: {'Authorization': 'Bearer ' + this.token}
+    });
+    return res.json();
+  },
+
+  async apiPost(path, body) {
+    const res = await fetch(this.API + '/api' + path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.token},
+      body: JSON.stringify(body)
+    });
+    return res.json();
+  },
+
+  async init() {
+    if (!this.token) { window.location.href = 'login.html'; return; }
+    if (this.user.nom) {
+      document.getElementById('greeting').textContent = 'Bonjour ' + this.user.nom + ' ' + (this.user.prenom || '') + ' 👋';
+      document.getElementById('userInitials').textContent = (this.user.nom?.[0] || 'A') + (this.user.prenom?.[0] || 'G');
+    }
+    this.setToday();
+    await this.loadTournee();
+    this.showHome();
+  },
+
+  setToday() {
+    const now = new Date();
+    document.getElementById('todayLabel').textContent = new Intl.DateTimeFormat('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'}).format(now);
+  },
+
+  async loadTournee() {
+    this.tourneeData = await this.apiGet('/agent-space/tournee');
+    this.renderHomeKPIs();
+    this.renderHomeList();
+  },
+
+  renderHomeKPIs() {
+    const d = this.tourneeData || {};
+    const stats = d.stats || {};
+    const list = d.a_visiter || [];
+    const payes = d.paye || [];
+    const retards = list.filter(v => v.statut_global === 'en_retard').length;
+    const total = stats.nb_total || 0;
+    const payeCount = stats.nb_paye || 0;
+    const collecte = list.reduce((sum, v) => sum + parseFloat(v.montant_journalier || 0), 0);
+    const score = total ? Math.round((payeCount / total) * 100) : 0;
+
+    document.getElementById('heroVisits').textContent = total + ' visite(s) planifiée(s)';
+    document.getElementById('heroSummary').textContent = list.length + ' à visiter • ' + payeCount + ' payés • ' + retards + ' en retard';
+    document.getElementById('heroScore').textContent = score + '%';
+    document.getElementById('statVisites').textContent = total;
+    document.getElementById('statPaiements').textContent = payeCount;
+    document.getElementById('statRetards').textContent = retards;
+    document.getElementById('statCollecte').textContent = collecte.toLocaleString('fr-FR') + ' F';
+  },
+
+  renderHomeList() {
+    const d = this.tourneeData || {};
+    const all = [...(d.a_visiter || []), ...(d.paye || [])];
+    const filters = ['tous', 'a_visiter', 'paye', 'retard'];
+    const labels = {'tous':'Tous','a_visiter':'À visiter','paye':'Payés','retard':'Retards'};
+    document.getElementById('homeFilters').innerHTML = filters.map(f => {
+      const count = f === 'tous' ? all.length : f === 'retard' ? all.filter(v => v.statut_global === 'en_retard').length : (d[f] || []).length;
+      return `<button class="chip ${f===this.currentTab?'chip--active':''}" data-filter="${f}">${labels[f]} <span>${count}</span></button>`;
+    }).join('');
+
+    document.querySelectorAll('#homeFilters .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        this.currentTab = chip.dataset.filter;
+        this.renderHomeList();
+      });
+    });
+
+    const filtered = this.filterHome(all);
+    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+    document.getElementById('clientList').innerHTML = filtered.length === 0
+      ? '<p class="muted" style="text-align:center;padding:20px;">Aucun client</p>'
+      : filtered.map(v => {
+          const statutClass = v.statut_global === 'en_retard' ? 'status--danger' : 'status--success';
+          const statutTexte = v.statut_visite === 'paye' ? 'Payé' : v.statut_visite === 'absent' ? 'Absent' : v.statut_visite === 'refus' ? 'Refus' : v.statut_visite === 'promesse' ? 'Promesse' : 'À visiter';
+          return `<article class="client-card">
+            <div class="avatar avatar--blue">${v.debiteur?.charAt(0) || '?'}${v.debiteur?.charAt(v.debiteur.indexOf(' ')+1) || ''}</div>
+            <div class="client-card__main">
+              <div class="client-card__title">
+                <div><h3>${v.debiteur}</h3><p>${v.quartier || '-'}</p></div>
+                <span class="status ${statutClass}">${statutTexte}</span>
+              </div>
+              <div class="client-card__meta"><span>📞 ${v.telephone || '-'}</span></div>
+              <div class="client-card__bottom">
+                <strong>${money(v.montant_journalier)}</strong>
+                <button class="small-btn small-btn--primary" onclick="AgentApp.openClient('${v.uuid}')">Voir client</button>
+              </div>
+            </div>
+          </article>`;
+        }).join('');
+  },
+
+  filterHome(all) {
+    if (this.currentTab === 'tous') return all;
+    if (this.currentTab === 'retard') return all.filter(v => v.statut_global === 'en_retard');
+    if (this.currentTab === 'paye') return all.filter(v => v.statut_visite === 'paye');
+    return all.filter(v => !['paye','absent','refus','promesse'].includes(v.statut_visite));
+  },
+
+  async openClient(uuid) {
+    const deb = await this.apiGet('/agent/debiteurs/' + uuid);
+    if (!deb || deb.error) { alert(deb.error || 'Impossible de charger le débiteur'); return; }
+    this.currentClient = deb;
+    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+    const initial = (deb.nom?.[0] || '') + (deb.prenom?.[0] || '');
+    document.getElementById('clientDetail').innerHTML = `
+      <div class="profile-card">
+        <div class="avatar avatar--xl avatar--blue">${initial}</div>
+        <div><h2>${deb.nom} ${deb.prenom || ''}</h2><p class="muted">${deb.activite || '-'}</p><span class="status status--success">Client actif</span></div>
+      </div>
+      <div class="detail-list">
+        <div class="detail-item"><span>📞</span><div><small>Téléphone</small><strong>${deb.telephone || '-'}</strong></div></div>
+        <div class="detail-item"><span>📍</span><div><small>Quartier</small><strong>${deb.quartier || '-'}</strong></div></div>
+      </div>
+      <button class="cta cta--blue" data-screen="collection">💳 Encaisser un paiement</button>
+    `;
+    this.showScreen('client');
+  },
+
+  showCollection() {
+    if (!this.currentClient) return;
+    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+    document.getElementById('collectionClient').innerHTML = `
+      <div class="collection-client">
+        <div class="avatar avatar--blue">${(this.currentClient.nom?.[0]||'')}</div>
+        <div><h3>${this.currentClient.nom} ${this.currentClient.prenom||''}</h3><p class="muted">Encours actuel</p></div>
+        <strong>${money(this.currentClient.reste_a_payer || 0)}</strong>
+      </div>
+    `;
+    document.getElementById('amount').value = '';
+    document.getElementById('comment').value = '';
+  },
+
+  showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('is-active'));
+    const map = {home:'screen-home', client:'screen-client', collection:'screen-collection', success:'screen-success', debtors:'screen-debtors', notifications:'screen-notifications', profile:'screen-profile'};
+    document.getElementById(map[name]).classList.add('is-active');
+    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.toggle('is-active', btn.dataset.screen === name));
+    window.scrollTo({top:0, behavior:'smooth'});
+  },
+
+  async openDebtors() {
+    const d = await this.apiGet('/agent/debiteurs');
+    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+    document.getElementById('debtorsCount').textContent = d.length + ' client(s) attitré(s)';
+    document.getElementById('debtorsList').innerHTML = d.length === 0
+      ? '<p class="muted" style="text-align:center;padding:20px;">Aucun débiteur</p>'
+      : d.map(deb => `<article class="debtor-card">
+          <div class="avatar avatar--blue">${(deb.nom?.[0]||'')}${(deb.prenom?.[0]||'')}</div>
+          <div class="debtor-main">
+            <div class="client-card__title"><div><h3>${deb.nom} ${deb.prenom||''}</h3><p>${deb.activite||'-'}</p></div><span class="status status--success">À JOUR</span></div>
+            <div class="debtor-actions">
+              <button class="small-btn small-btn--secondary" onclick="AgentApp.callClient('${deb.telephone || ''}')">📞 Appeler</button>
+              <button class="small-btn small-btn--primary" onclick="AgentApp.openClient('${deb.uuid}')">Voir</button>
+            </div>
+          </div>
+        </article>`).join('');
+    this.showScreen('debtors');
+  },
+
+  callClient(tel) {
+    if (tel) window.location.href = 'tel:' + tel;
+  },
+
+  async submitEncaisser(e) {
+    e.preventDefault();
+    const data = {
+      vente_id: this.currentClient?.uuid,
+      montant: parseFloat(document.getElementById('amount').value) || 0,
+      mode_paiement: document.getElementById('paymentMode').value,
+      statut: document.getElementById('paymentStatus').value,
+      commentaire: document.getElementById('comment').value,
+    };
+    const res = await this.apiPost('/agent-space/encaisser', data);
+    if (res.error) { alert(res.error); return; }
+    this.showSuccess(res, data);
+  },
+
+  showSuccess(res, data) {
+    document.getElementById('successReceipt').innerHTML = `
+      <div><small>Client</small><strong>${this.currentClient?.nom || '-'}</strong></div>
+      <div><small>Montant</small><strong class="text-green">${data.montant.toLocaleString('fr-FR')} FCFA</strong></div>
+      <div><small>Date</small><strong>${new Intl.DateTimeFormat('fr-FR', {day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'}).format(new Date())}</strong></div>
+      <div><small>Mode</small><strong>${data.mode_paiement}</strong></div>
+    `;
+    this.showScreen('success');
+    setTimeout(() => this.loadTournee(), 1000);
+  },
+
+  async loadNotifications() {
+    const notifs = await this.apiGet('/notifications');
+    const list = Array.isArray(notifs) ? notifs : (notifs.notifications || []);
+    document.getElementById('notifBadge').textContent = list.filter(n => !n.lue).length;
+    document.getElementById('notifCountSmall').textContent = list.filter(n => !n.lue).length;
+    document.getElementById('notificationList').innerHTML = list.length === 0
+      ? '<p class="muted" style="text-align:center;padding:20px;">Aucune notification</p>'
+      : list.map(n => `<article class="notification-card">
+          <div class="notification-icon ${n.type === 'stock' ? 'notification-icon--red' : 'notification-icon--blue'}">${n.type === 'echeance' ? '⏰' : n.type === 'retard' ? '!' : n.type === 'stock' ? '📦' : '💬'}</div>
+          <div><h3>${n.titre}</h3><p>${n.message}</p><time>${new Date(n.created_at).toLocaleDateString('fr-FR')}</time></div>
+        </article>`).join('');
+    this.showScreen('notifications');
+  },
+
+  async loadProfile() {
+    const me = await this.apiGet('/auth/me');
+    const u = me.user || {};
+    document.getElementById('profileContent').innerHTML = `
+      <div class="profile-card profile-card--big">
+        <div class="avatar avatar--xxl avatar--blue">${(u.nom?.[0]||'')}${(u.prenom?.[0]||'')}</div>
+        <div><h2>${u.nom} ${u.prenom}</h2><p class="muted">Agent terrain • Bénin</p><span class="status status--success">Actif</span></div>
+      </div>
+      <div class="info-card">
+        <div class="info-row"><span>Téléphone</span><strong>${u.telephone || '-'}</strong></div>
+        <div class="info-row"><span>Email</span><strong>${u.email || '-'}</strong></div>
+        <div class="info-row"><span>Rôle</span><strong>${u.role || 'agent'}</strong></div>
+      </div>
+    `;
+    this.showScreen('profile');
+  },
+
+  setupEvents() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-screen]');
+      if (btn) {
+        const name = btn.dataset.screen;
+        if (name === 'debtors') this.openDebtors();
+        else if (name === 'notifications') this.loadNotifications();
+        else if (name === 'profile') this.loadProfile();
+        else if (name === 'collection') this.showCollection();
+        else this.showScreen(name);
+      }
+    });
+  },
+
+  updateNetwork() {
+    const online = navigator.onLine;
+    document.getElementById('networkPill').classList.toggle('network-pill--offline', !online);
+    document.getElementById('networkPill').classList.toggle('network-pill--online', online);
+    document.querySelector('.network-label').textContent = online ? 'En ligne' : 'Hors ligne';
+    document.getElementById('offlineBar').classList.toggle('is-hidden', online);
+  }
+};
+
+document.getElementById('collectionForm').addEventListener('submit', (e) => AgentApp.submitEncaisser(e));
+document.getElementById('syncBtn').addEventListener('click', () => {
+  AgentApp.apiGet('/notifications').then(() => {
+    AgentApp.loadTournee();
+    alert('Synchronisation terminée.');
+  }).catch(() => alert('Toujours hors ligne.'));
+});
+window.addEventListener('online', () => { AgentApp.updateNetwork(); });
+window.addEventListener('offline', () => { AgentApp.updateNetwork(); });
+
+setTimeout(() => {
+  document.getElementById('splash').style.opacity = '0';
+  document.getElementById('splash').style.transition = 'opacity .45s ease';
+  setTimeout(() => {
+    document.getElementById('splash').remove();
+    document.getElementById('app').classList.remove('is-hidden');
+    AgentApp.setupEvents();
+    AgentApp.updateNetwork();
+    AgentApp.init();
+  }, 450);
+}, 1200);

@@ -1,0 +1,366 @@
+=== 1. ROUTEUR GÉRANTE (app.js) ===
+115:function loadPage(page) {
+116-    var c = document.getElementById('page-content');
+117-    c.innerHTML = '<div style="text-align:center;padding:60px;"><div style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#0066ff;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;"></div></div>';
+118-    var funcs = {
+119-        'dashboard': loadDashboard,
+120-        'chef-agence': loadChefAgence,
+121-        'agents': loadAgents,
+122-        'debiteurs': loadDebiteurs,
+123-        'suivi': loadSuivi,
+124-        'caisse': loadCaisse,
+125-        'comptabilite': loadComptabilite,
+126-        'remboursements': loadRemboursements,
+127-        'stocks': loadStocks,
+128-        'produits': loadProduits,
+129-        'ventes': loadVentes,
+130-        'comptant': loadComptant,
+131-        'alertes': loadAlertes,
+132-        'parametres': loadParametres,
+133-        'statistiques': loadStatistiques,
+134-        'notifications': loadNotificationsPage,
+135-        'tournees': loadTournees,
+136-        'epargnes': loadEpargnes,
+137-        'penalites': loadPenalites,
+138-        'rapports': loadRapports
+139-    };
+140-    if (funcs[page]) funcs[page](c);
+141-    else c.innerHTML = '<div class="panel text-center py-12"><p class="text-muted">Page inconnue: ' + page + '</p></div>';
+142-}
+143-
+144-var style = document.createElement('style');
+145-style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}.chart-wrap{position:relative;width:100%;height:300px}.chart-wrap canvas{width:100%!important;height:100%!important}';
+146-document.head.appendChild(style);
+147-console.log('app.js pret');
+148-
+149-
+150-function confirmModal(message, opts) {
+151-    opts = opts || {};
+152-    return new Promise(function(resolve) {
+153-        var el = document.createElement('div');
+154-        el.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50';
+155-        el.innerHTML =
+
+=== 2. ROUTEUR CHEF (app.js) ===
+91:function loadPage(page) {
+92-    var c = document.getElementById('page-content');
+93-    c.innerHTML = '<div style="text-align:center;padding:60px;"><div style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#0066ff;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;"></div></div>';
+94-    var funcs = {
+95-        'dashboard': loadDashboard,
+96-        'chef-agence': loadChefAgence,
+97-        'agents': loadAgents,
+98-        'debiteurs': loadDebiteurs,
+99-        'suivi': loadSuivi,
+100-        'caisse': loadCaisse,
+101-        'comptabilite': loadComptabilite,
+102-        'stocks': loadStocks,
+103-        'produits': loadProduits,
+104-        'ventes': loadVentes,
+105-        'comptant': loadComptant,
+106-        'alertes': loadAlertes,
+107-        'parametres': loadParametres,
+108-        'statistiques': loadStatistiques,
+109-        'notifications': loadNotificationsPage,
+110-        'tournees': loadTournees,
+111-        'epargnes': loadEpargnes,
+112-        'penalites': loadPenalites,
+113-        'rapports': loadRapports
+114-    };
+115-    if (funcs[page]) funcs[page](c);
+116-    else c.innerHTML = '<div class="panel text-center py-12"><p class="text-muted">Page inconnue: ' + page + '</p></div>';
+117-}
+118-
+119-var style = document.createElement('style');
+120-style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}.chart-wrap{position:relative;width:100%;height:300px}.chart-wrap canvas{width:100%!important;height:100%!important}';
+121-document.head.appendChild(style);
+122-console.log('app.js pret');
+
+=== 3. SIDEBAR GÉRANTE (liens data-page) ===
+data-page="agents"
+data-page="alertes"
+data-page="caisse"
+data-page="chef-agence"
+data-page="comptabilite"
+data-page="comptant"
+data-page="dashboard"
+data-page="debiteurs"
+data-page="epargnes"
+data-page="notifications"
+data-page="parametres"
+data-page="penalites"
+data-page="produits"
+data-page="rapports"
+data-page="remboursements"
+data-page="statistiques"
+data-page="stocks"
+data-page="suivi"
+data-page="tournees"
+data-page="ventes"
+
+=== 4. SIDEBAR CHEF (liens data-page) ===
+data-page="agents"
+data-page="alertes"
+data-page="caisse"
+data-page="chef-agence"
+data-page="comptabilite"
+data-page="comptant"
+data-page="dashboard"
+data-page="debiteurs"
+data-page="epargnes"
+data-page="notifications"
+data-page="parametres"
+data-page="penalites"
+data-page="produits"
+data-page="rapports"
+data-page="statistiques"
+data-page="stocks"
+data-page="suivi"
+data-page="tournees"
+data-page="ventes"
+
+=== 5. FICHIERS JS GÉRANTE ===
+agent-functions.js
+agents-functions.js
+alertes-functions.js
+app.js
+app.js.bak
+benin-data.json
+benin-localisation.js
+caisse-functions.js
+chef-functions.js
+comptabilite-functions.js
+comptant-functions.js
+dashboard-functions.js
+debiteurs-functions.js
+epargnes-penalites-functions.js
+localisation-loader.js
+notifications-functions.js
+parametres-functions.js
+produits-functions.js
+rapports-functions.js
+recherche-globale.js
+remboursement-functions.js
+statistiques-functions.js
+stocks-functions.js
+suivi-functions.js
+tournees-functions.js
+vente-modals-functions.js
+vente-modals-functions.js.bak.20260814054004
+ventes-functions.js
+
+=== 6. FICHIERS JS CHEF ===
+agent-functions.js
+agents-functions.js
+alertes-functions.js
+app.js
+app.js.bak
+benin-data.json
+benin-localisation.js
+caisse-functions.js
+chef-functions.js
+comptabilite-functions.js
+comptant-functions.js
+dashboard-functions.js
+debiteurs-functions.js
+epargnes-penalites-functions.js
+fix-modals.js
+js
+localisation-loader.js
+notifications-functions.js
+parametres-functions.js
+produits-functions.js
+rapports-functions.js
+recherche-globale.js
+statistiques-functions.js
+stocks-functions.js
+stocks-functions.js.bak.20260818220236
+stocks-functions.js.bak.20260818221906
+stocks-functions.js.bak.20260818224456
+stocks-functions.js.broken.20260818230658
+stocks-functions.js.broken.20260818230855
+suivi-functions.js
+tournees-functions.js
+vente-modals-functions.js
+ventes-functions.js
+
+=== 7. FONCTIONS load* DANS JS GÉRANTE ===
+function loadAgents
+function loadAgentsForTransfer
+function loadAgentSpace
+function loadAlertes
+function loadAlertesGroupees
+function loadCaisse
+function loadChefAgence
+function loadComptabilite
+function loadComptant
+function loadDashboard
+function loadDebiteurs
+function loadEpargnes
+function loadMouvementsStock
+function loadNotificationsPage
+function loadPage
+function loadParametres
+function loadParametresData
+function loadPenalites
+function loadProduits
+function loadRapports
+function loadRemboursements
+function loadResume
+function loadStatistiques
+function loadStocks
+function loadSuivi
+function loadTournees
+function loadVentes
+
+=== 8. FONCTIONS load* DANS JS CHEF ===
+function loadAgents
+function loadAgentsForTransfer
+function loadAgentSpace
+function loadAlertes
+function loadCaisse
+function loadChefAgence
+function loadComptabilite
+function loadComptant
+function loadDashboard
+function loadDebiteurs
+function loadEpargnes
+function loadMouvementsStock
+function loadNotificationsPage
+function loadPage
+function loadParametres
+function loadParametresData
+function loadPenalites
+function loadProduits
+function loadRapports
+function loadResume
+function loadStatistiques
+function loadStocks
+function loadSuivi
+function loadTournees
+function loadVentes
+
+=== 9. ROUTES API DISPONIBLES ===
+  POST            api/agent-space/encaisser .................................................................................................... Api\AgentSpaceController@encaisser
+  GET|HEAD        api/agent-space/tournee ........................................................................................................ Api\AgentSpaceController@tournee
+  GET|HEAD        api/agent/debiteurs ........................................................................................................... Api\DebiteurController@indexAgent
+  GET|HEAD        api/agent/debiteurs/{uuid} ..................................................................................................... Api\DebiteurController@showAgent
+  GET|HEAD        api/agent/epargnes ............................................................................................................. Api\EpargneController@indexAgent
+  GET|HEAD        api/agent/penalites ........................................................................................................ Api\EpargneController@penalitesAgent
+  POST            api/agent/penalites/{uuid}/payer ............................................................................................ Api\EpargneController@payerPenalite
+  POST            api/agent/penalites/{uuid}/refuser ........................................................................................ Api\EpargneController@refuserPenalite
+  POST            api/agent/tournee/demarrer ....................................................................................................... Api\TourneeController@demarrer
+  GET|HEAD        api/agent/tournee/statut ........................................................................................................... Api\TourneeController@statut
+  POST            api/agent/tournee/terminer ....................................................................................................... Api\TourneeController@terminer
+  GET|HEAD        api/agents ............................................................................................................. agents.index › Api\AgentController@index
+  POST            api/agents ............................................................................................................. agents.store › Api\AgentController@store
+  GET|HEAD        api/agents/export/{uuid} ...................................................................................................... Api\AgentController@exportHistory
+  GET|HEAD        api/agents/{agent} ....................................................................................................... agents.show › Api\AgentController@show
+  PUT|PATCH       api/agents/{agent} ................................................................................................... agents.update › Api\AgentController@update
+  DELETE          api/agents/{agent} ................................................................................................. agents.destroy › Api\AgentController@destroy
+  GET|HEAD        api/caisse ........................................................................................................................... Api\CaisseController@index
+  POST            api/caisse/cloturer ............................................................................................................... Api\CaisseController@cloturer
+  POST            api/caisse/decaisser ............................................................................................................. Api\CaisseController@decaisser
+  GET|HEAD        api/caisse/export ................................................................................................................... Api\CaisseController@export
+  GET|HEAD        api/caisse/historique ........................................................................................................... Api\CaisseController@historique
+  POST            api/caisse/salaire ............................................................................................................ Api\CaisseController@payerSalaire
+  GET|HEAD        api/caisse/{uuid}/export ......................................................................................................... Api\CaisseController@exportCsv
+  GET|HEAD        api/caisse/{uuid}/mouvements .................................................................................................... Api\CaisseController@mouvements
+  POST            api/chef-agence/create-debiteur .................................................................................................... Api\DebiteurController@store
+  GET|HEAD        api/chef-agence/dashboard .................................................................................................... Api\ChefAgenceController@dashboard
+  POST            api/chef-agence/vente-comptant ........................................................................................... Api\ChefAgenceController@venteComptant
+  POST            api/chef-agence/vente-credit ............................................................................................... Api\ChefAgenceController@venteCredit
+  GET|HEAD        api/comptabilite/balance ..................................................................................................... Api\ComptabiliteController@balance
+  GET|HEAD        api/comptabilite/etats-financiers .................................................................................... Api\ComptabiliteController@etatsFinanciers
+  GET|HEAD        api/comptabilite/export ................................................................................................ Api\ComptabiliteController@exportJournal
+  GET|HEAD        api/comptabilite/export-etats-financiers ....................................................................... Api\ComptabiliteController@exportEtatsFinanciers
+  GET|HEAD        api/comptabilite/export-grand-livre ................................................................................. Api\ComptabiliteController@exportGrandLivre
+  GET|HEAD        api/comptabilite/grand-livre .............................................................................................. Api\ComptabiliteController@grandLivre
+  GET|HEAD        api/comptabilite/journal ..................................................................................................... Api\ComptabiliteController@journal
+  GET|HEAD        api/dashboard ..................................................................................................................... Api\DashboardController@index
+  GET|HEAD        api/debiteurs .................................................................................................... debiteurs.index › Api\DebiteurController@index
+  POST            api/debiteurs .................................................................................................... debiteurs.store › Api\DebiteurController@store
+  GET|HEAD        api/debiteurs/{debiteur} ........................................................................................... debiteurs.show › Api\DebiteurController@show
+  PUT|PATCH       api/debiteurs/{debiteur} ....................................................................................... debiteurs.update › Api\DebiteurController@update
+  DELETE          api/debiteurs/{debiteur} ..................................................................................... debiteurs.destroy › Api\DebiteurController@destroy
+  GET|HEAD        api/debiteurs/{uuid}/historique ..................................................................................... Api\ChefAgenceController@historiqueDebiteur
+  GET|HEAD        api/debiteurs/{uuid}/score ............................................................................................... Api\ChefAgenceController@scoreDebiteur
+  GET|HEAD        api/epargnes ........................................................................................................................ Api\EpargneController@index
+  GET|HEAD        api/notifications .............................................................................................................. Api\NotificationController@index
+  GET|HEAD        api/notifications/count ........................................................................................................ Api\NotificationController@count
+  POST            api/notifications/generer .................................................................................................... Api\NotificationController@generer
+  PUT             api/notifications/toutes-lues ...................................................................................... Api\NotificationController@marquerToutesLues
+  PUT             api/notifications/{uuid}/lue .............................................................................................. Api\NotificationController@marquerLue
+  GET|HEAD        api/penalites ................................................................................................................... Api\EpargneController@penalites
+  GET|HEAD        api/rapports/recouvrements .................................................................................................. Api\RapportController@recouvrements
+  GET|HEAD        api/rapports/resume ................................................................................................................ Api\RapportController@resume
+  GET|HEAD        api/rapports/ventes ................................................................................................................ Api\RapportController@ventes
+  POST            api/recouvrements/group ............................................................................................ Api\RecouvrementController@encaissementGroup
+  GET|HEAD        api/statistiques ............................................................................................................... Api\StatistiquesController@index
+  GET|HEAD        api/stocks ............................................................................................................................ Api\StockController@index
+  POST            api/stocks/entree .................................................................................................................... Api\StockController@entree
+  GET|HEAD        api/stocks/export .......................................................................................................... Api\StockController@exportMouvements
+  POST            api/stocks/inventaire ............................................................................................................ Api\StockController@inventaire
+  GET|HEAD        api/stocks/mouvements ............................................................................................................ Api\StockController@mouvements
+  PUT             api/stocks/mouvements/{id} .................................................................................................. Api\StockController@updateMouvement
+  DELETE          api/stocks/mouvements/{id} .................................................................................................. Api\StockController@deleteMouvement
+  POST            api/stocks/sortie .................................................................................................................... Api\StockController@sortie
+  GET|HEAD        api/tournees ........................................................................................................................ Api\TourneeController@index
+  GET|HEAD        api/ventes ............................................................................................................. ventes.index › Api\VenteController@index
+  POST            api/ventes ............................................................................................................. ventes.store › Api\VenteController@store
+  PUT             api/ventes/{uuid}/annuler ........................................................................................................... Api\VenteController@annuler
+  GET|HEAD        api/ventes/{uuid}/contrat ........................................................................................................... Api\VenteController@contrat
+  GET|HEAD        api/ventes/{vente} ....................................................................................................... ventes.show › Api\VenteController@show
+  PUT|PATCH       api/ventes/{vente} ................................................................................................... ventes.update › Api\VenteController@update
+  DELETE          api/ventes/{vente} ................................................................................................. ventes.destroy › Api\VenteController@destroy
+
+=== 10. LOGS LARAVEL (50 dernières lignes) ===
+#40 /home/sourougnon/sourougnon-backend/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest(Object(Illuminate\\Http\\Request))
+#41 {main}
+"} 
+[2026-08-22 16:34:16] production.ERROR: Undefined variable $retardsRestants {"exception":"[object] (ErrorException(code: 0): Undefined variable $retardsRestants at /home/sourougnon/sourougnon-backend/app/Http/Controllers/Api/TourneeController.php:53)
+[stacktrace]
+#0 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(263): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleError(2, 'Undefined varia...', '/home/sourougno...', 53)
+#1 /home/sourougnon/sourougnon-backend/app/Http/Controllers/Api/TourneeController.php(53): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->{closure:Illuminate\\Foundation\\Bootstrap\\HandleExceptions::forwardsTo():262}(2, 'Undefined varia...', '/home/sourougno...', 53)
+#2 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(46): App\\Http\\Controllers\\Api\\TourneeController->demarrer(Object(Illuminate\\Http\\Request))
+#3 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Route.php(276): Illuminate\\Routing\\ControllerDispatcher->dispatch(Object(Illuminate\\Routing\\Route), Object(App\\Http\\Controllers\\Api\\TourneeController), 'demarrer')
+#4 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Route.php(216): Illuminate\\Routing\\Route->runController()
+#5 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Router.php(822): Illuminate\\Routing\\Route->run()
+#6 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Routing\\Router->{closure:Illuminate\\Routing\\Router::runRouteWithinStack():821}(Object(Illuminate\\Http\\Request))
+#7 /home/sourougnon/sourougnon-backend/app/Http/Middleware/CheckRole.php(16): Illuminate\\Pipeline\\Pipeline->{closure:Illuminate\\Pipeline\\Pipeline::prepareDestination():178}(Object(Illuminate\\Http\\Request))
+#8 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\CheckRole->handle(Object(Illuminate\\Http\\Request), Object(Closure), 'agent')
+#9 /home/sourougnon/sourougnon-backend/app/Http/Middleware/AuthToken.php(29): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#10 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthToken->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#11 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(52): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#12 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#13 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#14 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#15 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack(Object(Illuminate\\Routing\\Route), Object(Illuminate\\Http\\Request))
+#16 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute(Object(Illuminate\\Http\\Request), Object(Illuminate\\Routing\\Route))
+#17 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute(Object(Illuminate\\Http\\Request))
+#18 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch(Object(Illuminate\\Http\\Request))
+#19 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->{closure:Illuminate\\Foundation\\Http\\Kernel::dispatchToRouter():197}(Object(Illuminate\\Http\\Request))
+#20 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->{closure:Illuminate\\Pipeline\\Pipeline::prepareDestination():178}(Object(Illuminate\\Http\\Request))
+#21 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#22 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#23 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#24 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#25 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#26 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#27 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#28 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#29 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#30 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#31 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#32 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#33 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#34 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#35 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#36 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(28): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#37 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle(Object(Illuminate\\Http\\Request), Object(Closure))
+#38 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->{closure:{closure:Illuminate\\Pipeline\\Pipeline::carry():194}:195}(Object(Illuminate\\Http\\Request))
+#39 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then(Object(Closure))
+#40 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#41 /home/sourougnon/sourougnon-backend/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1227): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#42 /home/sourougnon/sourougnon-backend/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest(Object(Illuminate\\Http\\Request))
+#43 {main}
+"} 

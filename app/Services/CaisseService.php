@@ -1,0 +1,118 @@
+<?php
+namespace App\Services;
+use App\Models\Caisse;
+use App\Models\MouvementCaisse;
+use App\Models\Recouvrement;
+use App\Models\User;
+use App\Models\Agence;
+use App\Models\Vente;
+use App\Models\Penalite;
+use Illuminate\Support\Str;
+
+class CaisseService
+{
+    public static function enregistrerRecouvrement(Recouvrement $recouvrement, string $statutValidation = 'en_attente'): ?MouvementCaisse
+    {
+        if (!in_array($recouvrement->statut, ['paye', 'partiel'])) return null;
+        if ($recouvrement->montant <= 0) return null;
+        $caisse = self::getCaisseActive($recouvrement->agent_id, 'jour');
+        $mouvement = MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $recouvrement->agent_id,
+            'recouvrement_id' => $recouvrement->id,
+            'type' => 'encaissement',
+            'montant' => $recouvrement->montant,
+            'mode_paiement' => $recouvrement->mode_paiement,
+            'reference' => 'REC-' . substr($recouvrement->uuid, 0, 8),
+            'motif' => 'Paiement ' . ($recouvrement->vente->debiteur?->nom ?? 'client'),
+            'date_mouvement' => now(),
+            'statut_validation' => $statutValidation,
+        ]);
+        self::recalculer($caisse);
+        return $mouvement;
+    }
+
+    public static function enregistrerEpargne(Vente $vente, float $montant): ?MouvementCaisse
+    {
+        if ($montant <= 0) return null;
+        $caisse = self::getCaisseActive($vente->agent_id, 'jour');
+        $mouvement = MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $vente->agent_id,
+            'type' => 'epargne',
+            'montant' => $montant,
+            'reference' => 'EPARGNE-' . substr($vente->uuid, 0, 8),
+            'motif' => 'Épargne ' . ($vente->debiteur?->nom ?? 'client'),
+            'date_mouvement' => now(),
+            'statut_validation' => 'en_attente',
+        ]);
+        self::recalculer($caisse);
+        return $mouvement;
+    }
+
+    public static function enregistrerPenalite(Penalite $penalite): ?MouvementCaisse
+    {
+        $vente = $penalite->vente;
+        $caisse = self::getCaisseActive($vente->agent_id, 'jour');
+        $mouvement = MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $vente->agent_id,
+            'type' => 'penalite',
+            'montant' => $penalite->montant,
+            'reference' => 'PENAL-' . substr($penalite->uuid, 0, 8),
+            'motif' => 'Pénalité retard ' . $penalite->jours_retard . 'j - ' . ($vente->debiteur?->nom ?? 'client'),
+            'date_mouvement' => now(),
+            'statut_validation' => 'en_attente',
+        ]);
+        self::recalculer($caisse);
+        return $mouvement;
+    }
+
+    public static function getCaisseActive(int $userId, string $periode): Caisse
+    {
+        $dateOuverture = match($periode) {
+            'semaine' => now()->startOfWeek()->toDateString(),
+            'mois' => now()->startOfMonth()->toDateString(),
+            'annee' => now()->startOfYear()->toDateString(),
+            default => now()->toDateString(),
+        };
+        $caisse = Caisse::where('user_id', $userId)
+            ->where('date_ouverture', $dateOuverture)
+            ->where('periode', $periode)
+            ->first();
+        if (!$caisse) {
+            $user = User::find($userId);
+            $role = $user?->role;
+            $type = $role === 'gerante' ? 'generale' : ($role === 'chef_agence' ? 'agence' : 'agent');
+            $agenceId = Agence::first()?->id;
+            $precedente = Caisse::where('user_id', $userId)->where('statut', 'fermee')->orderByDesc('date_fermeture')->first();
+            $caisse = Caisse::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $userId,
+                'date_ouverture' => $dateOuverture,
+                'periode' => $periode,
+                'solde_initial' => $precedente?->solde_reel ?? 0,
+                'statut' => 'ouverte',
+                'type_caisse' => $type,
+                'agence_id' => $agenceId,
+            ]);
+        }
+        return $caisse;
+    }
+
+    public static function recalculer(Caisse $caisse): void
+    {
+        $mouvements = $caisse->mouvements()->whereNotIn('statut_validation', ['en_attente','rejete'])->get();
+        $caisse->total_encaissements = $mouvements->where('type', 'encaissement')->sum('montant');
+        $caisse->total_decaissements = $mouvements->whereIn('type', ['decaissement', 'salaire'])->sum('montant');
+        $caisse->total_salaires = $mouvements->where('type', 'salaire')->sum('montant');
+        $caisse->total_epargnes = $mouvements->where('type', 'epargne')->sum('montant');
+        $caisse->total_penalites = $mouvements->where('type', 'penalite')->sum('montant');
+        $totalRestitutions = $mouvements->where('type', 'restitution_epargne')->sum('montant');
+        $caisse->solde_theorique = $caisse->solde_initial + $caisse->total_encaissements + $caisse->total_epargnes + $caisse->total_penalites - $caisse->total_decaissements - $totalRestitutions;
+        $caisse->save();
+    }
+}

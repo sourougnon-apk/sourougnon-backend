@@ -1,0 +1,989 @@
+=== 1. JS AGENT (agent-functions.js) ===
+// === FONCTIONS AGENT (MON ESPACE) ===
+
+function loadAgentSpace(c){apiFetch('/agent-space/tournee').then(function(d){function f(v){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);}var s=d.stats;var tabs=['a_visiter','paye','absent','refus','promesse'];var labels={'a_visiter':'A visiter','paye':'Paye','absent':'Absent','refus':'Refus','promesse':'Promesse'};var currentTab='a_visiter';function renderTab(tab){var list=d[tab]||[];return list.map(function(v){var badgeRetard=v.statut_global==='en_retard'?'<span class=\"badge badge-danger\">En retard</span>':'<span class=\"badge badge-success\">A jour</span>';var onclick='openEncaisserModal(&#39;'+v.uuid+'&#39;,&#39;'+v.debiteur.replace(/'/g,'')+'&#39;,&#39;'+(v.quartier||'').replace(/'/g,'')+'&#39;,&#39;'+(v.telephone||'').replace(/'/g,'')+'&#39;,'+v.montant_journalier+','+v.reste_a_payer+',&#39;'+v.statut_global+'&#39;,&#39;'+v.statut_visite+'&#39;)';return '<tr><td class=\"font-medium\">'+v.debiteur+'</td><td>'+(v.quartier||'-')+'</td><td>'+(v.telephone||'-')+'</td><td>'+f(v.montant_journalier)+'</td><td>'+f(v.reste_a_payer)+'</td><td>'+badgeRetard+'</td><td><button onclick=\"'+onclick+'\" class=\"bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-700\">Encaisser</button></td></tr>';}).join('');}c.innerHTML='<div class=\"fade-in space-y-6\"><h3 class=\"text-xl font-bold\">Mon Espace Agent</h3><div class=\"kpi-grid\"><div class=\"kpi-card\" style=\"border-left:3px solid #0066ff\"><div class=\"kpi-label\">Total</div><div class=\"kpi-value\">'+s.nb_total+'</div></div><div class=\"kpi-card\" style=\"border-left:3px solid #00c853\"><div class=\"kpi-label\">Paye</div><div class=\"kpi-value\">'+s.nb_paye+'</div></div><div class=\"kpi-card\" style=\"border-left:3px solid #ef4444\"><div class=\"kpi-label\">Absent</div><div class=\"kpi-value\">'+s.nb_absent+'</div></div><div class=\"kpi-card\" style=\"border-left:3px solid #f59e0b\"><div class=\"kpi-label\">Attendu</div><div class=\"kpi-value\">'+f(s.montant_attendu)+'</div></div></div><div class=\"flex gap-2 overflow-x-auto pb-2\">'+tabs.map(function(t){return '<button onclick=\"switchAgentTab(&#39;'+t+'&#39;)\" class=\"agent-tab px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap '+(t===currentTab?'bg-accent text-white':'bg-slate-200 text-slate-700')+'\" data-tab=\"'+t+'\">'+labels[t]+' ('+(d[t]||[]).length+')</button>';}).join('')+'</div><div class=\"panel\"><div class=\"table-wrapper\"><table><thead><tr><th>Debiteur</th><th>Quartier</th><th>Tel</th><th>Journalier</th><th>Restant</th><th>Jours</th><th>Statut</th><th>Action</th></tr></thead><tbody id=\"agent-table-body\">'+renderTab(currentTab)+'</tbody></table></div></div></div>';window.switchAgentTab=function(tab){currentTab=tab;document.querySelectorAll('.agent-tab').forEach(function(b){b.className='agent-tab px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap '+(b.getAttribute('data-tab')===tab?'bg-accent text-white':'bg-slate-200 text-slate-700');});document.getElementById('agent-table-body').innerHTML=renderTab(tab);};}).catch(function(){c.innerHTML='<div class=\"panel text-center py-12\"><p class=\"text-muted\">Erreur chargement.</p></div>';});}
+
+function openEncaisserModal(uuid,debiteur,quartier,tel,attendu,reste,statutGlobal,statutVisite){var modal=document.getElementById('encaisser-modal'); if(modal){modal.classList.remove('hidden'); modal.style.display='flex';}document.getElementById('enc-vente-id').value=uuid;document.getElementById('enc-debiteur').textContent=debiteur;document.getElementById('enc-quartier').textContent=quartier||'-';document.getElementById('enc-telephone').textContent=tel||'-';document.getElementById('enc-attendu').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(attendu);document.getElementById('enc-reste').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(reste);document.getElementById('enc-statut-global').innerHTML=statutGlobal==='en_retard'?'<span class=\"badge badge-danger\">En retard</span>':'<span class=\"badge badge-success\">A jour</span>';document.getElementById('enc-montant').value=attendu;document.getElementById('enc-statut').value='paye';document.getElementById('enc-commentaire').value='';document.getElementById('enc-commentaire-obligatoire').classList.add('hidden');document.getElementById('encaisser-modal').classList.remove('hidden');}
+function closeEncaisserModal(){var modal=document.getElementById('encaisser-modal'); if(modal){modal.classList.add('hidden'); modal.style.display='none';}}
+function onStatutChange(){var s=document.getElementById('enc-statut').value;var o=document.getElementById('enc-commentaire-obligatoire');var c=document.getElementById('enc-commentaire');if(s==='absent'||s==='refus'||s==='promesse'){o.classList.remove('hidden');c.required=true;}else{o.classList.add('hidden');c.required=false;}}
+function submitEncaisser(e){e.preventDefault();var data={vente_id:document.getElementById('enc-vente-id').value,montant:parseFloat(document.getElementById('enc-montant').value)||0,mode_paiement:document.getElementById('enc-mode').value,statut:document.getElementById('enc-statut').value,commentaire:document.getElementById('enc-commentaire').value};apiFetch('/agent-space/encaisser',{method:'POST',body:JSON.stringify(data)}).then(function(r){if(r.error){alert(r.error);return;}closeEncaisserModal();alert(r.message||'OK');loadPage('agent-space');});}
+
+=== 2. HTML AGENT-SPACE (dashboard gérante) ===
+26:        <a href="#" data-page="agent-space" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M12 2v2m0 12v2m-8-8h2m12 0h2M6.34 6.34l1.42 1.42m8.48 8.48l1.42 1.42M6.34 17.66l1.42-1.42m8.48-8.48l1.42-1.42"/></svg><span>Mon Espace</span></a>
+27-        <a href="#" data-page="chef-agence" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-7h6v7M8 10h.01M12 10h.01M16 10h.01"/></svg><span>Chef d'agence</span></a>
+28-        <a href="#" data-page="agents" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="15" cy="7" r="3"/><path d="M2 21v-1a5 5 0 0 1 5-5h2m6 0h2a5 5 0 0 1 5 5v1"/></svg><span>Agents</span></a>
+29-        <a href="#" data-page="debiteurs" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0 1 7-7h0a7 7 0 0 1 7 7v1"/></svg><span>Débiteurs</span></a>
+30-        <a href="#" data-page="suivi" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span>Suivi</span></a>
+31-        <a href="#" data-page="caisse" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8m-4-4h8"/></svg><span>Caisse</span></a>
+32-        <a href="#" data-page="stocks" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Stocks</span></a>
+33-        <a href="#" data-page="produits" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Produits</span></a>
+34-        <a href="#" data-page="ventes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 7h18M3 11h18M3 15h10m-8 4h6"/></svg><span>Ventes</span></a>
+35-        <a href="#" data-page="comptant" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 100 4h4a2 2 0 110 4H8m4 2v-2m0-8V6"/></svg><span>Ventes Comptant</span></a>
+36-        <a href="#" data-page="alertes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg><span>Alertes</span><span id="alert-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-alert rounded-full animate-pulse"></span></a>
+37-        <a href="#" data-page="parametres" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>Paramètres</span></a>
+38-        <a href="#" data-page="remboursements" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 6h16v2H4zm0 6h10v2H4z"/></svg><span>Remboursements</span></a>
+39-        <a href="#" data-page="comptabilite" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M6 8h4m-4 4h8m-8 4h4"/></svg><span>Comptabilité</span></a>
+40-        <a href="#" data-page="statistiques" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Statistiques</span></a>
+41-        <a href="#" data-page="rapports" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 12h10M7 8h6m-6 8h8"/></svg><span>Rapports</span></a>
+42-    </nav>
+43-    <div class="px-4 py-4 border-t border-white/10">
+44-        <div class="flex items-center gap-3 px-3 py-2">
+45-            <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center text-accent font-semibold text-sm" id="user-initials">G</div>
+46-            <div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate" id="user-name">Gérante</p><p class="text-slate-500 text-xs">Connectée</p></div>
+47-            <button onclick="confirmLogout()" class="text-slate-500 hover:text-alert transition-colors" title="Déconnexion"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 17l5-5m0 0l-5-5m5 5H7m5 5v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v1"/></svg></button>
+48-        </div>
+49-    </div>
+50-</aside>
+51-
+52-<main class="lg:ml-64 min-h-screen transition-all duration-300">
+53-    <header class="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border">
+54-        <div class="flex items-center justify-between px-4 lg:px-8 py-4">
+55-            <button onclick="toggleSidebar()" class="lg:hidden text-text hover:text-accent transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+56-            <div><h2 class="text-xl lg:text-2xl font-bold" id="greeting">Bonjour 👋</h2><p class="text-muted text-sm" id="current-date"></p></div>
+57-                <div class="hidden lg:flex items-center gap-2 ml-6"><input type="text" id="search-input" placeholder="Rechercher..." onkeyup="rechercheGlobale(this.value)" class="w-80 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"><div id="search-results" class="hidden absolute top-full mt-2 w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-96 overflow-y-auto"></div></div>
+58-        </div>
+59-    </header>
+60-    <div class="p-4 lg:p-8" id="page-content"></div>
+61-</main>
+62-
+63-<div id="logout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center fade-in"><div class="text-4xl mb-3">👋</div><h3 class="text-lg font-bold mb-2">Se déconnecter ?</h3><p class="text-muted text-sm mb-6">Vous devrez vous reconnecter.</p><div class="flex gap-3"><button onclick="cancelLogout()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Rester</button><button onclick="logout()" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700">Déconnexion</button></div></div></div>
+64-<div id="add-agent-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Créer un Agent</h3><form onsubmit="createAgent(event)" class="space-y-3"><input type="text" id="agent-nom" placeholder="Nom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="agent-prenom" placeholder="Prénom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="email" id="agent-email" placeholder="Email *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="agent-telephone" placeholder="Téléphone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="password" id="agent-password" placeholder="Mot de passe" value="agent123" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeAddAgentModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Créer</button></div></form></div></div>
+65-<div id="delete-agent-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold text-red-600 mb-2">Supprimer un agent</h3><p id="delete-agent-name" class="text-text mb-1 font-medium"></p><p class="text-muted text-sm mb-4">Les clients de cet agent doivent être réattribués.</p><div class="space-y-3 mb-4"><button onclick="exportAgentData()" class="w-full px-4 py-2.5 bg-slate-100 rounded-xl text-sm font-medium hover:bg-slate-200">Exporter l'historique (CSV)</button><div><label class="block text-sm font-medium text-slate-700 mb-1">Attribuer ses clients à :</label><select id="transfer-agent-select" onchange="toggleDeleteButton()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Sélectionner un agent --</option></select>
+66-<div id="vcr-panier" class="mt-2 space-y-1"></div>
+67-            <button type="button" onclick="ajouterAuPanier()" class="mt-2 w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors">+ Ajouter au panier</button></div></div><div class="flex gap-3"><button onclick="closeDeleteAgentModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button id="confirm-delete-btn" onclick="deleteAgent()" disabled class="flex-1 px-4 py-2.5 bg-slate-300 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed">Attribuer et supprimer</button></div></div></div>
+68-<div id="password-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl fade-in"><h3 class="text-lg font-bold mb-2">Changer mot de passe</h3><p id="password-agent-name" class="text-muted text-sm mb-4"></p><form onsubmit="changeAgentPassword(event)" class="space-y-3"><input type="password" id="new-password" placeholder="Nouveau mot de passe" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closePasswordModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Enregistrer</button></div></form></div></div>
+69-
+70-<div id="add-produit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto"><h3 class="text-lg font-bold mb-4">Nouveau Produit</h3><form onsubmit="createProduit(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><input type="text" id="prod-nom" placeholder="Nom du produit *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="prod-code" placeholder="Code (auto si vide)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div class="grid grid-cols-2 gap-3"><input type="text" id="prod-categorie" placeholder="Catégorie" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="prod-unite" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="pièce">Pièce</option><option value="kg">Kilogramme</option><option value="litre">Litre</option><option value="mètre">Mètre</option><option value="carton">Carton</option><option value="sachet">Sachet</option><option value="boîte">Boîte</option></select></div><input type="text" id="prod-conditionnement" placeholder="Conditionnement" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><textarea id="prod-description" placeholder="Description" rows="2" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Prix d'achat (FCFA)</label><input type="number" id="prod-prix-achat" value="0" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Prix de vente (FCFA) *</label><input type="number" id="prod-prix-vente" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><div><label class="block text-xs text-muted mb-1">Seuil d'alerte</label><input type="number" id="prod-seuil" value="5" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div id="prod-marge-preview" class="bg-slate-100 rounded-xl p-3 text-center hidden"><span class="text-sm text-muted">Marge : </span><span id="prod-marge-value" class="font-bold text-green-600"></span></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeAddProduitModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Créer le produit</button></div></form></div></div>
+71-<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+72-<div id="vente-credit-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente a Credit</h3><form onsubmit="submitVenteCredit(event)" class="space-y-3"><div class="flex gap-2"><select id="vcr-debiteur" required class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Debiteur --</option></select>
+73-<div id="vcr-score-badge" class="mt-2"></div></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date d'achat</label><input type="date" id="vcr-date-achat" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><select id="vcr-produit" onchange="onProduitChangeCredit()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="vcr-quantite" value="1" min="1" class="w-24 px-3 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="Qté" style="display:block!important;visibility:visible!important;">
+74-
+75-        <div id="vcr-panier-container" class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+76-            <label class="block text-xs font-semibold text-slate-700 mb-1">Panier de vente (<span id="vcr-panier-count">0</span> article(s))</label>
+77-            <div id="vcr-panier-items" class="space-y-2 my-2">
+78-                <p class="text-xs text-slate-400 italic">Aucun produit dans le panier</p>
+79-            </div>
+80-            <button type="button" onclick="ajouterAuPanier()" class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1 shadow-sm">
+81-                <span>+</span> Ajouter le produit sélectionné
+82-            </button>
+83-        </div></div><div class="grid grid-cols-3 gap-3"><div><label class="block text-xs text-muted mb-1">Prix vente (FCFA)</label><input type="number" id="vcr-prix-vente" placeholder="Prix" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Montant a financer</label><input type="number" id="vcr-montant" placeholder="Montant *" required oninput="calculerJournalier()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Epargne/jour</label><input type="number" id="vcr-epargne" value="300" oninput="calculerJournalier()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><div class="grid grid-cols-3 gap-3"><div><label class="block text-xs text-muted mb-1">Nb jours (max 20)</label><input type="number" id="vcr-jours" value="20" min="1" max="20" oninput="calculerJournalier()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Debut paiement (jours)</label><input type="number" id="vcr-delai" value="1" min="0" max="30" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Penalite/jour</label><input type="number" id="vcr-penalite" value="1000" min="0" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div class="bg-slate-100 rounded-xl p-3 text-center"><span class="text-xs text-muted">Journalier</span><br><span id="vcr-journalier" class="font-bold text-accent text-lg">0 FCFA</span></div></div><div><label class="block text-xs text-muted mb-1">Motif de derogation (si score insuffisant)</label><input type="text" id="vcr-motif" placeholder="Ex: Client fidele, situation exceptionnelle..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div id="vcr-recap" class="bg-blue-50 rounded-xl p-3 text-xs space-y-1 hidden"><div class="flex justify-between"><span>Epargne totale :</span><span id="vcr-recap-epargne" class="font-semibold"></span></div><div class="flex justify-between"><span>Total a rembourser :</span><span id="vcr-recap-total" class="font-semibold"></span></div></div><div class="flex gap-3 pt-2 sticky bottom-0 bg-white pb-2"><button type="button" onclick="closeVenteCreditModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+84-<div id="new-debiteur-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Nouveau Débiteur</h3><form onsubmit="submitNewDebiteur(event)" class="space-y-3"><input type="text" id="nd-nom" placeholder="Nom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-prenom" placeholder="Prénom" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-telephone" placeholder="Téléphone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-quartier" placeholder="Quartier" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-activite" placeholder="Activité" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeNewDebiteurModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold">Créer</button></div></form></div></div>
+85-<div id="stock-entree-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Entrée de Stock</h3><form onsubmit="submitStockEntree(event)" class="space-y-3"><select id="se-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="se-quantite" placeholder="Quantité *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="se-prix-achat" placeholder="Prix achat unitaire (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="se-prix-vente" placeholder="Prix vente unitaire (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="se-fournisseur" placeholder="Fournisseur" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="se-reference" placeholder="Référence" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeStockEntreeModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700">Enregistrer</button></div></form></div></div>
+86-<div id="stock-sortie-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Sortie de Stock</h3><form onsubmit="submitStockSortie(event)" class="space-y-3"><select id="ss-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="ss-quantite" placeholder="Quantité *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="ss-type" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="vente">Vente</option><option value="perte">Perte / Avarie</option><option value="retour">Retour fournisseur</option></select><input type="number" id="ss-prix-vente" placeholder="Prix vente unitaire (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="ss-motif" placeholder="Motif" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeStockSortieModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700">Enregistrer</button></div></form></div></div>
+87-<div id="inventaire-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Inventaire</h3><form onsubmit="submitInventaire(event)" class="space-y-3"><select id="inv-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="inv-stock-reel" placeholder="Stock réel compté *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="inv-prix-achat" placeholder="Nouveau prix achat (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="inv-prix-vente" placeholder="Nouveau prix vente (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="inv-motif" placeholder="Motif" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeInventaireModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700">Valider</button></div></form></div></div>
+88-<div id="caisse-decaissement-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Dépense</h3><form onsubmit="submitDecaissement(event)" class="space-y-3"><input type="number" id="caisse-decaissement-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="caisse-decaissement-motif" placeholder="Motif *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeDecaissementModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+89-<div id="caisse-cloture-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Clôturer la caisse</h3><form onsubmit="submitCloture(event)" class="space-y-3"><p class="text-sm text-muted">Le solde réel vous sera demandé après validation.</p><textarea id="cloture-notes" placeholder="Notes" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea><div class="flex gap-3 pt-2"><button type="button" onclick="closeClotureModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold">Clôturer</button></div></form></div></div>
+90-
+91-        <script src="js/dashboard-functions.js?v=20260818174107"></script>
+92-    <script src="js/agents-functions.js?v=202608701"></script>
+93-    <script src="js/debiteurs-functions.js?v=20260818155433"></script>
+94-    <script src="js/suivi-functions.js?v=202608701"></script>
+95-    <script src="js/caisse-functions.js?v=202608701"></script>
+96-    <script src="js/remboursement-functions.js?v=20260818a"></script>
+97-    <script src="js/comptabilite-functions.js?v=20260815211826"></script>
+98-    <script src="js/stocks-functions.js?v=20260818201146"></script>
+99-    <script src="js/produits-functions.js?v=202608701"></script>
+100-    <script src="js/ventes-functions.js?v=20260818a"></script>
+101-    <script src="js/comptant-functions.js?v=202608701"></script>
+102-    <script src="js/alertes-functions.js?v=202608701"></script>
+103-    <script src="js/parametres-functions.js?v=202608701"></script>
+104-    <script src="js/statistiques-functions.js?v=202608701"></script>
+105-    <script src="js/notifications-functions.js?v=202608701"></script>
+106-    <script src="js/rapports-functions.js?v=202608701"></script>
+107-    <script src="js/vente-modals-functions.js?v=20260814091247"></script>
+108-    <script src="js/agent-functions.js?v=20260819012329"></script>
+109-    <script src="js/chef-functions.js?v=202608701"></script>
+110-    <script src="js/localisation-loader.js?v=202608500"></script>
+111-    
+112-    <script src="js/recherche-globale.js"></script>
+113-    <script src="js/app.js?v=20260814093440"></script>
+114-
+115-<div id="encaisser-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+116-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto">
+117-        <h3 class="text-lg font-bold mb-4">💰 Encaisser</h3>
+118-        <form onsubmit="submitEncaisser(event)" class="space-y-3">
+119-            <input type="hidden" id="enc-vente-id">
+120-            <div class="bg-slate-100 rounded-xl p-3">
+121-                <p class="text-sm font-medium" id="enc-debiteur"></p>
+122-                <p class="text-xs text-muted">Quartier: <span id="enc-quartier"></span> | Tel: <span id="enc-telephone"></span></p>
+123-                <p class="text-xs text-muted">Attendu: <span id="enc-attendu" class="font-bold text-accent"></span> | Reste: <span id="enc-reste" class="font-bold text-red-600"></span></p>
+124-                <p class="text-xs" id="enc-statut-global"></p>
+125-            </div>
+126-            <div>
+127-                <label class="block text-sm font-medium text-slate-700 mb-1">Montant encaisse (FCFA)</label>
+128-                <input type="number" id="enc-montant" step="0.01" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+129-                <p class="text-xs text-muted mt-1">0 = pas d'argent collecte</p>
+130-            </div>
+131-            <div>
+132-                <label class="block text-sm font-medium text-slate-700 mb-1">Mode de paiement</label>
+133-                <select id="enc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+134-                    <option value="especes">Especes</option>
+135-                    <option value="mobile">Mobile Money</option>
+136-                    <option value="autre">Autre</option>
+137-                </select>
+138-            </div>
+139-            <div>
+140-                <label class="block text-sm font-medium text-slate-700 mb-1">Statut de la visite</label>
+141-                <select id="enc-statut" onchange="onStatutChange()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+142-                    <option value="paye">✅ Paye</option>
+143-                    <option value="partiel">🔶 Partiel</option>
+144-                    <option value="absent">❌ Absent</option>
+145-                    <option value="refus">🚫 Refus de payer</option>
+146-                    <option value="promesse">⏳ Promesse de payer</option>
+
+=== 3. HTML AGENT-SPACE (dashboard chef) ===
+26:        <a href="#" data-page="agent-space" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M12 2v2m0 12v2m-8-8h2m12 0h2M6.34 6.34l1.42 1.42m8.48 8.48l1.42 1.42M6.34 17.66l1.42-1.42m8.48-8.48l1.42-1.42"/></svg><span>Mon Espace</span></a>
+27-        <a href="#" data-page="chef-agence" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-7h6v7M8 10h.01M12 10h.01M16 10h.01"/></svg><span>Chef d'agence</span></a>
+28-        <a href="#" data-page="agents" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="15" cy="7" r="3"/><path d="M2 21v-1a5 5 0 0 1 5-5h2m6 0h2a5 5 0 0 1 5 5v1"/></svg><span>Agents</span></a>
+29-        <a href="#" data-page="debiteurs" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0 1 7-7h0a7 7 0 0 1 7 7v1"/></svg><span>Débiteurs</span></a>
+30-        <a href="#" data-page="suivi" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span>Suivi</span></a>
+31-        <a href="#" data-page="caisse" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8m-4-4h8"/></svg><span>Caisse</span></a>
+32-        <a href="#" data-page="stocks" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Stocks</span></a>
+33-        <a href="#" data-page="produits" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Produits</span></a>
+34-        <a href="#" data-page="ventes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 7h18M3 11h18M3 15h10m-8 4h6"/></svg><span>Ventes</span></a>
+35-        <a href="#" data-page="comptant" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 100 4h4a2 2 0 110 4H8m4 2v-2m0-8V6"/></svg><span>Ventes Comptant</span></a>
+36-        <a href="#" data-page="alertes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg><span>Alertes</span><span id="alert-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-alert rounded-full animate-pulse"></span></a>
+37-        <a href="#" data-page="parametres" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>Paramètres</span></a>
+38-        <a href="#" data-page="comptabilite" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M6 8h4m-4 4h8m-8 4h4"/></svg><span>Comptabilité</span></a>
+39-        <a href="#" data-page="statistiques" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Statistiques</span></a>
+40-        <a href="#" data-page="rapports" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 12h10M7 8h6m-6 8h8"/></svg><span>Rapports</span></a>
+41-    </nav>
+42-    <div class="px-4 py-4 border-t border-white/10">
+43-        <div class="flex items-center gap-3 px-3 py-2">
+44-            <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center text-accent font-semibold text-sm" id="user-initials">G</div>
+45-            <div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate" id="user-name">Gérante</p><p class="text-slate-500 text-xs">Connectée</p></div>
+46-            <button onclick="confirmLogout()" class="text-slate-500 hover:text-alert transition-colors" title="Déconnexion"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 17l5-5m0 0l-5-5m5 5H7m5 5v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v1"/></svg></button>
+47-        </div>
+48-    </div>
+49-</aside>
+50-
+51-<main class="lg:ml-64 min-h-screen transition-all duration-300">
+52-    <header class="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border">
+53-        <div class="flex items-center justify-between px-4 lg:px-8 py-4">
+54-            <button onclick="toggleSidebar()" class="lg:hidden text-text hover:text-accent transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+55-            <div><h2 class="text-xl lg:text-2xl font-bold" id="greeting">Bonjour 👋</h2><p class="text-muted text-sm" id="current-date"></p></div>
+56-                <div class="hidden lg:flex items-center gap-2 ml-6"><input type="text" id="search-input" placeholder="Rechercher..." onkeyup="rechercheGlobale(this.value)" class="w-80 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent"><div id="search-results" class="hidden absolute top-full mt-2 w-96 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-96 overflow-y-auto"></div></div>
+57-        </div>
+58-    </header>
+59-    <div class="p-4 lg:p-8" id="page-content"></div>
+60-</main>
+61-
+62-<div id="logout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center fade-in"><div class="text-4xl mb-3">👋</div><h3 class="text-lg font-bold mb-2">Se déconnecter ?</h3><p class="text-muted text-sm mb-6">Vous devrez vous reconnecter.</p><div class="flex gap-3"><button onclick="cancelLogout()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Rester</button><button onclick="logout()" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700">Déconnexion</button></div></div></div>
+63-<div id="add-agent-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Créer un Agent</h3><form onsubmit="createAgent(event)" class="space-y-3"><input type="text" id="agent-nom" placeholder="Nom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="agent-prenom" placeholder="Prénom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="email" id="agent-email" placeholder="Email *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="agent-telephone" placeholder="Téléphone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="password" id="agent-password" placeholder="Mot de passe" value="agent123" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeAddAgentModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Créer</button></div></form></div></div>
+64-<div id="delete-agent-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold text-red-600 mb-2">Supprimer un agent</h3><p id="delete-agent-name" class="text-text mb-1 font-medium"></p><p class="text-muted text-sm mb-4">Les clients de cet agent doivent être réattribués.</p><div class="space-y-3 mb-4"><button onclick="exportAgentData()" class="w-full px-4 py-2.5 bg-slate-100 rounded-xl text-sm font-medium hover:bg-slate-200">Exporter l'historique (CSV)</button><div><label class="block text-sm font-medium text-slate-700 mb-1">Attribuer ses clients à :</label><select id="transfer-agent-select" onchange="toggleDeleteButton()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Sélectionner un agent --</option></select></div>
+65-<div id="vcr-panier" class="mt-2 space-y-1"></div>
+66-            <button type="button" onclick="ajouterAuPanier()" class="mt-2 w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors">+ Ajouter au panier</button></div></div><div class="flex gap-3"><button onclick="closeDeleteAgentModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button id="confirm-delete-btn" onclick="deleteAgent()" disabled class="flex-1 px-4 py-2.5 bg-slate-300 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed">Attribuer et supprimer</button></div></div></div>
+67-<div id="password-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl fade-in"><h3 class="text-lg font-bold mb-2">Changer mot de passe</h3><p id="password-agent-name" class="text-muted text-sm mb-4"></p><form onsubmit="changeAgentPassword(event)" class="space-y-3"><input type="password" id="new-password" placeholder="Nouveau mot de passe" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closePasswordModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Enregistrer</button></div></form></div></div>
+68-
+69-<div id="add-produit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto"><h3 class="text-lg font-bold mb-4">Nouveau Produit</h3><form onsubmit="createProduit(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><input type="text" id="prod-nom" placeholder="Nom du produit *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="prod-code" placeholder="Code (auto si vide)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div class="grid grid-cols-2 gap-3"><input type="text" id="prod-categorie" placeholder="Catégorie" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="prod-unite" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="pièce">Pièce</option><option value="kg">Kilogramme</option><option value="litre">Litre</option><option value="mètre">Mètre</option><option value="carton">Carton</option><option value="sachet">Sachet</option><option value="boîte">Boîte</option></select></div><input type="text" id="prod-conditionnement" placeholder="Conditionnement" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><textarea id="prod-description" placeholder="Description" rows="2" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Prix d'achat (FCFA)</label><input type="number" id="prod-prix-achat" value="0" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Prix de vente (FCFA) *</label><input type="number" id="prod-prix-vente" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><div><label class="block text-xs text-muted mb-1">Seuil d'alerte</label><input type="number" id="prod-seuil" value="5" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div id="prod-marge-preview" class="bg-slate-100 rounded-xl p-3 text-center hidden"><span class="text-sm text-muted">Marge : </span><span id="prod-marge-value" class="font-bold text-green-600"></span></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeAddProduitModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:bg-blue-700">Créer le produit</button></div></form></div></div>
+70-<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+71-<div id="vente-credit-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente a Credit</h3><form onsubmit="submitVenteCredit(event)" class="space-y-3"><div class="flex gap-2"><select id="vcr-debiteur" required class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Debiteur --</option></select>
+72-<div id="vcr-score-badge" class="mt-2"></div></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date d'achat</label><input type="date" id="vcr-date-achat" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div class="flex gap-2 items-center"><select id="vcr-produit" onchange="onProduitChangeCredit()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="vcr-quantite" value="1" min="1" class="w-24 px-3 py-2.5 border border-slate-200 rounded-xl text-sm" placeholder="Qté" style="display:block!important;visibility:visible!important;">
+73-
+74-        <div id="vcr-panier-container" class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+75-            <label class="block text-xs font-semibold text-slate-700 mb-1">Panier de vente (<span id="vcr-panier-count">0</span> article(s))</label>
+76-            <div id="vcr-panier-items" class="space-y-2 my-2">
+77-                <p class="text-xs text-slate-400 italic">Aucun produit dans le panier</p>
+78-            </div>
+79-            <button type="button" onclick="ajouterAuPanier()" class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1 shadow-sm">
+80-                <span>+</span> Ajouter le produit sélectionné
+81-            </button>
+82-        </div></div><div class="grid grid-cols-3 gap-3"><div><label class="block text-xs text-muted mb-1">Prix vente (FCFA)</label><input type="number" id="vcr-prix-vente" placeholder="Prix" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Montant a financer</label><input type="number" id="vcr-montant" placeholder="Montant *" required oninput="calculerJournalier()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Epargne/jour</label><input type="number" id="vcr-epargne" value="300" oninput="calculerJournalier()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><div class="grid grid-cols-3 gap-3"><div><label class="block text-xs text-muted mb-1">Nb jours (max 20)</label><input type="number" id="vcr-jours" value="20" min="1" max="20" oninput="calculerJournalier()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Penalite/jour</label><input type="number" id="vcr-penalite" value="1000" min="0" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div class="bg-slate-100 rounded-xl p-3 text-center"><span class="text-xs text-muted">Journalier</span><br><span id="vcr-journalier" class="font-bold text-accent text-lg">0 FCFA</span></div></div><div><label class="block text-xs text-muted mb-1">Motif de derogation (si score insuffisant)</label><input type="text" id="vcr-motif" placeholder="Ex: Client fidele, situation exceptionnelle..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div id="vcr-recap" class="bg-blue-50 rounded-xl p-3 text-xs space-y-1 hidden"><div class="flex justify-between"><span>Epargne totale :</span><span id="vcr-recap-epargne" class="font-semibold"></span></div><div class="flex justify-between"><span>Total a rembourser :</span><span id="vcr-recap-total" class="font-semibold"></span></div></div><div class="flex gap-3 pt-2 sticky bottom-0 bg-white pb-2"><button type="button" onclick="closeVenteCreditModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+83-<div id="new-debiteur-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Nouveau Débiteur</h3><form onsubmit="submitNewDebiteur(event)" class="space-y-3"><input type="text" id="nd-nom" placeholder="Nom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-prenom" placeholder="Prénom" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-telephone" placeholder="Téléphone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-quartier" placeholder="Quartier" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="nd-activite" placeholder="Activité" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeNewDebiteurModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold">Créer</button></div></form></div></div>
+84-<div id="stock-entree-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Entrée de Stock</h3><form onsubmit="submitStockEntree(event)" class="space-y-3"><select id="se-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="se-quantite" placeholder="Quantité *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="se-prix-achat" placeholder="Prix achat unitaire (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="se-prix-vente" placeholder="Prix vente unitaire (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="se-fournisseur" placeholder="Fournisseur" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="se-reference" placeholder="Référence" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeStockEntreeModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700">Enregistrer</button></div></form></div></div>
+85-<div id="stock-sortie-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Sortie de Stock</h3><form onsubmit="submitStockSortie(event)" class="space-y-3"><select id="ss-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="ss-quantite" placeholder="Quantité *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="ss-type" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="vente">Vente</option><option value="perte">Perte / Avarie</option><option value="retour">Retour fournisseur</option></select><input type="number" id="ss-prix-vente" placeholder="Prix vente unitaire (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="ss-motif" placeholder="Motif" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeStockSortieModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700">Enregistrer</button></div></form></div></div>
+86-<div id="inventaire-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Inventaire</h3><form onsubmit="submitInventaire(event)" class="space-y-3"><select id="inv-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><input type="number" id="inv-stock-reel" placeholder="Stock réel compté *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="inv-prix-achat" placeholder="Nouveau prix achat (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="number" id="inv-prix-vente" placeholder="Nouveau prix vente (FCFA)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="inv-motif" placeholder="Motif" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeInventaireModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700">Valider</button></div></form></div></div>
+87-<div id="caisse-decaissement-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Dépense</h3><form onsubmit="submitDecaissement(event)" class="space-y-3"><input type="number" id="caisse-decaissement-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="caisse-decaissement-motif" placeholder="Motif *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><div class="flex gap-3 pt-2"><button type="button" onclick="closeDecaissementModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+88-<div id="caisse-cloture-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Clôturer la caisse</h3><form onsubmit="submitCloture(event)" class="space-y-3"><p class="text-sm text-muted">Le solde réel vous sera demandé après validation.</p><textarea id="cloture-notes" placeholder="Notes" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea><div class="flex gap-3 pt-2"><button type="button" onclick="closeClotureModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold">Clôturer</button></div></form></div></div>
+89-
+90-        <script src="js/dashboard-functions.js?v=20260818174107"></script>
+91-    <script src="js/agents-functions.js?v=202608701"></script>
+92-    <script src="js/debiteurs-functions.js?v=20260818155433"></script>
+93-    <script src="js/suivi-functions.js?v=202608701"></script>
+94-    <script src="js/caisse-functions.js?v=20260818193124"></script>
+95-    <script src="js/comptabilite-functions.js?v=20260818194320"></script>
+96-    <script src="js/stocks-functions.js?v=20260818230910"></script><script src="js/fix-modals.js?v=20260819001211"></script>
+97-    <script src="js/produits-functions.js?v=202608701"></script>
+98-    <script src="js/ventes-functions.js?v=202608701"></script>
+99-    <script src="js/comptant-functions.js?v=202608701"></script>
+100-    <script src="js/alertes-functions.js?v=202608701"></script>
+101-    <script src="js/parametres-functions.js?v=202608701"></script>
+102-    <script src="js/statistiques-functions.js?v=202608701"></script>
+103-    <script src="js/notifications-functions.js?v=202608701"></script>
+104-    <script src="js/rapports-functions.js?v=202608701"></script>
+105-    <script src="js/vente-modals-functions.js?v=20260814091247"></script>
+106-    <script src="js/agent-functions.js?v=20260819012329"></script>
+107-    <script src="js/chef-functions.js?v=202608701"></script>
+108-    <script src="js/localisation-loader.js?v=202608500"></script>
+109-    
+110-    <script src="js/recherche-globale.js"></script>
+111-    <script src="js/app.js?v=20260814093440"></script>
+112-
+113-<div id="encaisser-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+114-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto">
+115-        <h3 class="text-lg font-bold mb-4">💰 Encaisser</h3>
+116-        <form onsubmit="submitEncaisser(event)" class="space-y-3">
+117-            <input type="hidden" id="enc-vente-id">
+118-            <div class="bg-slate-100 rounded-xl p-3">
+119-                <p class="text-sm font-medium" id="enc-debiteur"></p>
+120-                <p class="text-xs text-muted">Quartier: <span id="enc-quartier"></span> | Tel: <span id="enc-telephone"></span></p>
+121-                <p class="text-xs text-muted">Attendu: <span id="enc-attendu" class="font-bold text-accent"></span> | Reste: <span id="enc-reste" class="font-bold text-red-600"></span></p>
+122-                <p class="text-xs" id="enc-statut-global"></p>
+123-            </div>
+124-            <div>
+125-                <label class="block text-sm font-medium text-slate-700 mb-1">Montant encaisse (FCFA)</label>
+126-                <input type="number" id="enc-montant" step="0.01" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+127-                <p class="text-xs text-muted mt-1">0 = pas d'argent collecte</p>
+128-            </div>
+129-            <div>
+130-                <label class="block text-sm font-medium text-slate-700 mb-1">Mode de paiement</label>
+131-                <select id="enc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+132-                    <option value="especes">Especes</option>
+133-                    <option value="mobile">Mobile Money</option>
+134-                    <option value="autre">Autre</option>
+135-                </select>
+136-            </div>
+137-            <div>
+138-                <label class="block text-sm font-medium text-slate-700 mb-1">Statut de la visite</label>
+139-                <select id="enc-statut" onchange="onStatutChange()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+140-                    <option value="paye">✅ Paye</option>
+141-                    <option value="partiel">🔶 Partiel</option>
+142-                    <option value="absent">❌ Absent</option>
+143-                    <option value="refus">🚫 Refus de payer</option>
+144-                    <option value="promesse">⏳ Promesse de payer</option>
+145-                </select>
+146-            </div>
+
+=== 4. CONTROLLER AGENT SPACE ===
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Services\PaiementService;
+use App\Services\CaisseService;
+use App\Services\ComptabiliteService;
+use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AgentSpaceController extends Controller
+{
+    public function tournee(Request $request)
+    {
+        $user = $request->user();
+        $aujourdhui = now()->toDateString();
+        $query = Vente::where('statut', 'en_cours')
+            ->whereDate('date_debut', '<=', $aujourdhui)
+            ->whereDate('date_fin', '>=', $aujourdhui)
+            ->with(['debiteur', 'echeances' => fn($q) => $q->whereDate('date_echeance', $aujourdhui)]);
+
+        if ($user->role === 'agent') {
+            $query->where('agent_id', $user->id);
+        }
+
+        $ventes = $query->get()
+            ->map(function($v) use ($aujourdhui) {
+                $echeance = $v->echeances->first();
+                $enRetard = $v->echeances()
+                    ->whereDate('date_echeance', '<=', $aujourdhui)
+                    ->whereNotIn('statut', ['paye'])
+                    ->exists();
+
+                $joursTotal = max(1, $v->nombre_jours);
+                $joursPayes = $v->echeances()->where('statut', 'paye')->count();
+                return [
+                    'uuid' => $v->uuid,
+                    'debiteur' => $v->debiteur?->nom.' '.$v->debiteur?->prenom,
+                    'telephone' => $v->debiteur?->telephone,
+                    'quartier' => $v->debiteur?->quartier,
+                    'montant_journalier' => $echeance?->montant_prevu ?? $v->montant_journalier,
+                    'reste_a_payer' => $v->resteAPayer(),
+                    'statut_visite' => $echeance?->statut ?? 'en_attente',
+                    'statut_global' => $enRetard ? 'en_retard' : 'a_jour',
+                    'epargne_par_jour' => $v->epargne_par_jour,
+                    'penalite_par_jour' => $v->penalite_par_jour,
+                    'jours_payes' => $joursPayes,
+                    'jours_total' => $joursTotal,
+                ];
+            });
+
+        // Regrouper par statut de visite
+        $aVisiter = $ventes->whereIn('statut_visite', ['en_attente', 'en_retard'])->values();
+        $paye = $ventes->where('statut_visite', 'paye')->values();
+        $absent = $ventes->where('statut_visite', 'absent')->values();
+        $refus = $ventes->where('statut_visite', 'refus')->values();
+        $promesse = $ventes->where('statut_visite', 'promesse')->values();
+
+        return response()->json([
+            'a_visiter' => $aVisiter,
+            'paye' => $paye,
+            'absent' => $absent,
+            'refus' => $refus,
+            'promesse' => $promesse,
+            'stats' => [
+                'nb_total' => $ventes->count(),
+                'nb_paye' => $paye->count(),
+                'nb_absent' => $absent->count(),
+                'nb_refus' => $refus->count(),
+                'nb_promesse' => $promesse->count(),
+                'nb_a_visiter' => $aVisiter->count(),
+                'montant_attendu' => $ventes->sum('montant_journalier'),
+            ]
+        ]);
+    }
+
+    public function encaisser(Request $request)
+    {
+        $request->validate([
+            'vente_id' => 'required|exists:ventes,uuid',
+            'montant' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,mobile,autre',
+            'statut' => 'required|in:paye,partiel,absent,refus,promesse',
+            'commentaire' => 'nullable|string|required_if:statut,absent,refus,promesse',
+        ]);
+        
+        $vente = Vente::where('uuid', $request->vente_id)->firstOrFail();
+        
+        $rec = Recouvrement::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'agent_id' => $vente->debiteur->agent_id ?? $request->user()->id,
+            'montant' => $request->montant,
+            'date_recouvrement' => now()->toDateString(), 'heure_recouvrement' => now()->toTimeString(),
+            'mode_paiement' => $request->mode_paiement,
+            'statut' => $request->statut,
+            'commentaire' => $request->commentaire,
+            'synced' => true,
+        ]);
+
+        // Traiter le paiement avec le service
+        PaiementService::affecterPaiement($rec);
+
+        // Encaissements réels : caisse + compta
+        if (in_array($request->statut, ['paye', 'partiel']) && $request->montant > 0) {
+            CaisseService::enregistrerRecouvrement($rec);
+            ComptabiliteService::ecrireRecouvrement($rec);
+        }
+
+        // Notifications
+        NotificationService::generer();
+
+        return response()->json([
+            'success' => true,
+            'reste' => $vente->resteAPayer(),
+            'message' => self::messageStatut($request->statut),
+        ]);
+    }
+
+    private static function messageStatut($statut): string
+    {
+        return [
+            'paye' => 'Paiement enregistré.',
+            'partiel' => 'Paiement partiel enregistré.',
+            'absent' => 'Client absent signalé.',
+            'refus' => 'Refus de payer signalé.',
+            'promesse' => 'Promesse de paiement enregistrée.',
+        ][$statut] ?? 'OK';
+    }
+}
+
+=== 5. SERVICE PAIEMENT ===
+<?php
+namespace App\Services;
+use App\Models\Recouvrement;
+use App\Models\Echeance;
+use App\Models\Vente;
+
+class PaiementService
+{
+    /**
+     * Traiter un paiement selon le statut choisi par l'agent.
+     */
+    public static function affecterPaiement(Recouvrement $recouvrement): void
+    {
+        $vente = $recouvrement->vente;
+        $aujourdhui = now()->toDateString();
+
+        // Récupérer l'échéance du jour ou la plus ancienne impayée
+        $echeance = Echeance::where('vente_id', $vente->id)
+            ->whereDate('date_echeance', $aujourdhui)
+            ->first();
+
+        if (!$echeance) {
+            $echeance = Echeance::where('vente_id', $vente->id)
+                ->whereIn('statut', ['en_attente', 'en_retard', 'partiel'])
+                ->orderBy('date_echeance')
+                ->first();
+        }
+
+        switch ($recouvrement->statut) {
+            case 'paye':
+                $echeance->montant_paye = $echeance->montant_prevu;
+                $echeance->date_paiement = $aujourdhui;
+                $echeance->statut = 'paye';
+                $echeance->jours_retard = 0;
+                
+                // Collecter l'épargne quotidienne
+                EpargneService::collecter($vente, $recouvrement);
+                
+                // Appliquer les pénalités si retard
+                PenaliteService::appliquer($vente, $recouvrement);
+                break;
+
+            case 'partiel':
+                $echeance->montant_paye += $recouvrement->montant;
+                $echeance->date_paiement = $aujourdhui;
+                $echeance->statut = 'partiel';
+                break;
+
+            case 'absent':
+                $echeance->statut = 'absent';
+                break;
+
+            case 'refus':
+                $echeance->statut = 'refus';
+                break;
+
+            case 'promesse':
+                $echeance->statut = 'promesse';
+                break;
+        }
+
+        $echeance->save();
+
+        // Mettre à jour le statut global de la vente
+        $vente->mettreAJourStatutGlobal();
+    }
+}
+
+=== 6. SERVICE CAISSE ===
+<?php
+namespace App\Services;
+use App\Models\Caisse;
+use App\Models\MouvementCaisse;
+use App\Models\Recouvrement;
+use App\Models\Vente;
+use App\Models\Penalite;
+use Illuminate\Support\Str;
+
+class CaisseService
+{
+    public static function enregistrerRecouvrement(Recouvrement $recouvrement): void
+    {
+        if (!in_array($recouvrement->statut, ['paye', 'partiel'])) return;
+        if ($recouvrement->montant <= 0) return;
+        $caisse = self::getCaisseActive($recouvrement->agent_id, 'jour');
+        MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $recouvrement->agent_id,
+            'recouvrement_id' => $recouvrement->id,
+            'type' => 'encaissement',
+            'montant' => $recouvrement->montant,
+            'mode_paiement' => $recouvrement->mode_paiement,
+            'reference' => 'REC-' . substr($recouvrement->uuid, 0, 8),
+            'motif' => 'Paiement ' . ($recouvrement->vente->debiteur?->nom ?? 'client'),
+            'date_mouvement' => now(),
+        ]);
+        self::recalculer($caisse);
+    }
+
+    /**
+     * Enregistrer l'épargne dans la caisse uniquement (pas en comptabilité).
+     */
+    public static function enregistrerEpargne(Vente $vente, float $montant): void
+    {
+        if ($montant <= 0) return;
+        $caisse = self::getCaisseActive($vente->agent_id, 'jour');
+        MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $vente->agent_id,
+            'type' => 'epargne',
+            'montant' => $montant,
+            'reference' => 'EPARGNE-' . substr($vente->uuid, 0, 8),
+            'motif' => 'Épargne ' . ($vente->debiteur?->nom ?? 'client'),
+            'date_mouvement' => now(),
+        ]);
+        self::recalculer($caisse);
+    }
+
+    /**
+     * Enregistrer une pénalité dans la caisse (divers).
+     */
+    public static function enregistrerPenalite(Penalite $penalite): void
+    {
+        $vente = $penalite->vente;
+        $caisse = self::getCaisseActive($vente->agent_id, 'jour');
+        MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $vente->agent_id,
+            'type' => 'penalite',
+            'montant' => $penalite->montant,
+            'reference' => 'PENAL-' . substr($penalite->uuid, 0, 8),
+            'motif' => 'Pénalité retard ' . $penalite->jours_retard . 'j - ' . ($vente->debiteur?->nom ?? 'client'),
+            'date_mouvement' => now(),
+        ]);
+        self::recalculer($caisse);
+    }
+
+    private static function getCaisseActive(int $userId, string $periode): Caisse
+    {
+        $dateOuverture = match($periode) {
+            'semaine' => now()->startOfWeek()->toDateString(),
+            'mois' => now()->startOfMonth()->toDateString(),
+            'annee' => now()->startOfYear()->toDateString(),
+            default => now()->toDateString(),
+        };
+        $caisse = Caisse::where('user_id', $userId)
+            ->where('date_ouverture', $dateOuverture)
+            ->where('periode', $periode)
+            ->first();
+        if (!$caisse) {
+            $precedente = Caisse::where('user_id', $userId)->where('statut', 'fermee')->orderByDesc('date_fermeture')->first();
+            $caisse = Caisse::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $userId,
+                'date_ouverture' => $dateOuverture,
+                'periode' => $periode,
+                'solde_initial' => $precedente?->solde_reel ?? 0,
+                'statut' => 'ouverte',
+            ]);
+        }
+        return $caisse;
+    }
+
+    public static function recalculer(Caisse $caisse): void
+    {
+        $mouvements = $caisse->mouvements;
+        $caisse->total_encaissements = $mouvements->where('type', 'encaissement')->sum('montant');
+        $caisse->total_decaissements = $mouvements->whereIn('type', ['decaissement', 'salaire'])->sum('montant');
+        $caisse->total_salaires = $mouvements->where('type', 'salaire')->sum('montant');
+        $caisse->total_epargnes = $mouvements->where('type', 'epargne')->sum('montant');
+        $caisse->total_penalites = $mouvements->where('type', 'penalite')->sum('montant');
+        $caisse->solde_theorique = $caisse->solde_initial + $caisse->total_encaissements + $caisse->total_epargnes + $caisse->total_penalites - $caisse->total_decaissements;
+        $caisse->save();
+    }
+}
+
+=== 7. SERVICE COMPTABILITE ===
+<?php
+namespace App\Services;
+use App\Models\Journal;
+use App\Models\Recouvrement;
+use App\Models\Vente;
+use App\Models\MouvementCaisse;
+use App\Models\Penalite;
+use Illuminate\Support\Str;
+
+class ComptabiliteService
+{
+    // Enregistrer une écriture pour un recouvrement
+    public static function ecrireRecouvrement(Recouvrement $recouvrement): void
+    {
+        if ($recouvrement->statut !== 'paye') return;
+        $vente = $recouvrement->vente;
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $recouvrement->date_recouvrement,
+            'compte_debit' => '521000', // Caisse
+            'compte_credit' => '411000', // Clients
+            'montant' => $recouvrement->montant,
+            'libelle' => 'Encaissement ' . ($vente->debiteur?->nom ?? 'client') . ' - Vente #' . substr($vente->uuid, 0, 8),
+            'reference' => 'REC-' . substr($recouvrement->uuid, 0, 8),
+            'recouvrement_id' => $recouvrement->id,
+            'vente_id' => $vente->id,
+            'user_id' => $recouvrement->agent_id,
+        ]);
+    }
+
+    // Écriture pour une vente à crédit (créance)
+    public static function ecrireVenteCredit(Vente $vente): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        $montantTTC = $vente->montant_total;
+        $tauxTVA = 18.00;
+        $montantHT = round($montantTTC / (1 + $tauxTVA / 100), 2);
+        $montantTVA = round($montantTTC - $montantHT, 2);
+
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $vente->date_debut,
+            'compte_debit' => '411000', // Clients
+            'compte_credit' => '701000', // Ventes
+            'montant' => $montantTTC,
+            'montant_ht' => $montantHT,
+            'montant_tva' => $montantTVA,
+            'montant_ttc' => $montantTTC,
+            'taux_tva' => $tauxTVA,
+            'libelle' => 'Vente crédit ' . ($vente->debiteur?->nom ?? 'client'),
+            'reference' => 'VTE-' . substr($vente->uuid, 0, 8),
+            'vente_id' => $vente->id,
+            'user_id' => $vente->agent_id,
+        ]);
+    }
+
+    // Écriture pour dépense caisse
+    public static function ecrireDecaissement(MouvementCaisse $mouvement): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $mouvement->date_mouvement->toDateString(),
+            'compte_debit' => '601000', // Charges
+            'compte_credit' => '521000', // Caisse
+            'montant' => $mouvement->montant,
+            'libelle' => $mouvement->motif ?: 'Dépense',
+            'reference' => 'DEP-' . substr($mouvement->uuid, 0, 8),
+            'mouvement_caisse_id' => $mouvement->id,
+            'user_id' => $mouvement->user_id,
+        ]);
+    }
+
+    public static function ecrireRemboursement(\App\Models\Vente $vente, \App\Models\DemandeRemboursement $d, int $userId): void
+    {
+        $num = 'RMB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => now()->toDateString(),
+            'compte_debit' => '411000',
+            'compte_credit' => '521000',
+            'montant' => $d->montant_rembourse + $d->montant_epargne_rembourse,
+            'libelle' => 'Remboursement (50% credit + epargne) vente #' . substr($vente->uuid, 0, 8),
+            'reference' => 'RMB-' . substr($vente->uuid, 0, 8),
+            'vente_id' => $vente->id,
+            'user_id' => $userId,
+        ]);
+    }
+
+    // Écriture pour pénalité de retard (compte divers)
+    public static function ecrirePenalite(Penalite $penalite): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $penalite->date_appliquee,
+            'compte_debit' => '521000', // Caisse
+            'compte_credit' => '758000', // Produits divers
+            'montant' => $penalite->montant,
+            'libelle' => 'Pénalité retard ' . $penalite->jours_retard . 'j - ' . ($penalite->debiteur->nom ?? 'client'),
+            'reference' => 'PENAL-' . substr($penalite->uuid, 0, 8),
+            'user_id' => $penalite->vente->agent_id,
+        ]);
+    }
+}
+
+=== 8. CONTROLLER DEBITEURS ===
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Debiteur;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class DebiteurController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Debiteur::where('actif', true)->with(['agent:id,uuid,nom,prenom', 'ancienAgent:id,uuid,nom,prenom']);
+        if ($request->agent_id) {
+            $query->whereHas('agent', fn($q) => $q->where('uuid', $request->agent_id));
+        }
+        if ($request->q) {
+            $q = $request->q;
+            $query->where(function($sql) use ($q) {
+                $sql->where('nom', 'LIKE', "%$q%")->orWhere('prenom', 'LIKE', "%$q%")->orWhere('telephone', 'LIKE', "%$q%")->orWhere('quartier', 'LIKE', "%$q%");
+            });
+        }
+        return response()->json($query->orderBy('nom')->get());
+    }
+
+    public function show(string $uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)
+            ->with(['agent:id,uuid,nom,prenom', 'ancienAgent:id,uuid,nom,prenom'])
+            ->firstOrFail();
+        $debiteur->load(['ventes' => fn($q) => $q->orderByDesc('created_at'), 'ventes.recouvrements']);
+        return response()->json($debiteur);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate(['agent_id' => 'required|exists:users,uuid', 'nom' => 'required|string|max:100']);
+        $agent = User::where('uuid', $request->agent_id)->firstOrFail();
+        $debiteur = Debiteur::create([
+            'uuid' => Str::uuid(),
+            'agent_id' => $agent->id,
+            'nom' => $request->nom,
+            'prenom' => $request->prenom ?? '',
+            'telephone' => $request->telephone ?? '',
+            'quartier' => $request->quartier ?? '',
+            'adresse' => $request->adresse ?? '',
+            'activite' => $request->activite ?? '',
+            'personne_reference_nom' => $request->personne_reference_nom ?? '',
+            'personne_reference_tel' => $request->personne_reference_tel ?? '',
+            'credits_autorises' => (int) ($request->credits_autorises ?? $request->limite_credit ?? 1),
+            'score_solvabilite' => 50,
+        ]);
+        return response()->json(['success' => true, 'uuid' => $debiteur->uuid], 201);
+    }
+
+    public function update(Request $request, string $uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        $debiteur->update($request->only(['nom','prenom','telephone','quartier','adresse','activite','credits_autorises','personne_reference_nom','personne_reference_tel']));
+        return response()->json(['success' => true]);
+    }
+
+    public function destroy(string $uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        $debiteur->update(['actif' => false]);
+        return response()->json(['success' => true]);
+    }
+}
+
+=== 9. MODELS UTILISES ===
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use App\Observers\VenteObserver;
+
+class Vente extends Model
+{
+    protected static function booted(): void
+    {
+        static::observe(VenteObserver::class);
+    }
+
+    protected $fillable = [
+        'uuid','debiteur_id','agent_id','created_by','produit_id',
+        'type_vente','montant_total','montant_journalier',
+        'nombre_jours','delai_avant_echeances','epargne','epargne_par_jour','epargne_total',
+        'penalite_par_jour','penalite_active','motif_penalite','mise_agent',
+        'date_debut','date_fin','heure_creation','statut',
+    ];
+    protected $casts = ['date_debut' => 'date','date_fin' => 'date'];
+
+    public function debiteur() { return $this->belongsTo(Debiteur::class); }
+    public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
+    public function createur() { return $this->belongsTo(User::class, 'created_by'); }
+    public function produit() { return $this->belongsTo(Produit::class); }
+    public function venteProduits() { return $this->hasMany(VenteProduit::class); }
+    public function recouvrements() { return $this->hasMany(Recouvrement::class); }
+    public function echeances() { return $this->hasMany(Echeance::class)->orderBy('date_echeance'); }
+    public function demandeRemboursement() { return $this->hasOne(DemandeRemboursement::class); }
+
+    public function ratioEpargne(): float
+    {
+        return $this->montant_total > 0 ? ($this->epargne_total ?? 0) / $this->montant_total : 0;
+    }
+
+    public function montantEpargnePaye(): float
+    {
+        return round($this->totalPaye() * $this->ratioEpargne(), 2);
+    }
+
+    public function montantCreditPaye(): float
+    {
+        return round($this->totalPaye() - $this->montantEpargnePaye(), 2);
+    }
+
+    public function scopeActives($q) { return $q->whereIn('statut', ['en_cours', 'termine', 'defaut']); }
+
+    public function totalPaye(): float
+    {
+        return $this->recouvrements()->where('statut', 'paye')->sum('montant');
+    }
+    public function resteAPayer(): float
+    {
+        return max(0, $this->montant_total - $this->totalPaye());
+    }
+
+    // Tous les articles du panier, avec repli sur le produit unique (ventes historiques)
+    public function produitsPanier(): array
+    {
+        $items = $this->venteProduits()->with('produit')->get()->map(function ($vp) {
+            return [
+                'nom'           => $vp->produit?->nom ?? '--',
+                'quantite'      => (int) $vp->quantite,
+                'prix_unitaire' => (float) $vp->prix_unitaire,
+                'total'         => (float) $vp->quantite * (float) $vp->prix_unitaire,
+            ];
+        })->values()->all();
+
+        if (empty($items) && $this->produit) {
+            $items[] = [
+                'nom'           => $this->produit->nom,
+                'quantite'      => 1,
+                'prix_unitaire' => (float) ($this->produit->prix_vente ?? 0),
+                'total'         => (float) ($this->produit->prix_vente ?? 0),
+            ];
+        }
+        return $items;
+    }
+
+    // Générer les échéances
+    public function genererEcheances(): void
+    {
+        if ($this->type_vente !== 'credit') return;
+        $this->echeances()->delete();
+        $delai = max(0, (int) ($this->delai_avant_echeances ?? 1));
+        $reste = $this->montant_total;
+        $jours = (int) $this->nombre_jours;
+        $journalier = $this->montant_journalier;
+        for ($i = 0; $i < $jours; $i++) {
+            $montant = ($i === $jours - 1) ? $reste : $journalier;
+            $this->echeances()->create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'date_echeance' => $this->date_debut->copy()->addDays($delai + $i),
+                'montant_prevu' => $montant,
+                'statut' => 'en_attente',
+            ]);
+            $reste -= $montant;
+        }
+    }
+
+    // Mettre à jour le statut global de la vente
+    public function mettreAJourStatutGlobal(): void
+    {
+        $toutesPayees = $this->echeances()->where('statut', '!=', 'paye')->doesntExist();
+        if ($toutesPayees && $this->echeances()->count() > 0) {
+            $this->update(['statut' => 'termine']);
+        }
+    }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Recouvrement extends Model
+{
+    protected $fillable = [
+        'uuid', 'vente_id', 'agent_id', 'montant',
+        'date_recouvrement', 'mode_paiement', 'statut',
+        'commentaire', 'synced', 'sync_uuid', 'heure_recouvrement',
+    ];
+    protected $casts = ['synced' => 'boolean', 'date_recouvrement' => 'date', 'montant' => 'decimal:2'];
+    public function vente() { return $this->belongsTo(Vente::class); }
+    public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
+}
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Echeance extends Model
+{
+    protected $fillable = ['uuid','vente_id','date_echeance','montant_prevu','montant_paye','statut','jours_retard','date_paiement'];
+    protected $casts = ['date_echeance' => 'date', 'date_paiement' => 'date'];
+
+    public function vente() { return $this->belongsTo(Vente::class); }
+
+    public function restant(): float
+    {
+        return max(0, $this->montant_prevu - $this->montant_paye);
+    }
+
+    public function mettreAJourStatut(): void
+    {
+        if ($this->montant_paye >= $this->montant_prevu) {
+            $this->statut = 'paye';
+            $this->jours_retard = 0;
+        } elseif ($this->montant_paye > 0) {
+            $this->statut = 'partiel';
+        } elseif ($this->date_echeance->startOfDay()->lessThanOrEqualTo(now()->startOfDay())) {
+            $this->statut = 'en_retard';
+            $this->jours_retard = $this->date_echeance->startOfDay()->diffInDays(now()->startOfDay());
+        } else {
+            $this->statut = 'en_attente';
+            $this->jours_retard = 0;
+        }
+        $this->save();
+    }
+}
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+
+class Debiteur extends Model
+{
+    protected $attributes = [
+        'credits_autorises' => 1,
+        'actif' => true,
+    ];
+
+    protected $fillable = [
+        'uuid', 'code_client', 'agent_id', 'nom', 'prenom', 'telephone',
+        'quartier', 'adresse', 'personne_reference_nom', 'personne_reference_tel',
+        'activite', 'score_solvabilite', 'credits_autorises', 'actif',
+        'ancien_agent_id', 'date_transfert',
+        'taux_recouvrement_au_transfert', 'reste_a_payer_au_transfert',
+    ];
+
+    protected $casts = [
+        'actif' => 'boolean',
+        'date_transfert' => 'datetime',
+        'score_solvabilite' => 'float',
+        'credits_autorises' => 'integer',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $d) {
+            $d->uuid = $d->uuid ?: (string) \Illuminate\Support\Str::uuid();
+            if (blank($d->code_client)) {
+                do {
+                    $code = 'CLI-' . strtoupper(\Illuminate\Support\Str::random(8));
+                } while (self::where('code_client', $code)->exists());
+                $d->code_client = $code;
+            }
+        });
+    }
+
+    public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
+    public function ancienAgent() { return $this->belongsTo(User::class, 'ancien_agent_id'); }
+    public function ventes() { return $this->hasMany(Vente::class); }
+    public function score() { return $this->hasOne(ScoreSolvabilite::class); }
+}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, Notifiable;
+
+    protected $fillable = [
+        'uuid', 'nom', 'prenom', 'email', 'telephone',
+        'role', 'password', 'token', 'token_expires_at', 'actif',
+    ];
+
+    protected $hidden = ['password', 'token'];
+
+    protected $casts = [
+        'token_expires_at' => 'datetime',
+        'actif' => 'boolean',
+    ];
+
+    public function debiteurs() { return $this->hasMany(Debiteur::class, 'agent_id'); }
+    public function ventes() { return $this->hasMany(Vente::class, 'agent_id'); }
+    public function recouvrements() { return $this->hasMany(Recouvrement::class, 'agent_id'); }
+    public function isGerante(): bool { return $this->role === 'gerante'; }
+    public function isChefAgence(): bool { return $this->role === 'chef_agence'; }
+    public function isAgent(): bool { return $this->role === 'agent'; }
+}

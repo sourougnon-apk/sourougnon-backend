@@ -1,0 +1,58 @@
+<?php
+namespace App\Services;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Epargne;
+use Illuminate\Support\Str;
+
+class EpargneService
+{
+    /**
+     * Enregistrer l'épargne quotidienne lors d'un encaissement.
+     * L'épargne va UNIQUEMENT dans la caisse, pas en comptabilité.
+     */
+    public static function collecter(Vente $vente, Recouvrement $recouvrement): void
+    {
+        if ($vente->epargne_par_jour <= 0) return;
+
+        Epargne::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'debiteur_id' => $vente->debiteur_id,
+            'montant' => $vente->epargne_par_jour,
+            'date_collecte' => $recouvrement->date_recouvrement,
+            'statut' => 'collecte',
+        ]);
+
+        // Enregistrer dans la caisse (pas en comptabilité)
+        CaisseService::enregistrerEpargne($vente, $vente->epargne_par_jour);
+    }
+
+    /**
+     * La gérante récupère l'épargne d'un client.
+     */
+    public static function recuperer(Epargne $epargne, $userId): void
+    {
+        $epargne->update([
+            'statut' => 'recuperee',
+            'recuperee_par' => $userId,
+            'date_recuperation' => now(),
+        ]);
+    }
+
+    /**
+     * Le client confirme avoir récupéré sa mise.
+     */
+    public static function confirmer(Epargne $epargne): void
+    {
+        $epargne->update(['confirmation_client' => true]);
+    }
+
+    /**
+     * Total épargne collectée (non récupérée) pour la caisse.
+     */
+    public static function totalCollecte(): float
+    {
+        return Epargne::where('statut', 'collecte')->sum('montant');
+    }
+}

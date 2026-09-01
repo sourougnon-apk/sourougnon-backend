@@ -1,0 +1,180 @@
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Debiteur;
+use App\Models\Echeance;
+use App\Models\User;
+use App\Models\Produit;
+use App\Models\SyntheseJournaliere;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class StatistiquesController extends Controller
+{
+    public function index(Request $request)
+    {
+        $periode = $request->periode ?? 'mois';
+        $debut = $this->getDateDebut($periode);
+        $fin = now()->toDateString();
+        $agentId = $request->agent_id;
+
+        return response()->json([
+            'resume' => $this->resume($debut, $fin),
+            'ventes_jour' => $this->ventesJour(),
+            'ventes_mois' => $this->ventesMois(),
+            'recettes_periode' => $this->recettesPeriode($debut, $fin, $periode),
+            'reglements_clients' => $this->reglementsParClient($debut, $fin, $agentId),
+            'reglements_agents' => $this->reglementsParAgent($debut, $fin),
+            'performance_agents' => $this->performanceAgents($debut, $fin),
+            'produits_vendus' => $this->produitsVendus($debut, $fin, $agentId),
+            'creances' => $this->creances(),
+            'evolution' => $this->evolution($debut, $fin, $periode),
+            'filtres' => [
+                'agents' => User::where('role', 'agent')->where('actif', true)->get(['uuid', 'nom', 'prenom']),
+            ],
+        ]);
+    }
+
+    private function getDateDebut(string $periode): string
+    {
+        return match($periode) {
+            'jour' => now()->toDateString(),
+            'semaine' => now()->startOfWeek()->toDateString(),
+            'annee' => now()->startOfYear()->toDateString(),
+            default => now()->startOfMonth()->toDateString(),
+        };
+    }
+
+    private function resume(string $debut, string $fin): array
+    {
+        $ventes = Vente::actives()->whereDate('date_debut', '>=', $debut)->whereDate('date_debut', '<=', $fin);
+        $encaisses = Recouvrement::where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin);
+        $creances = Vente::where('statut', 'en_cours')->get()->sum(fn($v) => $v->resteAPayer());
+        $valeurStock = Produit::where('actif', true)->get()->sum(fn($p) => $p->stock * $p->prix_achat);
+        $ca = $ventes->sum('montant_total');
+        $encaisse = $encaisses->sum('montant');
+        return [
+            'ca_total' => $ca,
+            'encaissements' => $encaisse,
+            'nb_ventes' => $ventes->count(),
+            'nb_comptant' => $ventes->clone()->where('type_vente', 'comptant')->count(),
+            'nb_credit' => $ventes->clone()->where('type_vente', 'credit')->count(),
+            'creances' => $creances,
+            'valeur_stock' => $valeurStock,
+            'benefice_estime' => Vente::actives()->whereDate('date_debut', '>=', $debut)->whereDate('date_debut', '<=', $fin)
+            ->whereHas('venteProduits')
+            ->with('venteProduits.produit')
+            ->get()
+            ->sum(function($v) {
+                return $v->venteProduits->sum(function($vp) {
+                    return ($vp->prix_unitaire - ($vp->produit->prix_achat ?? 0)) * $vp->quantite;
+                });
+            }),
+            'taux_recouvrement' => $ca > 0 ? round(($encaisse / $ca) * 100, 1) : 0,
+        ];
+    }
+
+    private function ventesJour(): array
+    {
+        $aujourdhui = now()->toDateString();
+        $ventes = Vente::actives()->whereDate('date_debut', $aujourdhui)->with(['debiteur:id,uuid,nom,prenom', 'agent:id,uuid,nom,prenom', 'produit:id,uuid,nom'])->orderByDesc('created_at')->get();
+        return [
+            'nb' => $ventes->count(),
+            'ca' => $ventes->sum('montant_total'),
+            'donnees' => $ventes,
+        ];
+    }
+
+    private function ventesMois(): array
+    {
+        $debutMois = now()->startOfMonth()->toDateString();
+        $ventes = Vente::actives()->whereDate('date_debut', '>=', $debutMois)->with(['debiteur', 'agent'])->orderByDesc('date_debut')->get();
+        return [
+            'nb' => $ventes->count(),
+            'ca' => $ventes->sum('montant_total'),
+            'donnees' => $ventes,
+        ];
+    }
+
+    private function recettesPeriode(string $debut, string $fin, string $periode): array
+    {
+        $format = match($periode) { 'jour' => '%H', 'semaine' => '%Y-%m-%d', 'annee' => '%Y-%m', default => '%Y-%m-%d' };
+        $recettes = Recouvrement::where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin)
+            ->selectRaw("DATE_FORMAT(date_recouvrement, '$format') as label, SUM(montant) as total, COUNT(*) as nb")
+            ->groupBy('label')->orderBy('label')->get();
+        return [
+            'total' => $recettes->sum('total'),
+            'nb_paiements' => $recettes->sum('nb'),
+            'donnees' => $recettes,
+        ];
+    }
+
+    private function reglementsParClient(string $debut, string $fin, $agentId): array
+    {
+        $query = Recouvrement::where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin)
+            ->with(['vente.debiteur', 'agent']);
+        if ($agentId) $query->whereHas('agent', fn($q) => $q->where('uuid', $agentId));
+        return $query->orderByDesc('date_recouvrement')->limit(50)->get()->toArray();
+    }
+
+    private function reglementsParAgent(string $debut, string $fin): array
+    {
+        return Recouvrement::where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin)
+            ->selectRaw('agent_id, SUM(montant) as total, COUNT(*) as nb')
+            ->with('agent:id,uuid,nom,prenom')->groupBy('agent_id')->orderByDesc('total')->get()->toArray();
+    }
+
+    private function performanceAgents(string $debut, string $fin): array
+    {
+        // Synthèse journalière + temps réel
+        $agents = User::where('role', 'agent')->where('actif', true)->get();
+        return $agents->map(function($agent) use ($debut, $fin) {
+            $syntheses = SyntheseJournaliere::where('agent_id', $agent->id)->whereDate('date', '>=', $debut)->whereDate('date', '<=', $fin)->get();
+            $nbDebiteurs = Debiteur::where('agent_id', $agent->id)->where('actif', true)->count();
+            $ventes = Vente::actives()->where('agent_id', $agent->id)->whereDate('date_debut', '>=', $debut)->whereDate('date_debut', '<=', $fin);
+            $encaisses = Recouvrement::where('agent_id', $agent->id)->where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin);
+            $encours = Vente::where('agent_id', $agent->id)->where('statut', 'en_cours')->sum('montant_total');
+            $ca = $ventes->sum('montant_total');
+            $encaisse = $encaisses->sum('montant');
+            return [
+                'uuid' => $agent->uuid, 'nom' => $agent->nom . ' ' . $agent->prenom,
+                'nb_debiteurs' => $nbDebiteurs,
+                'nb_ventes' => $ventes->count(),
+                'ca' => $ca,
+                'encours' => $encours,
+                'montant_encaisse' => $encaisse,
+                'montant_attendu' => $ventes->sum('montant_journalier'),
+                'taux' => $ca > 0 ? round(($encaisse / $ca) * 100, 1) : 0,
+                'syntheses' => $syntheses,
+            ];
+        })->toArray();
+    }
+
+    private function produitsVendus(string $debut, string $fin, $agentId): array
+    {
+        $query = Vente::actives()->whereNotNull('produit_id')->whereDate('date_debut', '>=', $debut)->whereDate('date_debut', '<=', $fin);
+        if ($agentId) $query->whereHas('agent', fn($q) => $q->where('uuid', $agentId));
+        $produits = $query->selectRaw('produit_id, COUNT(*) as nb, SUM(montant_total) as ca')->with('produit:id,uuid,nom')->groupBy('produit_id')->orderByDesc('nb')->limit(10)->get();
+        $stocks = Produit::where('actif', true)->get(['uuid', 'nom', 'stock', 'seuil_alerte', 'prix_vente']);
+        return ['ventes' => $produits, 'stocks' => $stocks];
+    }
+
+    private function creances(): array
+    {
+        $creances = Vente::where('statut', 'en_cours')->with(['debiteur:id,uuid,nom,prenom,telephone', 'agent:id,uuid,nom,prenom'])->get()
+            ->map(fn($v) => ['uuid' => $v->uuid, 'debiteur' => $v->debiteur?->nom . ' ' . $v->debiteur?->prenom, 'agent' => $v->agent?->nom, 'montant_total' => $v->montant_total, 'paye' => $v->totalPaye(), 'restant' => $v->resteAPayer(), 'date_debut' => $v->date_debut->format('d/m/Y'), 'date_fin' => $v->date_fin->format('d/m/Y')]);
+        return ['total' => $creances->sum('restant'), 'nb' => $creances->count(), 'donnees' => $creances];
+    }
+
+    private function evolution(string $debut, string $fin, string $periode): array
+    {
+        $format = match($periode) { 'jour' => '%H', 'semaine' => '%Y-%m-%d', 'annee' => '%Y-%m', default => '%Y-%m-%d' };
+        $labels = []; $encaissements = [];
+        $data = Recouvrement::where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin)
+            ->selectRaw("DATE_FORMAT(date_recouvrement, '$format') as label, SUM(montant) as total")->groupBy('label')->orderBy('label')->get();
+        foreach ($data as $d) { $labels[] = $d->label; $encaissements[] = $d->total; }
+        return ['labels' => $labels, 'encaissements' => $encaissements];
+    }
+}

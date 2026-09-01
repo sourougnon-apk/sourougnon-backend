@@ -1,0 +1,115 @@
+<?php
+namespace App\Services;
+
+use App\Models\Notification;
+use App\Models\Echeance;
+use App\Models\Vente;
+use App\Models\Produit;
+use Illuminate\Support\Str;
+
+class NotificationService
+{
+    public static function generer(): array
+    {
+        $nb = 0;
+        $aujourdhui = now()->toDateString();
+
+        // 0. Pénalités en attente (calcul automatique)
+        PenaliteService::genererEnAttente();
+        PenaliteService::genererPenalitesRetardPaye();
+
+        // Supprimer les anciennes notifications d'échéances et de retards
+        Notification::whereIn('type', ['echeance', 'retard'])->delete();
+
+        // 1. Échéances du jour — notifier les agents
+        $echeancesJour = Echeance::whereDate('date_echeance', $aujourdhui)
+            ->where('statut', 'en_attente')
+            ->with('vente.agent', 'vente.debiteur')
+            ->get();
+
+        foreach ($echeancesJour as $e) {
+            $agentId = $e->vente->agent_id;
+            $debiteur = $e->vente->debiteur;
+            if (!$agentId || !$debiteur) continue;
+
+            Notification::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $agentId,
+                'type' => 'echeance',
+                'titre' => 'Échéance du jour',
+                'message' => $debiteur->nom . ' doit payer ' . number_format($e->montant_prevu, 0, ',', ' ') . ' FCFA aujourd\'hui.',
+                'lien' => '#agent-space',
+            ]);
+            $nb++;
+        }
+
+        // 2. Retards — regrouper par débiteur et agent
+        $retardsGroupes = Echeance::whereIn('statut', ['en_retard', 'partiel'])
+            ->whereDate('date_echeance', '<', $aujourdhui)
+            ->with(['vente.debiteur', 'vente.agent'])
+            ->get()
+            ->groupBy(fn($e) => $e->vente->debiteur_id . '|' . $e->vente->agent_id);
+
+        foreach ($retardsGroupes as $key => $echeances) {
+            [$debiteurId, $agentId] = explode('|', $key);
+            $debiteur = $echeances->first()->vente->debiteur;
+            if (!$debiteur || !$agentId) continue;
+
+            $totalRestant = $echeances->sum(fn($e) => $e->restant());
+            $maxRetard = $echeances->max('jours_retard');
+            $nbEcheances = $echeances->count();
+
+            Notification::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $agentId,
+                'type' => 'retard',
+                'titre' => 'Retard de paiement',
+                'message' => $debiteur->nom . ' a ' . $nbEcheances . ' échéance(s) en retard (retard max : ' . $maxRetard . ' jours). Restant : ' . number_format($totalRestant, 0, ',', ' ') . ' FCFA.',
+                'lien' => '#agent-space',
+            ]);
+            $nb++;
+        }
+
+        // 3. Stocks faibles — notifier la gérante
+        $stocksFaibles = Produit::where('actif', true)
+            ->where('stock', '<=', \DB::raw('seuil_alerte'))
+            ->where(function($q){ $q->where('stock', '>', 0)->orWhere('stock_initial', '>', 0); })
+            ->get();
+
+        $gerante = \App\Models\User::where('role', 'gerante')->first();
+        if ($gerante && $stocksFaibles->isNotEmpty()) {
+            // Supprimer les anciennes notifications de stock pour la gérante
+            Notification::where('user_id', $gerante->id)
+                ->where('type', 'stock')
+                ->delete();
+
+            foreach ($stocksFaibles as $p) {
+                Notification::create([
+                    'uuid' => Str::uuid(),
+                    'user_id' => $gerante->id,
+                    'type' => 'stock',
+                    'titre' => 'Stock faible',
+                    'message' => $p->nom . ' : ' . $p->stock . ' unité(s) (seuil : ' . $p->seuil_alerte . ')',
+                    'lien' => '#stocks',
+                ]);
+                $nb++;
+            }
+        }
+
+        return ['nb_notifications' => $nb];
+    }
+
+    // Lien WhatsApp pour une échéance
+    public static function lienWhatsapp(Echeance $echeance): string
+    {
+        $tel = $echeance->vente->debiteur?->telephone;
+        if (!$tel) return '';
+        $nom = $echeance->vente->debiteur?->nom ?? 'Client';
+        $msg = "Bonjour $nom,\nNous vous rappelons votre échéance de "
+            . number_format($echeance->montant_prevu, 0, ',', ' ')
+            . " FCFA.\nRestant dû : "
+            . number_format($echeance->restant(), 0, ',', ' ')
+            . " FCFA.\nMerci de procéder au règlement.\nSourougnon";
+        return 'https://wa.me/' . preg_replace('/[^0-9]/', '', $tel) . '?text=' . urlencode($msg);
+    }
+}

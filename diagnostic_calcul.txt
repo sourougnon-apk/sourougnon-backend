@@ -1,0 +1,1133 @@
+=== VENTES ACTIVES ===
+Vente 7ea546c4-2401-4851-8a25-0d7772e8d606 | débiteur=Maxim | type=credit | total=75000.00 | journalier=3750.00 | jours=20 | début=2026-08-17 | statut=en_cours
+Vente bf517af3-af8e-4b65-9589-7f2d3b186a17 | débiteur=AKOUTE | type=credit | total=123000.00 | journalier=6150.00 | jours=20 | début=2026-08-17 | statut=en_cours
+
+=== ÉCHÉANCES (TOUTES) ===
+Éch 1 | Maxim | date=2026-08-18 | prévu=3750.00 | payé=3750.00 | statut=paye | retard_j=0
+Éch 2 | Maxim | date=2026-08-19 | prévu=3750.00 | payé=3750.00 | statut=paye | retard_j=0
+Éch 3 | Maxim | date=2026-08-20 | prévu=3750.00 | payé=3750.00 | statut=paye | retard_j=0
+Éch 4 | Maxim | date=2026-08-21 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 5 | Maxim | date=2026-08-22 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 6 | Maxim | date=2026-08-23 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 7 | Maxim | date=2026-08-24 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 8 | Maxim | date=2026-08-25 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 9 | Maxim | date=2026-08-26 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 10 | Maxim | date=2026-08-27 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 11 | Maxim | date=2026-08-28 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 12 | Maxim | date=2026-08-29 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 13 | Maxim | date=2026-08-30 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 14 | Maxim | date=2026-08-31 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 15 | Maxim | date=2026-09-01 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 16 | Maxim | date=2026-09-02 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 17 | Maxim | date=2026-09-03 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 18 | Maxim | date=2026-09-04 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 19 | Maxim | date=2026-09-05 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 20 | Maxim | date=2026-09-06 | prévu=3750.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 21 | AKOUTE | date=2026-08-18 | prévu=6150.00 | payé=0.00 | statut=en_retard | retard_j=2
+Éch 22 | AKOUTE | date=2026-08-19 | prévu=6150.00 | payé=0.00 | statut=en_retard | retard_j=1
+Éch 23 | AKOUTE | date=2026-08-20 | prévu=6150.00 | payé=0.00 | statut=en_retard | retard_j=0
+Éch 24 | AKOUTE | date=2026-08-21 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 25 | AKOUTE | date=2026-08-22 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 26 | AKOUTE | date=2026-08-23 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 27 | AKOUTE | date=2026-08-24 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 28 | AKOUTE | date=2026-08-25 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 29 | AKOUTE | date=2026-08-26 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 30 | AKOUTE | date=2026-08-27 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 31 | AKOUTE | date=2026-08-28 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 32 | AKOUTE | date=2026-08-29 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 33 | AKOUTE | date=2026-08-30 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 34 | AKOUTE | date=2026-08-31 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 35 | AKOUTE | date=2026-09-01 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 36 | AKOUTE | date=2026-09-02 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 37 | AKOUTE | date=2026-09-03 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 38 | AKOUTE | date=2026-09-04 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 39 | AKOUTE | date=2026-09-05 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+Éch 40 | AKOUTE | date=2026-09-06 | prévu=6150.00 | payé=0.00 | statut=en_attente | retard_j=0
+
+=== RECOUVREMENTS (TOUS) ===
+Rec 1 | Maxim | date=2026-08-17 | heure=23:14:29 | montant=3700.00 | statut=paye | mode=especes
+Rec 3 | Maxim | date=2026-08-19 | heure=08:18:55 | montant=3750.00 | statut=paye | mode=especes
+Rec 5 | Maxim | date=2026-08-20 | heure=00:37:22 | montant=3750.00 | statut=paye | mode=especes
+
+=== ÉPARGNES ===
+Épargne 4 | Maxim | date=2026-08-19 | montant=300.00 | vente=7ea546c4-2401-4851-8a25-0d7772e8d606
+Épargne 6 | Maxim | date=2026-08-20 | montant=300.00 | vente=7ea546c4-2401-4851-8a25-0d7772e8d606
+
+=== PÉNALITÉS ===
+
+=== MOUVEMENTS CAISSE ===
+Mv 1 | type=epargne | montant=300.00 | rec= | date=2026-08-17 | user=1
+Mv 2 | type=encaissement | montant=3700.00 | rec=1 | date=2026-08-17 | user=1
+Mv 3 | type=epargne | montant=300.00 | rec= | date=2026-08-18 | user=3
+Mv 4 | type=encaissement | montant=6150.00 | rec= | date=2026-08-18 | user=3
+Mv 5 | type=epargne | montant=300.00 | rec= | date=2026-08-19 | user=3
+Mv 6 | type=encaissement | montant=3750.00 | rec=3 | date=2026-08-19 | user=3
+Mv 7 | type=epargne | montant=300.00 | rec= | date=2026-08-20 | user=3
+Mv 8 | type=penalite | montant=1025.02 | rec= | date=2026-08-20 | user=3
+Mv 9 | type=encaissement | montant=6150.00 | rec= | date=2026-08-20 | user=3
+Mv 10 | type=epargne | montant=300.00 | rec= | date=2026-08-20 | user=3
+Mv 11 | type=encaissement | montant=3750.00 | rec=5 | date=2026-08-20 | user=3
+Mv 12 | type=penalite | montant=1651.35 | rec= | date=2026-08-20 | user=3
+Mv 13 | type=epargne | montant=300.00 | rec= | date=2026-08-20 | user=3
+Mv 14 | type=encaissement | montant=6150.00 | rec= | date=2026-08-20 | user=3
+Mv 15 | type=epargne | montant=300.00 | rec= | date=2026-08-20 | user=3
+Mv 16 | type=encaissement | montant=6150.00 | rec= | date=2026-08-20 | user=3
+Mv 17 | type=epargne | montant=300.00 | rec= | date=2026-08-20 | user=3
+Mv 18 | type=penalite | montant=2593.40 | rec= | date=2026-08-20 | user=3
+Mv 19 | type=epargne | montant=300.00 | rec= | date=2026-08-20 | user=3
+
+=== JOURNAUX ===
+J 1 | 2026-08-17 | 411000 > 701000 | montant=75000.00 | libellé=Vente crédit Maxim | ref=VTE-7ea546c4
+J 2 | 2026-08-17 | 411000 > 701000 | montant=123000.00 | libellé=Vente crédit AKOUTE | ref=VTE-bf517af3
+J 3 | 2026-08-17 | 521000 > 411000 | montant=3700.00 | libellé=Encaissement Maxim - Vente #7ea546c4 | ref=REC-965813f4
+J 9 | 2026-08-17 | 521000 > 758000 | montant=1651.35 | libellé=Pénalité retard 2j - AKPO | ref=PENAL-5889f828
+J 4 | 2026-08-18 | 521000 > 411000 | montant=6150.00 | libellé=Encaissement AKOUTE - Vente #bf517af3 | ref=REC-e417a46d
+J 5 | 2026-08-19 | 521000 > 411000 | montant=3750.00 | libellé=Encaissement Maxim - Vente #7ea546c4 | ref=REC-b3db80b2
+J 6 | 2026-08-20 | 521000 > 758000 | montant=1025.02 | libellé=Pénalité retard 1.0250235993056j - AKOUTE | ref=PENAL-92cf6415
+J 7 | 2026-08-20 | 521000 > 411000 | montant=6150.00 | libellé=Encaissement AKOUTE - Vente #bf517af3 | ref=REC-f9f87a67
+J 8 | 2026-08-20 | 521000 > 411000 | montant=3750.00 | libellé=Encaissement Maxim - Vente #7ea546c4 | ref=REC-64155dd6
+J 10 | 2026-08-20 | 521000 > 411000 | montant=6150.00 | libellé=Encaissement AKOUTE - Vente #bf517af3 | ref=REC-f8f5b333
+J 11 | 2026-08-20 | 521000 > 411000 | montant=6150.00 | libellé=Encaissement AKOUTE - Vente #bf517af3 | ref=REC-0a802adc
+J 12 | 2026-08-20 | 521000 > 758000 | montant=2593.40 | libellé=Pénalité retard 2.5934045772454j - AKOUTE | ref=PENAL-5879a184
+
+=== NOTIFICATIONS ===
+Notif 1 | type=stock | message=SUCRE KAKI 50KG : 2 unité(s) (seuil : 5) | date=2026-08-17
+Notif 2 | type=stock | message=TULIP JAUNE 50KG : 3 unité(s) (seuil : 5) | date=2026-08-17
+Notif 3 | type=stock | message=FARM HOUSSE 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 4 | type=stock | message=COOKZEN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 5 | type=stock | message=HARICOT ROUGE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 6 | type=stock | message=MAIS BLANC : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 7 | type=stock | message=FARINE GMB : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 8 | type=stock | message=COQUIL SACHET BONJOURNE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 9 | type=stock | message=CUBE MAGGI POULET : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 10 | type=stock | message=SOJA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 11 | type=stock | message=SARDINE ATLANTA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 12 | type=stock | message=MAYONNAISE MEVIA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 13 | type=stock | message=LAIT PEAK : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 14 | type=stock | message=Cube VEDAN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 15 | type=stock | message=SPAGHETTI DOGA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 16 | type=stock | message=SPRITE PLASTIQUE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 17 | type=stock | message=LA CASERA PLASTIQUE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 18 | type=stock | message=LEVURE JADU : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 19 | type=stock | message=SEL SAC BLANC : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 20 | type=stock | message=GARI SOHUI : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 21 | type=stock | message=COCA COLA PLASTIQUE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 22 | type=stock | message=BICARBONATE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 23 | type=stock | message=BOISSON ENERGIE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 24 | type=stock | message=HARICOT TAWA MOYEN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 25 | type=stock | message=TOMATE SHALOM : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 26 | type=stock | message=TOMATE SURE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 27 | type=stock | message=BIG JOE 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 28 | type=stock | message=RIZ CLARK 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 29 | type=stock | message=BLIGOE PETIT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 30 | type=stock | message=VOANZOU PETIT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 31 | type=stock | message=TOMATE AMAZONE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 32 | type=stock | message=MIL KAKI : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 33 | type=stock | message=FANTA CANETTE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 34 | type=stock | message=COCA CANETTE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 35 | type=stock | message=SPRITE CANETTE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 36 | type=stock | message=MALTA GUINESS : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 37 | type=stock | message=DESPERADO GRAND : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 38 | type=stock | message=RIZ 3 GOOD CASSE PARFUME 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 39 | type=stock | message=RIZ 3 GOOD CASSE PARFUME 5 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 40 | type=stock | message=RIZ 3 GOOD PARFUME LONG GRAIN 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 41 | type=stock | message=COQUILLETTE ROCH : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 42 | type=stock | message=SARDINE BONJOURNE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 43 | type=stock | message=TOMATE GINNY : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 44 | type=stock | message=HARACA ROUGE CASSE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 45 | type=stock | message=SPAGHETTI GOEYMEN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 46 | type=stock | message=AWONLI HARICOT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 47 | type=stock | message=VODY 18% : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 48 | type=stock | message=RIZ 3 GOOD LONG GRAIN 5KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 49 | type=stock | message=SACHET NOIR DE 5F : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 50 | type=stock | message=SACHET BLANC DE 5F : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 51 | type=stock | message=COUSCOUS BONJOURNE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 52 | type=stock | message=FARIME MOA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 53 | type=stock | message=KATY 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 54 | type=stock | message=YOUKI 1,5 LITRE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 55 | type=stock | message=TOMATE MAGNIFICAT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 56 | type=stock | message=SARDINES BEAUX RIVAGES : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 57 | type=stock | message=SPAGHETTI DANU : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 58 | type=stock | message=RIZ MARINA CASSE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 59 | type=stock | message=REAKTOR : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 60 | type=stock | message=BEAUFORT BOISSON : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 61 | type=stock | message=BOISSON ROX : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 62 | type=stock | message=MAYONNAISE GINNY : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 63 | type=stock | message=LAIT CEBON : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 64 | type=stock | message=MY CHOICE BLANC 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 65 | type=stock | message=COQUILLETTE DANU : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 66 | type=stock | message=CHARBON SAC DE 100 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 67 | type=stock | message=TOMATE BENNY 2200G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 68 | type=stock | message=COQUILLETTE OBA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 69 | type=stock | message=MONSTER GRAND : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 70 | type=stock | message=SANGRIA FORTE 18% CARTON DE 48 : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 71 | type=stock | message=SANGRIA FORTE 18% DETAIL : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 72 | type=stock | message=CHATEAUX DE FRANCE 11% DETAIL : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 73 | type=stock | message=BULL IBO : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 74 | type=stock | message=OMO VIVA CARTON DE 26 : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 75 | type=stock | message=RIZ FESTIN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 76 | type=stock | message=CLARK 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 77 | type=stock | message=VODY 22% : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 78 | type=stock | message=LAIT SUPER 8 : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 79 | type=stock | message=NONO 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 80 | type=stock | message=COUSCOUS LIDO : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 81 | type=stock | message=YOUKI 0,5 LITRE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 82 | type=stock | message=BETA PETIT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 83 | type=stock | message=LITTLE THAI : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 84 | type=stock | message=PJS 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 85 | type=stock | message=DIVA ROYAL 25 KG SAC JAUNE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 86 | type=stock | message=DIVA KAKI 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 87 | type=stock | message=ROOP 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 88 | type=stock | message=RIZ GINO 5KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 89 | type=stock | message=LAIT EN POUDRE GINNY : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 90 | type=stock | message=COQUILLETTE DIARI CARTON : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 91 | type=stock | message=KANGAROU CASSE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 92 | type=stock | message=DIVA SAC VIOLET 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 93 | type=stock | message=LUXE IBO 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 94 | type=stock | message=MAMAN PRETTY IBO 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 95 | type=stock | message=TOMATE BENNY 400G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 96 | type=stock | message=COUSCOUS GINNY : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 97 | type=stock | message=OPPI UNIQUE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 98 | type=stock | message=RAHI IBO 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 99 | type=stock | message=CUBE ROYAL : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 100 | type=stock | message=BAOBAB POUDRE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 101 | type=stock | message=SPAGHETTI DIARRI 500G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 102 | type=stock | message=SARDINE ALPHA CHEF : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 103 | type=stock | message=FANTA PLASTIQUE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 104 | type=stock | message=BUDWEISER CANETTE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 105 | type=stock | message=TOMATE YOVO 70 G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 106 | type=stock | message=HEINEKEN PETIT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 107 | type=stock | message=BETA GRAND : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 108 | type=stock | message=SARDINE 222 : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 109 | type=stock | message=PRAGATI GOLD 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 110 | type=stock | message=KATY 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 111 | type=stock | message=JOKER 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 112 | type=stock | message=GIL GIL CASSE 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 113 | type=stock | message=DJOLOF 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 114 | type=stock | message=VEDAN PETIT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 115 | type=stock | message=BEAU GARCON BASMATI 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 116 | type=stock | message=BEAU GARCON THAILANDAIS 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 117 | type=stock | message=JIYO 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 118 | type=stock | message=RIZ AAA 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 119 | type=stock | message=FOOTBALL 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 120 | type=stock | message=MEVIA EN PLASTIQUE 5 LITRES : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 121 | type=stock | message=SPAGHETTI 3 GOOD : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 122 | type=stock | message=COQUILLETTE 3 GOOD : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 123 | type=stock | message=LAIT CONCENTRE 3 GOOD : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 124 | type=stock | message=TOMATE OD 3 GOOD : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 125 | type=stock | message=OMO VIVA 800G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 126 | type=stock | message=SAVON KANKPE CARTON DE 30 : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 127 | type=stock | message=SAVON KANKPE DETAIL : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 128 | type=stock | message=STAR BIERE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 129 | type=stock | message=RC CANETTE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 130 | type=stock | message=RIZ IBO 8888 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 131 | type=stock | message=IBO DOUBLE ELEPHANT 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 132 | type=stock | message=SARDINES JADU : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 133 | type=stock | message=COUSCOUS KOULHALA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 134 | type=stock | message=PAON 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 135 | type=stock | message=SARDINES LOKKI : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 136 | type=stock | message=SARDINES CLEMA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 137 | type=stock | message=ONIMA 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 138 | type=stock | message=KT GOLD 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 139 | type=stock | message=SPAGHETTI BELINA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 140 | type=stock | message=COUSCOUS FENA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 141 | type=stock | message=TOMATE YOVO 2200G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 142 | type=stock | message=PIVERT SAC VERT 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 143 | type=stock | message=PIVERT SAC VIOLET 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 144 | type=stock | message=STAR ORIGINAL BASMATI 25KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 145 | type=stock | message=FARM HOUSSE VERT 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 146 | type=stock | message=IBO JOLLOF GOLD 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 147 | type=stock | message=LEOPARD 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 148 | type=stock | message=MADHU CASSE 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 149 | type=stock | message=LAIT EN POUDRE FAMILIA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 150 | type=stock | message=SPAGHETTI MAGNIFICAT : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 151 | type=stock | message=COQUILLETTE BELLA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 152 | type=stock | message=LAIT CONCENTRE MAGUIDA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 153 | type=stock | message=LAIT CONCENTRE TOP SAHO : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 154 | type=stock | message=LAIT CONCENTRE MY MILK : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 155 | type=stock | message=LAIT CONCENTRE UNITY : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 156 | type=stock | message=TOMATE PSP 2200G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 157 | type=stock | message=ONIMA 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 158 | type=stock | message=CAFE BONJOURNE CARTON : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 159 | type=stock | message=MILO FRESH CARTON : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 160 | type=stock | message=BISSAP : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 161 | type=stock | message=MYLY GOLD IBO 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 162 | type=stock | message=OPPI SUPER 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 163 | type=stock | message=OPPI POINTININI 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 164 | type=stock | message=JOLIE 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 165 | type=stock | message=SARDINE DANU : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 166 | type=stock | message=SAFARI RIZ BLANC 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 167 | type=stock | message=MAIS JAUNE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 168 | type=stock | message=SPAGHETTI BELLA : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 169 | type=stock | message=JOLIE SAC ORANGE 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 170 | type=stock | message=OMO WAVE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 171 | type=stock | message=INDOMIE GRAND : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 172 | type=stock | message=SAGONO SPECIAL 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 173 | type=stock | message=LAIT TOUS LES JOURS : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 174 | type=stock | message=PALMIDA BENIN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 175 | type=stock | message=MAYONNAISE BONJOURNE GRAND : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 176 | type=stock | message=SPAGHETTI BONJOURNE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 177 | type=stock | message=TIK TOK CASSE 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 178 | type=stock | message=LATIF 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 179 | type=stock | message=LEGENDE BIERE : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 180 | type=stock | message=STAR CITRON : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 181 | type=stock | message=HARAKA VERT 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 182 | type=stock | message=RIZ BLANC ROSETTE 50 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 183 | type=stock | message=AWONLI PETIT GRAIN : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 184 | type=stock | message=TOMATE JADU 2200G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 185 | type=stock | message=GIL GIL LONG GRAIN 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 186 | type=stock | message=TOMATE AMINATA 2200G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 187 | type=stock | message=TOMATE SALMA 2200G : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 188 | type=stock | message=TULIP 25 KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 189 | type=stock | message=JOLI CLASSIC 50KG : 0 unité(s) (seuil : 5) | date=2026-08-17
+Notif 192 | type=retard | message=AKOUTE a 2 jour(s) de retard. Restant : 6 150 FCFA. | date=2026-08-20
+
+=== SERVICES / CONTRÔLEURS ===
+--- PaiementService.php ---
+<?php
+
+namespace App\Services;
+
+use App\Models\Recouvrement;
+use App\Models\Echeance;
+use App\Models\Vente;
+
+class PaiementService
+{
+    /**
+     * Traiter un paiement selon le statut choisi par l'agent.
+     * Gère les excédents : un paiement peut couvrir plusieurs échéances.
+     */
+    public static function affecterPaiement(Recouvrement $recouvrement): void
+    {
+        $vente = $recouvrement->vente;
+        $aujourdhui = now()->toDateString();
+
+        // Statuts non payants : absent, refus, promesse
+        if (!in_array($recouvrement->statut, ['paye', 'partiel'])) {
+            $echeance = Echeance::where('vente_id', $vente->id)
+                ->whereDate('date_echeance', $aujourdhui)
+                ->first()
+                ?? Echeance::where('vente_id', $vente->id)
+                    ->whereIn('statut', ['en_attente', 'en_retard', 'partiel'])
+                    ->orderBy('date_echeance')
+                    ->first();
+
+            if ($echeance) {
+                $echeance->statut = match ($recouvrement->statut) {
+                    'absent' => 'absent',
+                    'refus' => 'refus',
+                    'promesse' => 'promesse',
+                    default => $echeance->statut,
+                };
+                $echeance->save();
+            }
+
+            $vente->mettreAJourStatutGlobal();
+            return;
+        }
+
+        // Paiements réels : paye ou partiel
+        $montantRestant = $recouvrement->montant;
+
+        // 1. Échéances échues non soldées (retards)
+        $echeancesDues = Echeance::where('vente_id', $vente->id)
+            ->whereIn('statut', ['en_retard', 'partiel', 'en_attente'])
+            ->whereDate('date_echeance', '<=', $aujourdhui)
+            ->orderBy('date_echeance')
+            ->get();
+
+        foreach ($echeancesDues as $echeance) {
+            if ($montantRestant <= 0) break;
+            $reste = $echeance->restant();
+            if ($reste <= 0) continue;
+
+            $payer = min($montantRestant, $reste);
+            $echeance->montant_paye += $payer;
+            $echeance->date_paiement = $recouvrement->date_recouvrement;
+            $echeance->jours_retard = 0;
+            $echeance->statut = $echeance->montant_paye >= $echeance->montant_prevu ? 'paye' : 'partiel';
+            $echeance->save();
+
+            $montantRestant -= $payer;
+        }
+
+        // 2. Excédent vers les échéances futures
+        if ($montantRestant > 0) {
+            $echeancesFutures = Echeance::where('vente_id', $vente->id)
+                ->where('statut', 'en_attente')
+                ->whereDate('date_echeance', '>', $aujourdhui)
+                ->orderBy('date_echeance')
+                ->get();
+
+            foreach ($echeancesFutures as $echeance) {
+                if ($montantRestant <= 0) break;
+                $reste = $echeance->restant();
+                if ($reste <= 0) continue;
+
+                $payer = min($montantRestant, $reste);
+                $echeance->montant_paye += $payer;
+                $echeance->date_paiement = $recouvrement->date_recouvrement;
+                $echeance->statut = $echeance->montant_paye >= $echeance->montant_prevu ? 'paye' : 'partiel';
+                $echeance->save();
+
+                $montantRestant -= $payer;
+            }
+        }
+
+        // Mettre à jour le statut global de la vente
+        $vente->mettreAJourStatutGlobal();
+
+        // Épargne et pénalités uniquement en cas de paiement complet
+        if ($recouvrement->statut === 'paye') {
+            EpargneService::collecter($vente, $recouvrement);
+            PenaliteService::appliquer($vente, $recouvrement);
+        }
+    }
+}
+--- EpargneService.php ---
+<?php
+namespace App\Services;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Epargne;
+use Illuminate\Support\Str;
+
+class EpargneService
+{
+    /**
+     * Enregistrer l'épargne quotidienne lors d'un encaissement.
+     * L'épargne va UNIQUEMENT dans la caisse, pas en comptabilité.
+     */
+    public static function collecter(Vente $vente, Recouvrement $recouvrement): void
+    {
+        if ($vente->epargne_par_jour <= 0) return;
+
+        Epargne::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'debiteur_id' => $vente->debiteur_id,
+            'montant' => $vente->epargne_par_jour,
+            'date_collecte' => $recouvrement->date_recouvrement,
+            'statut' => 'collecte',
+        ]);
+
+        // Enregistrer dans la caisse (pas en comptabilité)
+        CaisseService::enregistrerEpargne($vente, $vente->epargne_par_jour);
+    }
+
+    /**
+     * La gérante récupère l'épargne d'un client.
+     */
+    public static function recuperer(Epargne $epargne, $userId): void
+    {
+        $epargne->update([
+            'statut' => 'recuperee',
+            'recuperee_par' => $userId,
+            'date_recuperation' => now(),
+        ]);
+    }
+
+    /**
+     * Le client confirme avoir récupéré sa mise.
+     */
+    public static function confirmer(Epargne $epargne): void
+    {
+        $epargne->update(['confirmation_client' => true]);
+    }
+
+    /**
+     * Total épargne collectée (non récupérée) pour la caisse.
+     */
+    public static function totalCollecte(): float
+    {
+        return Epargne::where('statut', 'collecte')->sum('montant');
+    }
+}
+--- NotificationService.php ---
+<?php
+namespace App\Services;
+use App\Models\Notification;
+use App\Models\Echeance;
+use App\Models\Vente;
+use App\Models\Produit;
+use Illuminate\Support\Str;
+
+class NotificationService
+{
+    public static function generer(): array
+    {
+        $nb = 0;
+        $aujourdhui = now()->toDateString();
+
+        // 1. Échéances du jour — notifier les agents
+        $echeancesJour = Echeance::whereDate('date_echeance', $aujourdhui)
+            ->where('statut', 'en_attente')
+            ->with('vente.agent')
+            ->get();
+        foreach ($echeancesJour as $e) {
+            $agentId = $e->vente->agent_id;
+            $existe = Notification::where('user_id', $agentId)
+                ->where('type', 'echeance')
+                ->whereDate('created_at', $aujourdhui)
+                ->where('message', 'LIKE', '%' . $e->vente->debiteur?->nom . '%')
+                ->exists();
+            if (!$existe) {
+                Notification::create([
+                    'uuid' => Str::uuid(),
+                    'user_id' => $agentId,
+                    'type' => 'echeance',
+                    'titre' => 'Échéance du jour',
+                    'message' => ($e->vente->debiteur?->nom ?? 'Débiteur') . ' doit payer ' . number_format($e->montant_prevu, 0, ',', ' ') . ' FCFA aujourd\'hui.',
+                    'lien' => '#agent-space',
+                ]);
+                $nb++;
+            }
+        }
+
+        // 2. Retards — notifier les agents
+        $retards = Echeance::whereIn('statut', ['en_retard', 'partiel'])
+            ->whereDate('date_echeance', '<', $aujourdhui)
+            ->with('vente.agent')
+            ->get();
+        foreach ($retards as $r) {
+            $agentId = $r->vente->agent_id;
+            $existe = Notification::where('user_id', $agentId)
+                ->where('type', 'retard')
+                ->whereDate('created_at', $aujourdhui)
+                ->where('message', 'LIKE', '%' . $r->vente->debiteur?->nom . '%')
+                ->exists();
+            if (!$existe) {
+                Notification::create([
+                    'uuid' => Str::uuid(),
+                    'user_id' => $agentId,
+                    'type' => 'retard',
+                    'titre' => 'Retard de paiement',
+                    'message' => ($r->vente->debiteur?->nom ?? 'Débiteur') . ' a ' . $r->jours_retard . ' jour(s) de retard. Restant : ' . number_format($r->restant(), 0, ',', ' ') . ' FCFA.',
+                    'lien' => '#agent-space',
+                ]);
+                $nb++;
+            }
+        }
+
+        // 3. Stocks faibles — notifier la gérante
+        $stocksFaibles = Produit::where('actif', true)->where('stock', '<=', \DB::raw('seuil_alerte'))->where(function($q){ $q->where('stock', '>', 0)->orWhere('stock_initial', '>', 0); })->get();
+        $gerante = \App\Models\User::where('role', 'gerante')->first();
+        if ($gerante && $stocksFaibles->isNotEmpty()) {
+            foreach ($stocksFaibles as $p) {
+                $existe = Notification::where('user_id', $gerante->id)
+                    ->where('type', 'stock')
+                    ->whereDate('created_at', $aujourdhui)
+                    ->where('message', 'LIKE', '%' . $p->nom . '%')
+                    ->exists();
+                if (!$existe) {
+                    Notification::create([
+                        'uuid' => Str::uuid(),
+                        'user_id' => $gerante->id,
+                        'type' => 'stock',
+                        'titre' => 'Stock faible',
+                        'message' => $p->nom . ' : ' . $p->stock . ' unité(s) (seuil : ' . $p->seuil_alerte . ')',
+                        'lien' => '#stocks',
+                    ]);
+                    $nb++;
+                }
+            }
+        }
+
+        return ['nb_notifications' => $nb];
+    }
+
+    // Lien WhatsApp pour une échéance
+    public static function lienWhatsapp(Echeance $echeance): string
+    {
+        $tel = $echeance->vente->debiteur?->telephone;
+        if (!$tel) return '';
+        $nom = $echeance->vente->debiteur?->nom ?? 'Client';
+        $msg = "Bonjour $nom,\nNous vous rappelons votre échéance de " 
+            . number_format($echeance->montant_prevu, 0, ',', ' ') 
+            . " FCFA.\nRestant dû : " 
+            . number_format($echeance->restant(), 0, ',', ' ') 
+            . " FCFA.\nMerci de procéder au règlement.\nSourougnon";
+        return 'https://wa.me/' . preg_replace('/[^0-9]/', '', $tel) . '?text=' . urlencode($msg);
+    }
+}
+--- AgentSpaceController.php (extrait) ---
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Echeance;
+use App\Services\PaiementService;
+use App\Services\CaisseService;
+use App\Services\ComptabiliteService;
+use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AgentSpaceController extends Controller
+{
+    public function tournee(Request $request)
+    {
+        $user = $request->user();
+        $aujourdhui = now()->toDateString();
+        $query = Vente::where('statut', 'en_cours')
+            ->whereDate('date_debut', '<=', $aujourdhui)
+            ->whereDate('date_fin', '>=', $aujourdhui)
+            ->with(['debiteur', 'echeances' => fn($q) => $q->whereDate('date_echeance', $aujourdhui)]);
+
+        if ($user->role === 'agent') {
+            $query->where('agent_id', $user->id);
+        }
+
+        $ventesModeles = $query->get();
+
+        $ventes = $ventesModeles
+            ->map(function($v) use ($aujourdhui) {
+                $echeance = $v->echeances->first();
+                $enRetard = $v->echeances()
+                    ->whereDate('date_echeance', '<=', $aujourdhui)
+                    ->whereNotIn('statut', ['paye'])
+                    ->exists();
+
+                $joursTotal = max(1, $v->nombre_jours);
+                $joursPayes = $v->echeances()->where('statut', 'paye')->count();
+                return [
+                    'uuid' => $v->uuid,
+                    'debiteur_uuid' => $v->debiteur?->uuid,
+                    'debiteur' => $v->debiteur?->nom.' '.$v->debiteur?->prenom,
+                    'telephone' => $v->debiteur?->telephone,
+                    'quartier' => $v->debiteur?->quartier,
+                    'montant_journalier' => $echeance?->montant_prevu ?? $v->montant_journalier,
+                    'reste_a_payer' => $v->resteAPayer(),
+                    'statut_visite' => $echeance?->statut ?? 'en_attente',
+                    'statut_global' => $enRetard ? 'en_retard' : 'a_jour',
+                    'epargne_par_jour' => $v->epargne_par_jour,
+                    'penalite_par_jour' => $v->penalite_par_jour,
+                    'jours_payes' => $joursPayes,
+                    'jours_total' => $joursTotal,
+                    'peut_encaisser' => $v->echeances()
+                        ->whereIn('statut', ['en_retard', 'partiel', 'en_attente'])
+                        ->whereDate('date_echeance', '<=', $aujourdhui)
+                        ->exists(),
+                ];
+            });
+
+        // Regrouper par statut de visite
+        $aVisiter = $ventes->whereIn('statut_visite', ['en_attente', 'en_retard'])->values();
+        $paye = $ventes->where('statut_visite', 'paye')->values();
+        $absent = $ventes->where('statut_visite', 'absent')->values();
+        $refus = $ventes->where('statut_visite', 'refus')->values();
+        $promesse = $ventes->where('statut_visite', 'promesse')->values();
+
+        // Statistiques réelles pour l'app agent
+        $venteIds = $ventesModeles->pluck('id');
+        $montantCollecteAujourdhui = Recouvrement::whereIn('vente_id', $venteIds)
+            ->where('statut', 'paye')
+            ->whereDate('date_recouvrement', $aujourdhui)
+            ->sum('montant');
+        $nbRetard = Vente::whereIn('id', $venteIds)
+            ->whereHas('echeances', fn($q) => $q->whereDate('date_echeance', '<', $aujourdhui)->whereIn('statut', ['en_retard', 'partiel']))
+            ->distinct('debiteur_id')
+            ->count('debiteur_id');
+        $soldeImpaye = $ventesModeles->sum(fn($v) => $v->resteAPayer());
+
+        // Montant en retard = échéances échues non soldées
+        $montantRetard = Echeance::whereIn('vente_id', $venteIds)
+            ->whereDate('date_echeance', '<', $aujourdhui)
+            ->whereIn('statut', ['en_retard', 'partiel'])
+            ->selectRaw('SUM(montant_prevu - montant_paye) as total')
+            ->value('total') ?? 0;
+
+        return response()->json([
+            'a_visiter' => $aVisiter,
+            'paye' => $paye,
+            'absent' => $absent,
+            'refus' => $refus,
+            'promesse' => $promesse,
+            'stats' => [
+                'nb_total' => $ventes->count(),
+                'nb_paye' => $paye->count(),
+                'nb_absent' => $absent->count(),
+                'nb_refus' => $refus->count(),
+                'nb_promesse' => $promesse->count(),
+                'nb_a_visiter' => $aVisiter->count(),
+                'nb_retard' => $nbRetard,
+                'montant_attendu' => $ventes->sum('montant_journalier'),
+                'montant_collecte_aujourdhui' => $montantCollecteAujourdhui,
+                'solde_impaye' => $soldeImpaye,
+                'montant_retard' => $montantRetard,
+            ]
+        ]);
+    }
+
+    public function encaisser(Request $request)
+    {
+        $request->validate([
+            'vente_id' => 'required|exists:ventes,uuid',
+            'montant' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,mobile,autre',
+            'statut' => 'required|in:paye,partiel,absent,refus,promesse',
+            'commentaire' => 'nullable|string|required_if:statut,absent,refus,promesse',
+        ]);
+        
+        $vente = Vente::where('uuid', $request->vente_id)->firstOrFail();
+        
+        $rec = Recouvrement::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'agent_id' => $vente->debiteur->agent_id ?? $request->user()->id,
+            'montant' => $request->montant,
+            'date_recouvrement' => now()->toDateString(), 'heure_recouvrement' => now()->toTimeString(),
+            'mode_paiement' => $request->mode_paiement,
+            'statut' => $request->statut,
+            'commentaire' => $request->commentaire,
+            'synced' => true,
+        ]);
+
+        // Traiter le paiement avec le service
+        PaiementService::affecterPaiement($rec);
+
+        // Encaissements réels : caisse + compta
+        if (in_array($request->statut, ['paye', 'partiel']) && $request->montant > 0) {
+            CaisseService::enregistrerRecouvrement($rec);
+            ComptabiliteService::ecrireRecouvrement($rec);
+        }
+
+        // Notifications
+        NotificationService::generer();
+
+        return response()->json([
+            'success' => true,
+            'reste' => $vente->resteAPayer(),
+            'message' => self::messageStatut($request->statut),
+        ]);
+    }
+
+    private static function messageStatut($statut): string
+    {
+        return [
+            'paye' => 'Paiement enregistré.',
+            'partiel' => 'Paiement partiel enregistré.',
+            'absent' => 'Client absent signalé.',
+            'refus' => 'Refus de payer signalé.',
+            'promesse' => 'Promesse de paiement enregistrée.',
+
+=== FRONTEND AGENT APP.JS (extraits) ===
+244:      this.renderHomeKPIs();
+245-      this.renderHomeList();
+246-      return;
+247-    }
+248-    const d = await this.apiGet('/agent-space/tournee');
+249-    if (d.error) {
+250-      if (this.tourneeData) {
+251:        this.renderHomeKPIs();
+252-        this.renderHomeList();
+253-        this.ui.showAlert('Hors ligne. Affichage de la dernière tournée.');
+254-      } else {
+255-        this.ui.showAlert('Impossible de charger la tournée.');
+256-      }
+257-      return;
+258-    }
+259-    this.tourneeData = d;
+260-    localStorage.setItem('agent_tournee_cache', JSON.stringify(d));
+261:    this.renderHomeKPIs();
+262-    this.renderHomeList();
+263-  },
+264-
+265-  async loadDebiteurs() {
+266-    const d = await this.apiGet('/agent/debiteurs');
+267-    if (!d.error) {
+268-      this.debiteursData = d;
+269-      localStorage.setItem('agent_debiteurs_cache', JSON.stringify(d));
+270-    }
+271-  },
+272-
+273:  renderHomeKPIs() {
+274-    const d = this.tourneeData || {};
+275-    const stats = d.stats || {};
+276-    const total = stats.nb_total || 0;
+277-    const paye = stats.nb_paye || 0;
+278-    const retards = stats.nb_retard ?? 0;
+279-    const collecte = stats.montant_collecte_aujourdhui || 0;
+280-    const soldeImpaye = stats.solde_impaye || 0;
+281-    const attendu = stats.montant_attendu || 0;
+282-    const montantRetard = stats.montant_retard || 0;
+283-    const score = attendu > 0 ? Math.round((collecte / attendu) * 100) : 0;
+284-
+285-    document.getElementById('heroVisits').textContent = total + ' visite(s) planifiée(s)';
+286-    document.getElementById('heroSummary').textContent = (stats.nb_a_visiter || 0) + ' à visiter • ' + paye + ' payés • ' + retards + ' en retard';
+287-    document.getElementById('heroScore').textContent = score + '%';
+288-    document.getElementById('statVisites').textContent = total;
+289-    document.getElementById('statPaiements').textContent = paye;
+290-    document.getElementById('statRetards').textContent = retards;
+291-    document.getElementById('statCollecte').textContent = collecte.toLocaleString('fr-FR') + ' F';
+292-    document.getElementById('statSolde').textContent = soldeImpaye.toLocaleString('fr-FR') + ' F';
+293-    document.getElementById('statRetardImpaye').textContent = montantRetard.toLocaleString('fr-FR') + ' F';
+294-  },
+295-
+296-  renderHomeList() {
+297-    const d = this.tourneeData || {};
+298-    const all = [...(d.a_visiter || []), ...(d.paye || []), ...(d.absent || []), ...(d.refus || []), ...(d.promesse || [])];
+299-    const filters = ['tous', 'a_visiter', 'paye', 'retard', 'absent', 'refus', 'promesse'];
+300-    const labels = {'tous':'Tous','a_visiter':'À visiter','paye':'Payés','retard':'Retards','absent':'Absents','refus':'Refus','promesse':'Promesses'};
+301-    document.getElementById('homeFilters').innerHTML = filters.map(f => {
+302-      let count = 0;
+303-      if (f === 'tous') count = all.length;
+304-      else if (f === 'retard') count = all.filter(v => v.statut_global === 'en_retard').length;
+305-      else if (f === 'paye') count = all.filter(v => v.statut_visite === 'paye').length;
+306-      else if (f === 'absent') count = all.filter(v => v.statut_visite === 'absent').length;
+307-      else if (f === 'refus') count = all.filter(v => v.statut_visite === 'refus').length;
+308-      else if (f === 'promesse') count = all.filter(v => v.statut_visite === 'promesse').length;
+309-      else count = all.filter(v => !['paye','absent','refus','promesse'].includes(v.statut_visite)).length;
+310-      return `<button class="chip ${f===this.currentTab?'chip--active':''}" data-filter="${f}">${labels[f]} <span>${count}</span></button>`;
+311-    }).join('');
+312-
+313-    document.querySelectorAll('#homeFilters .chip').forEach(chip => {
+534:  async openEpargnes() {
+535-    const list = await this.apiGet('/agent/epargnes');
+536-    if (list.error) { this.ui.showAlert(list.error); return; }
+537-    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+538-    const total = list.reduce((sum, e) => sum + parseFloat(e.montant || 0), 0);
+539-    const collecte = list.filter(e => e.statut === 'collecte');
+540-    document.getElementById('agentEpargnesContent').innerHTML = `
+541-      <div class="stats-grid">
+542-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--green">₣</div><div><span>Total</span><strong>${money(total)}</strong></div></div>
+543-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--blue">✓</div><div><span>Collectes</span><strong>${list.length}</strong></div></div>
+544-      </div>
+545-      <div class="client-list">
+546-        ${collecte.length === 0 ? '<p class="muted" style="text-align:center;padding:20px;">Aucune collecte</p>' :
+547-          collecte.map(e => `
+548-            <div class="client-card">
+549-              <div class="avatar avatar--green">${(e.debiteur?.nom?.[0] || '')}${(e.debiteur?.prenom?.[0] || '')}</div>
+550-              <div class="client-card__main">
+551-                <div class="client-card__title">
+552-                  <div><h3>${e.debiteur?.nom} ${e.debiteur?.prenom}</h3><p>${new Date(e.date_collecte).toLocaleDateString('fr-FR')}</p></div>
+553-                  <span class="status status--success">Collectée</span>
+554-                </div>
+555-                <strong>${money(e.montant)}</strong>
+556-              </div>
+557-            </div>`).join('')
+558-        }
+559-      </div>
+560-    `;
+561-    this.showScreen('epargnes');
+562-  },
+563-
+564-  async openPenalites() {
+565-    const list = await this.apiGet('/agent/penalites');
+566-    if (list.error) { this.ui.showAlert(list.error); return; }
+567-    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+568-    const enAttente = list.filter(p => p.statut === 'en_attente');
+569-    document.getElementById('agentPenalitesContent').innerHTML = `
+570-      <div class="stats-grid">
+571-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--red">⚠</div><div><span>En attente</span><strong>${money(enAttente.reduce((sum,p)=>sum+parseFloat(p.montant||0),0))}</strong></div></div>
+572-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--green">✓</div><div><span>Recouvrées</span><strong>${list.filter(p => p.statut === 'payee').length}</strong></div></div>
+573-      </div>
+574-      <div class="client-list">
+575-        ${enAttente.length === 0 ? '<p class="muted" style="text-align:center;padding:20px;">Aucune pénalité en attente</p>' :
+576-          enAttente.map(p => `
+577-            <div class="debtor-card">
+578-              <div class="avatar avatar--red">${(p.debiteur?.nom?.[0] || '')}${(p.debiteur?.prenom?.[0] || '')}</div>
+579-              <div class="debtor-main">
+580-                <div class="client-card__title">
+581-                  <div><h3>${p.debiteur?.nom} ${p.debiteur?.prenom}</h3><p>Retard: ${p.jours_retard} jour(s)</p></div>
+582-                  <span class="status status--danger">${money(p.montant)}</span>
+583-                </div>
+584-                <div class="debtor-actions">
+585-                  <button class="small-btn small-btn--primary" onclick="AgentApp.payerPenalite('${p.uuid}')">Payer</button>
+586-                  <button class="small-btn small-btn--danger" onclick="AgentApp.refuserPenalite('${p.uuid}')">Refus</button>
+587-                </div>
+588-              </div>
+589-            </div>`).join('')
+590-        }
+591-      </div>
+592-    `;
+593-    this.showScreen('penalites');
+594-  },
+--
+643:        else if (name === 'epargnes') this.openEpargnes();
+644-        else if (name === 'penalites') this.openPenalites();
+645-        else if (name === 'collection') this.showCollection();
+646-        else this.showScreen(name);
+647-      }
+648-    });
+649-  },
+650-
+651-  updateNetwork() {
+652-    const online = navigator.onLine;
+653-    document.getElementById('networkPill').classList.toggle('network-pill--offline', !online);
+654-    document.getElementById('networkPill').classList.toggle('network-pill--online', online);
+655-    document.querySelector('.network-label').textContent = online ? 'En ligne' : 'Hors ligne';
+656-    document.getElementById('offlineBar').classList.toggle('is-hidden', online);
+657-  },
+658-
+659-  ui: {
+660-    showAlert(message) {
+661-      const backdrop = document.getElementById('ui-modal-backdrop');
+662-      if (!backdrop) return;
+663-      document.getElementById('ui-modal-icon').textContent = 'ℹ️';
+664-      document.getElementById('ui-modal-message').textContent = message;
+665-      document.getElementById('ui-modal-actions').innerHTML = `<button class="cta cta--blue" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.closeAlert()">OK</button>`;
+666-      backdrop.style.display = 'flex';
+667-    },
+668-    closeAlert() {
+669-      document.getElementById('ui-modal-backdrop').style.display = 'none';
+670-    },
+671-    async confirm(message) {
+672-      const backdrop = document.getElementById('ui-modal-backdrop');
+673-      if (!backdrop) return false;
+674-      return new Promise((resolve) => {
+675-        document.getElementById('ui-modal-icon').textContent = '⚠️';
+676-        document.getElementById('ui-modal-message').textContent = message;
+677-        document.getElementById('ui-modal-actions').innerHTML = `
+678-          <button class="cta cta--outline" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.resolveConfirm(false)">Annuler</button>
+679-          <button class="cta cta--blue" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.resolveConfirm(true)">Confirmer</button>
+680-        `;
+681-        AgentApp.ui._resolve = resolve;
+682-        backdrop.style.display = 'flex';
+683-      });
+684-    },
+685-    resolveConfirm(value) {
+686-      document.getElementById('ui-modal-backdrop').style.display = 'none';
+687-      if (this._resolve) { this._resolve(value); this._resolve = null; }
+688-    },
+689-  },
+690-};
+691-
+692-document.getElementById('collectionForm').addEventListener('submit', (e) => AgentApp.submitEncaisser(e));
+693-document.getElementById('syncBtn').addEventListener('click', () => AgentApp.syncAll());
+694-window.addEventListener('online', () => { AgentApp.updateNetwork(); AgentApp.syncAll(); });
+695-window.addEventListener('offline', () => AgentApp.updateNetwork());
+696-
+697-setTimeout(() => {
+698-  document.getElementById('splash').style.opacity = '0';
+699-  document.getElementById('splash').style.transition = 'opacity .45s ease';
+700-  setTimeout(() => {
+701-    document.getElementById('splash').remove();
+702-    document.getElementById('app').classList.remove('is-hidden');
+703-    AgentApp.setupEvents();
+564:  async openPenalites() {
+565-    const list = await this.apiGet('/agent/penalites');
+566-    if (list.error) { this.ui.showAlert(list.error); return; }
+567-    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+568-    const enAttente = list.filter(p => p.statut === 'en_attente');
+569-    document.getElementById('agentPenalitesContent').innerHTML = `
+570-      <div class="stats-grid">
+571-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--red">⚠</div><div><span>En attente</span><strong>${money(enAttente.reduce((sum,p)=>sum+parseFloat(p.montant||0),0))}</strong></div></div>
+572-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--green">✓</div><div><span>Recouvrées</span><strong>${list.filter(p => p.statut === 'payee').length}</strong></div></div>
+573-      </div>
+574-      <div class="client-list">
+575-        ${enAttente.length === 0 ? '<p class="muted" style="text-align:center;padding:20px;">Aucune pénalité en attente</p>' :
+576-          enAttente.map(p => `
+577-            <div class="debtor-card">
+578-              <div class="avatar avatar--red">${(p.debiteur?.nom?.[0] || '')}${(p.debiteur?.prenom?.[0] || '')}</div>
+579-              <div class="debtor-main">
+580-                <div class="client-card__title">
+581-                  <div><h3>${p.debiteur?.nom} ${p.debiteur?.prenom}</h3><p>Retard: ${p.jours_retard} jour(s)</p></div>
+582-                  <span class="status status--danger">${money(p.montant)}</span>
+583-                </div>
+584-                <div class="debtor-actions">
+585-                  <button class="small-btn small-btn--primary" onclick="AgentApp.payerPenalite('${p.uuid}')">Payer</button>
+586-                  <button class="small-btn small-btn--danger" onclick="AgentApp.refuserPenalite('${p.uuid}')">Refus</button>
+587-                </div>
+588-              </div>
+589-            </div>`).join('')
+590-        }
+591-      </div>
+592-    `;
+593-    this.showScreen('penalites');
+594-  },
+595-
+596-  async payerPenalite(uuid) {
+597-    if (!(await this.ui.confirm("Confirmer le paiement de cette pénalité ?"))) return;
+598-    const res = await this.apiPostOrQueue(`/agent/penalites/${uuid}/payer`, {mode_paiement: 'especes'});
+599-    if (res.error) { this.ui.showAlert(res.error); return; }
+600-    this.ui.showAlert(res.offline ? 'Pénalité enregistrée localement.' : (res.message || 'Pénalité payée.'));
+601:    this.openPenalites();
+602-  },
+603-
+604-  async refuserPenalite(uuid) {
+605-    if (!(await this.ui.confirm("Signaler le refus de payer ? L'épargne sera débitée."))) return;
+606-    const res = await this.apiPostOrQueue(`/agent/penalites/${uuid}/refuser`, {});
+607-    if (res.error) { this.ui.showAlert(res.error); return; }
+608-    this.ui.showAlert(res.offline ? 'Refus enregistré localement.' : (res.message || 'Refus enregistré.'));
+609:    this.openPenalites();
+610-  },
+611-
+612-  async loadProfile() {
+613-    if (!this.user || !this.user.nom) {
+614-      const me = await this.apiGet('/auth/me');
+615-      if (me.error) { this.ui.showAlert(me.error); return; }
+616-      this.user = me.user || {};
+617-      localStorage.setItem('agent_user', JSON.stringify(this.user));
+618-    }
+619-    const u = this.user;
+620-    document.getElementById('profileContent').innerHTML = `
+621-      <div class="profile-card profile-card--big">
+622-        <div class="avatar avatar--xxl avatar--blue">${(u.nom?.[0]||'')}${(u.prenom?.[0]||'')}</div>
+623-        <div><h2>${u.nom} ${u.prenom}</h2><p class="muted">Agent terrain • Bénin</p><span class="status status--success">Actif</span></div>
+624-      </div>
+625-      <div class="info-card">
+626-        <div class="info-row"><span>Téléphone</span><strong>${u.telephone || '-'}</strong></div>
+627-        <div class="info-row"><span>Email</span><strong>${u.email || '-'}</strong></div>
+628-        <div class="info-row"><span>Rôle</span><strong>${u.role || 'agent'}</strong></div>
+629-      </div>
+630-    `;
+631-    this.showScreen('profile');
+632-  },
+633-
+634-  setupEvents() {
+635-    document.addEventListener('click', (e) => {
+636-      const btn = e.target.closest('[data-screen]');
+637-      if (btn) {
+638-        const name = btn.dataset.screen;
+639-        if (name === 'debtors') this.openDebtors();
+640-        else if (name === 'notifications') this.loadNotifications();
+641-        else if (name === 'profile') this.loadProfile();
+642-        else if (name === 'plus') this.showScreen('plus');
+643-        else if (name === 'epargnes') this.openEpargnes();
+644:        else if (name === 'penalites') this.openPenalites();
+645-        else if (name === 'collection') this.showCollection();
+646-        else this.showScreen(name);
+647-      }
+648-    });
+649-  },
+650-
+651-  updateNetwork() {
+652-    const online = navigator.onLine;
+653-    document.getElementById('networkPill').classList.toggle('network-pill--offline', !online);
+654-    document.getElementById('networkPill').classList.toggle('network-pill--online', online);
+655-    document.querySelector('.network-label').textContent = online ? 'En ligne' : 'Hors ligne';
+656-    document.getElementById('offlineBar').classList.toggle('is-hidden', online);
+657-  },
+658-
+659-  ui: {
+660-    showAlert(message) {
+661-      const backdrop = document.getElementById('ui-modal-backdrop');
+662-      if (!backdrop) return;
+663-      document.getElementById('ui-modal-icon').textContent = 'ℹ️';
+664-      document.getElementById('ui-modal-message').textContent = message;
+665-      document.getElementById('ui-modal-actions').innerHTML = `<button class="cta cta--blue" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.closeAlert()">OK</button>`;
+666-      backdrop.style.display = 'flex';
+667-    },
+668-    closeAlert() {
+669-      document.getElementById('ui-modal-backdrop').style.display = 'none';
+670-    },
+671-    async confirm(message) {
+672-      const backdrop = document.getElementById('ui-modal-backdrop');
+673-      if (!backdrop) return false;
+674-      return new Promise((resolve) => {
+675-        document.getElementById('ui-modal-icon').textContent = '⚠️';
+676-        document.getElementById('ui-modal-message').textContent = message;
+677-        document.getElementById('ui-modal-actions').innerHTML = `
+678-          <button class="cta cta--outline" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.resolveConfirm(false)">Annuler</button>
+679-          <button class="cta cta--blue" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.resolveConfirm(true)">Confirmer</button>
+680-        `;
+681-        AgentApp.ui._resolve = resolve;
+682-        backdrop.style.display = 'flex';
+683-      });
+684-    },
+685-    resolveConfirm(value) {
+686-      document.getElementById('ui-modal-backdrop').style.display = 'none';
+687-      if (this._resolve) { this._resolve(value); this._resolve = null; }
+688-    },
+689-  },
+690-};
+691-
+692-document.getElementById('collectionForm').addEventListener('submit', (e) => AgentApp.submitEncaisser(e));
+693-document.getElementById('syncBtn').addEventListener('click', () => AgentApp.syncAll());
+694-window.addEventListener('online', () => { AgentApp.updateNetwork(); AgentApp.syncAll(); });
+695-window.addEventListener('offline', () => AgentApp.updateNetwork());
+696-
+697-setTimeout(() => {
+698-  document.getElementById('splash').style.opacity = '0';
+699-  document.getElementById('splash').style.transition = 'opacity .45s ease';
+700-  setTimeout(() => {
+701-    document.getElementById('splash').remove();
+702-    document.getElementById('app').classList.remove('is-hidden');
+703-    AgentApp.setupEvents();
+704-    AgentApp.updateNetwork();
+519:  async loadNotifications() {
+520-    const notifs = await this.apiGet('/notifications');
+521-    if (notifs.error) { this.ui.showAlert(notifs.error); return; }
+522-    const list = Array.isArray(notifs) ? notifs : (notifs.notifications || []);
+523-    document.getElementById('notifBadge').textContent = list.filter(n => !n.lue).length;
+524-    document.getElementById('notifCountSmall').textContent = list.filter(n => !n.lue).length;
+525-    document.getElementById('notificationList').innerHTML = list.length === 0
+526-      ? '<p class="muted" style="text-align:center;padding:20px;">Aucune notification</p>'
+527-      : list.map(n => `<article class="notification-card">
+528-          <div class="notification-icon ${n.type === 'stock' ? 'notification-icon--red' : 'notification-icon--blue'}">${n.type === 'echeance' ? '⏰' : n.type === 'retard' ? '!' : n.type === 'stock' ? '📦' : '💬'}</div>
+529-          <div><h3>${n.titre}</h3><p>${n.message}</p><time>${new Date(n.created_at).toLocaleDateString('fr-FR')}</time></div>
+530-        </article>`).join('');
+531-    this.showScreen('notifications');
+532-  },
+533-
+534-  async openEpargnes() {
+535-    const list = await this.apiGet('/agent/epargnes');
+536-    if (list.error) { this.ui.showAlert(list.error); return; }
+537-    const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
+538-    const total = list.reduce((sum, e) => sum + parseFloat(e.montant || 0), 0);
+539-    const collecte = list.filter(e => e.statut === 'collecte');
+540-    document.getElementById('agentEpargnesContent').innerHTML = `
+541-      <div class="stats-grid">
+542-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--green">₣</div><div><span>Total</span><strong>${money(total)}</strong></div></div>
+543-        <div class="metric-card"><div class="metric-card__icon metric-card__icon--blue">✓</div><div><span>Collectes</span><strong>${list.length}</strong></div></div>
+544-      </div>
+545-      <div class="client-list">
+546-        ${collecte.length === 0 ? '<p class="muted" style="text-align:center;padding:20px;">Aucune collecte</p>' :
+547-          collecte.map(e => `
+548-            <div class="client-card">
+549-              <div class="avatar avatar--green">${(e.debiteur?.nom?.[0] || '')}${(e.debiteur?.prenom?.[0] || '')}</div>
+550-              <div class="client-card__main">
+551-                <div class="client-card__title">
+552-                  <div><h3>${e.debiteur?.nom} ${e.debiteur?.prenom}</h3><p>${new Date(e.date_collecte).toLocaleDateString('fr-FR')}</p></div>
+553-                  <span class="status status--success">Collectée</span>
+554-                </div>
+555-                <strong>${money(e.montant)}</strong>
+556-              </div>
+557-            </div>`).join('')
+558-        }
+559-      </div>
+--
+640:        else if (name === 'notifications') this.loadNotifications();
+641-        else if (name === 'profile') this.loadProfile();
+642-        else if (name === 'plus') this.showScreen('plus');
+643-        else if (name === 'epargnes') this.openEpargnes();
+644-        else if (name === 'penalites') this.openPenalites();
+645-        else if (name === 'collection') this.showCollection();
+646-        else this.showScreen(name);
+647-      }
+648-    });
+649-  },
+650-
+651-  updateNetwork() {
+652-    const online = navigator.onLine;
+653-    document.getElementById('networkPill').classList.toggle('network-pill--offline', !online);
+654-    document.getElementById('networkPill').classList.toggle('network-pill--online', online);
+655-    document.querySelector('.network-label').textContent = online ? 'En ligne' : 'Hors ligne';
+656-    document.getElementById('offlineBar').classList.toggle('is-hidden', online);
+657-  },
+658-
+659-  ui: {
+660-    showAlert(message) {
+661-      const backdrop = document.getElementById('ui-modal-backdrop');
+662-      if (!backdrop) return;
+663-      document.getElementById('ui-modal-icon').textContent = 'ℹ️';
+664-      document.getElementById('ui-modal-message').textContent = message;
+665-      document.getElementById('ui-modal-actions').innerHTML = `<button class="cta cta--blue" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.closeAlert()">OK</button>`;
+666-      backdrop.style.display = 'flex';
+667-    },
+668-    closeAlert() {
+669-      document.getElementById('ui-modal-backdrop').style.display = 'none';
+670-    },
+671-    async confirm(message) {
+672-      const backdrop = document.getElementById('ui-modal-backdrop');
+673-      if (!backdrop) return false;
+674-      return new Promise((resolve) => {
+675-        document.getElementById('ui-modal-icon').textContent = '⚠️';
+676-        document.getElementById('ui-modal-message').textContent = message;
+677-        document.getElementById('ui-modal-actions').innerHTML = `
+678-          <button class="cta cta--outline" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.resolveConfirm(false)">Annuler</button>
+679-          <button class="cta cta--blue" style="margin-top:0;min-height:44px;" onclick="AgentApp.ui.resolveConfirm(true)">Confirmer</button>
+680-        `;

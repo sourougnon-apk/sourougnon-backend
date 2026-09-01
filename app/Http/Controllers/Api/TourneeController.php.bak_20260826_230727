@@ -1,0 +1,119 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\TourneeDemarrage;
+use App\Models\Vente;
+use App\Models\Echeance;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class TourneeController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = TourneeDemarrage::with('agent:id,uuid,nom,prenom')
+            ->orderByDesc('date_tournee')
+            ->orderByDesc('heure_demarrage');
+
+        if ($request->date) {
+            $query->whereDate('date_tournee', $request->date);
+        }
+        if ($request->agent_id) {
+            $query->whereHas('agent', fn($q) => $q->where('uuid', $request->agent_id));
+        }
+
+        return response()->json($query->limit(200)->get());
+    }
+
+    public function demarrer(Request $request)
+    {
+        $user = $request->user();
+        $aujourdhui = now()->toDateString();
+
+        $existe = TourneeDemarrage::where('agent_id', $user->id)
+            ->where('date_tournee', $aujourdhui)
+            ->where('statut', 'en_cours')
+            ->first();
+
+        if ($existe) {
+            return response()->json(['error' => 'Tournée déjà démarrée.'], 422);
+        }
+
+        $tournee = TourneeDemarrage::create([
+            'uuid' => Str::uuid(),
+            'agent_id' => $user->id,
+            'date_tournee' => $aujourdhui,
+            'heure_demarrage' => now(),
+            'statut' => 'en_cours',
+            'gps_depart' => $request->gps_depart ?? null,
+            'synced' => true,
+        ]);
+
+        return response()->json(['success' => true, 'tournee' => $tournee]);
+    }
+
+    public function terminer(Request $request)
+    {
+        $user = $request->user();
+        $aujourdhui = now()->toDateString();
+
+        $tournee = TourneeDemarrage::where('agent_id', $user->id)
+            ->where('date_tournee', $aujourdhui)
+            ->where('statut', 'en_cours')
+            ->first();
+
+        if (!$tournee) {
+            return response()->json(['error' => 'Aucune tournée en cours.'], 422);
+        }
+
+        // Vérifier que toutes les visites du jour sont traitées
+        $visitesRestantes = Vente::where('agent_id', $user->id)
+            ->where('statut', 'en_cours')
+            ->whereDate('date_debut', '<=', $aujourdhui)
+            ->whereDate('date_fin', '>=', $aujourdhui)
+            ->whereHas('echeances', function($q) use ($aujourdhui) {
+                $q->whereDate('date_echeance', $aujourdhui)
+                  ->whereIn('statut', ['en_attente', 'en_retard']);
+            })
+            ->exists();
+
+        if ($visitesRestantes) {
+            return response()->json(['error' => 'Toutes les visites ne sont pas terminées.'], 422);
+        }
+
+        // Calculer les retards restants (échéances antérieures non soldées)
+        $retardsRestants = Echeance::whereIn('vente_id', Vente::where('agent_id', $user->id)->where('statut', 'en_cours')->pluck('id'))
+            ->whereDate('date_echeance', '<', $aujourdhui)
+            ->whereIn('statut', ['en_retard', 'partiel'])
+            ->count();
+
+        $tournee->update([
+            'statut' => 'terminee',
+            'heure_fin' => now(),
+            'gps_arrivee' => $request->gps_arrivee ?? null,
+        ]);
+
+        $message = $retardsRestants > 0
+            ? 'Tournée clôturée sous réserve : ' . $retardsRestants . ' retard(s) à recouvrer.'
+            : 'Tournée clôturée avec succès.';
+
+        return response()->json(['success' => true, 'tournee' => $tournee, 'message' => $message]);
+    }
+
+    public function statut(Request $request)
+    {
+        $user = $request->user();
+        $aujourdhui = now()->toDateString();
+        $tournee = TourneeDemarrage::where('agent_id', $user->id)
+            ->where('date_tournee', $aujourdhui)
+            ->orderByDesc('heure_demarrage')
+            ->first();
+
+        return response()->json([
+            'en_cours' => $tournee && $tournee->statut === 'en_cours',
+            'tournee' => $tournee,
+        ]);
+    }
+}

@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Recouvrement;
+use App\Models\Penalite;
+use App\Models\Epargne;
+use App\Models\TourneeDemarrage;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+
+class ArchiveController extends Controller
+{
+    public function archivesAgent(Request $request)
+    {
+        $request->validate(['mois' => 'required|date_format:Y-m']);
+        $user = $request->user();
+        $mois = $request->mois;
+        $debut = Carbon::createFromFormat('Y-m', $mois)->startOfMonth();
+        $fin = $debut->copy()->endOfMonth();
+
+        // Recouvrements de l'agent sur le mois
+        $recouvrements = Recouvrement::where('agent_id', $user->id)
+            ->whereBetween('date_recouvrement', [$debut->toDateString(), $fin->toDateString()])
+            ->selectRaw("DATE(date_recouvrement) AS jour,
+                SUM(CASE WHEN statut IN ('paye','partiel') THEN montant ELSE 0 END) AS total_recouvre,
+                SUM(CASE WHEN statut IN ('paye','partiel') THEN 1 ELSE 0 END) AS nb_paiements,
+                SUM(CASE WHEN statut = 'absent' THEN 1 ELSE 0 END) AS nb_absents,
+                SUM(CASE WHEN statut = 'refus' THEN 1 ELSE 0 END) AS nb_refus,
+                SUM(CASE WHEN statut = 'promesse' THEN 1 ELSE 0 END) AS nb_promesses")
+            ->groupBy('jour')
+            ->get()->keyBy('jour');
+
+        // Pénalités payées par les clients de l'agent sur le mois
+        $penalites = Penalite::whereHas('vente', fn($q) => $q->where('agent_id', $user->id))
+            ->where('statut', 'payee')
+            ->whereBetween('date_paiement', [$debut->startOfDay(), $fin->endOfDay()])
+            ->selectRaw("DATE(date_paiement) AS jour, SUM(montant) AS total_penalites")
+            ->groupBy('jour')
+            ->pluck('total_penalites', 'jour');
+
+        // Épargnes collectées par les clients de l'agent sur le mois
+        $epargnes = Epargne::whereHas('vente', fn($q) => $q->where('agent_id', $user->id))
+            ->where('statut', 'collecte')
+            ->whereBetween('date_collecte', [$debut->toDateString(), $fin->toDateString()])
+            ->selectRaw("DATE(date_collecte) AS jour, SUM(montant) AS total_epargnes")
+            ->groupBy('jour')
+            ->pluck('total_epargnes', 'jour');
+
+        // Tournées de l'agent sur le mois
+        $tournees = TourneeDemarrage::where('agent_id', $user->id)
+            ->whereBetween('date_tournee', [$debut->toDateString(), $fin->toDateString()])
+            ->get()
+            ->keyBy(fn($t) => $t->date_tournee->toDateString());
+
+        $jours = [];
+        $totaux = [
+            'recouvre' => 0,
+            'penalites' => 0,
+            'epargnes' => 0,
+            'defalques_penalites' => 0,
+            'nb_paiements' => 0,
+            'jours_travailles' => 0,
+        ];
+
+        for ($d = $debut->copy(); $d <= $fin; $d->addDay()) {
+            $k = $d->toDateString();
+            $rec = $recouvrements[$k] ?? null;
+            $totalRecouvre = (float) ($rec->total_recouvre ?? 0);
+            $totalPenalites = (float) ($penalites[$k] ?? 0);
+            $totalEpargnes = (float) ($epargnes_positives[$k] ?? 0);
+            $totalDefalques = (float) ($defalques[$k] ?? 0);
+            $nbPaiements = (int) ($rec->nb_paiements ?? 0);
+
+            $tournee = $tournees[$k] ?? null;
+            $tourneeStatut = $tournee?->statut; // null si pas de tournée
+
+            $jours[] = [
+                'date' => $k,
+                'total_recouvre' => $totalRecouvre,
+                'total_penalites' => $totalPenalites,
+                'total_epargnes' => $totalEpargnes,
+                'total_defalques_penalites' => $totalDefalques,
+                'nb_paiements' => $nbPaiements,
+                'nb_absents' => (int) ($rec->nb_absents ?? 0),
+                'nb_refus' => (int) ($rec->nb_refus ?? 0),
+                'nb_promesses' => (int) ($rec->nb_promesses ?? 0),
+                'tournee_statut' => $tourneeStatut,
+            ];
+
+            $totaux['recouvre'] += $totalRecouvre;
+            $totaux['penalites'] += $totalPenalites;
+            $totaux['epargnes'] += $totalEpargnes;
+            $totaux['defalques_penalites'] += $totalDefalques;
+            $totaux['nb_paiements'] += $nbPaiements;
+            if ($tourneeStatut !== null) {
+                $totaux['jours_travailles']++;
+            }
+        }
+
+        return response()->json([
+            'mois' => $mois,
+            'jours' => $jours,
+            'totaux' => $totaux,
+        ]);
+    }
+}

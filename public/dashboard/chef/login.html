@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sourougnon — Chef d'agence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">S</div>
+            <h1 class="text-white text-2xl font-bold">Sourougnon</h1>
+            <p class="text-slate-400 text-sm mt-1">Espace Chef d'agence</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-2xl">
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="email" value="chef@sourougnon.com" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
+                    <input type="password" id="password" value="chef123" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                <div id="error-msg" class="hidden bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4"></div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors">Se connecter</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role') || 'chef_agence';
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('error-msg');
+            errorEl.classList.add('hidden');
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, role: role })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.user.role !== 'chef_agence') {
+                        errorEl.textContent = "Ce compte n'est pas un compte Chef d'agence";
+                        errorEl.classList.remove('hidden');
+                        return;
+                    }
+                    localStorage.setItem('sourougnon_token', data.token);
+                    localStorage.setItem('sourougnon_user', JSON.stringify(data.user));
+                    window.location.href = '/dashboard/chef/';
+                } else {
+                    errorEl.textContent = data.error || 'Erreur de connexion';
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorEl.textContent = 'Erreur réseau. Veuillez réessayer.';
+                errorEl.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

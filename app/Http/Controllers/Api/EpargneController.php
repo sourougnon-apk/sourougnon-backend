@@ -1,0 +1,247 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Epargne;
+use App\Models\Penalite;
+use App\Services\CaisseService;
+use App\Services\ComptabiliteService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class EpargneController extends Controller
+{
+    /**
+     * Liste des épargnes pour gérante/chef.
+     */
+    public function index(Request $request)
+    {
+        $query = Epargne::with(['debiteur:id,uuid,nom,prenom', 'vente:id,uuid,montant_total'])
+            ->orderByDesc('date_collecte');
+
+        if ($request->debiteur_uuid) {
+            $query->whereHas('debiteur', fn($q) => $q->where('uuid', $request->debiteur_uuid));
+        }
+        if ($request->agent_uuid) {
+            $query->whereHas('debiteur.agent', fn($q) => $q->where('uuid', $request->agent_uuid));
+        }
+        if ($request->agent_uuid) {
+            $query->whereHas('debiteur.agent', fn($q) => $q->where('uuid', $request->agent_uuid));
+        }
+
+        return response()->json($query->limit(200)->get());
+    }
+
+    /**
+     * Liste des pénalités pour gérante/chef.
+     */
+    public function exportEpargnes(Request $request)
+    {
+        $query = Epargne::with(['debiteur:id,uuid,nom,prenom', 'vente:id,uuid,montant_total']);
+        if ($request->debiteur_uuid) $query->whereHas('debiteur', fn($q) => $q->where('uuid', $request->debiteur_uuid));
+        $list = $query->orderByDesc('date_collecte')->get();
+
+        $headers = ['Content-Type' => 'text/csv; charset=utf-8', 'Content-Disposition' => 'attachment; filename=epargnes.csv'];
+        $callback = function() use ($list) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($file, ['Débiteur', 'Montant', 'Date', 'Statut']);
+            foreach ($list as $e) {
+                fputcsv($file, [
+                    $e->debiteur?->nom . ' ' . $e->debiteur?->prenom,
+                    $e->montant,
+                    $e->date_collecte,
+                    $e->statut,
+                ]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPenalites(Request $request)
+    {
+        $query = Penalite::with(['debiteur:id,uuid,nom,prenom']);
+        if ($request->debiteur_uuid) $query->whereHas('debiteur', fn($q) => $q->where('uuid', $request->debiteur_uuid));
+        $list = $query->orderByDesc('date_appliquee')->get();
+
+        $headers = ['Content-Type' => 'text/csv; charset=utf-8', 'Content-Disposition' => 'attachment; filename=penalites.csv'];
+        $callback = function() use ($list) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($file, ['Débiteur', 'Montant', 'Jours retard', 'Date', 'Statut']);
+            foreach ($list as $p) {
+                fputcsv($file, [
+                    $p->debiteur?->nom . ' ' . $p->debiteur?->prenom,
+                    $p->montant,
+                    $p->jours_retard,
+                    $p->date_appliquee,
+                    $p->statut,
+                ]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function penalites(Request $request)
+    {
+        $query = Penalite::with(['debiteur:id,uuid,nom,prenom', 'vente:id,uuid,montant_total'])
+            ->orderByDesc('date_appliquee');
+
+        if ($request->debiteur_uuid) {
+            $query->whereHas('debiteur', fn($q) => $q->where('uuid', $request->debiteur_uuid));
+        }
+        if ($request->agent_uuid) {
+            $query->whereHas('debiteur.agent', fn($q) => $q->where('uuid', $request->agent_uuid));
+        }
+        if ($request->agent_uuid) {
+            $query->whereHas('vente.agent', fn($q) => $q->where('uuid', $request->agent_uuid));
+        }
+
+        return response()->json($query->limit(200)->get());
+    }
+
+    /**
+     * Agent : liste des pénalités de ses clients.
+     */
+    /**
+     * Agent : liste des épargnes de ses clients.
+     */
+    public function indexAgent(Request $request)
+    {
+        $user = $request->user();
+        $query = Epargne::whereHas('vente', fn($q) => $q->where('agent_id', $user->id))
+            ->with(['debiteur:id,uuid,nom,prenom', 'vente:id,uuid,montant_total'])
+            ->orderByDesc('date_collecte');
+
+        return response()->json($query->limit(200)->get());
+    }
+
+    public function penalitesAgent(Request $request)
+    {
+        $user = $request->user();
+        $query = Penalite::whereHas('vente', fn($q) => $q->where('agent_id', $user->id))
+            ->with(['debiteur:id,uuid,nom,prenom', 'vente:id,uuid,montant_total'])
+            ->orderByDesc('date_appliquee');
+
+        return response()->json($query->limit(200)->get());
+    }
+
+    /**
+     * Agent : payer une pénalité en espèces.
+     */
+    public function payerPenalite(Request $request, string $uuid)
+    {
+        $penalite = Penalite::where('uuid', $uuid)->firstOrFail();
+        $vente = $penalite->vente;
+
+        // Vérifier que l'agent est bien celui de la vente
+        if ($vente->agent_id !== $request->user()->id) {
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        $penalite->update([
+            'statut' => 'payee',
+            'date_paiement' => now(),
+            'mode_paiement' => $request->mode_paiement ?? 'especes',
+            'refus_defalque_epargne' => false,
+        ]);
+
+        // Créditer la caisse (divers) et la comptabilité
+        CaisseService::enregistrerPenalite($penalite);
+        ComptabiliteService::ecrirePenalite($penalite);
+
+        return response()->json(['success' => true, 'message' => 'Pénalité payée et enregistrée.']);
+    }
+
+    /**
+     * Agent : refus de payer la pénalité → défalque de l'épargne.
+     */
+    public function refuserPenalite(Request $request, string $uuid)
+    {
+        $penalite = Penalite::where('uuid', $uuid)->firstOrFail();
+        $vente = $penalite->vente;
+
+        if ($vente->agent_id !== $request->user()->id) {
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        $penalite->update([
+            'statut' => 'refusee',
+            'refus_defalque_epargne' => true,
+        ]);
+
+        // Défalque de l'épargne : on enregistre une épargne négative
+        // Pas de comptabilité, pas de caisse (logique épargne uniquement)
+        \App\Models\Epargne::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'debiteur_id' => $vente->debiteur_id,
+            'montant' => -abs($penalite->montant),
+            'date_collecte' => now()->toDateString(),
+            'statut' => 'collecte',
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Pénalité refusée, épargne débitée.']);
+    }
+    public function restituerEpargne(Request $request, string $uuid)
+    {
+        $user = $request->user();
+        $epargne = Epargne::where('uuid', $uuid)->firstOrFail();
+
+        if ($epargne->vente->agent_id !== $user->id) {
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        if ($epargne->statut !== 'a_restituer') {
+            return response()->json(['error' => 'Cette épargne nest pas restituable.'], 422);
+        }
+
+        $epargne->update(['statut' => 'en_restitution']);
+
+        return response()->json(['success' => true, 'message' => 'Demande de restitution envoyée.']);
+    }
+
+    public function validerRestitution(Request $request, string $uuid)
+    {
+        $user = $request->user();
+        $epargne = Epargne::where('uuid', $uuid)->firstOrFail();
+
+        if (!in_array($user->role, ['chef_agence', 'gerante'])) {
+            return response()->json(['error' => 'Accès refusé'], 403);
+        }
+
+        if ($epargne->statut !== 'en_restitution') {
+            return response()->json(['error' => 'Restitution déjà traitée.'], 422);
+        }
+
+        $caisse = \App\Services\CaisseService::getCaisseActive($epargne->vente->agent_id, 'jour');
+        $mouvement = \App\Models\MouvementCaisse::create([
+            'uuid' => Str::uuid(),
+            'caisse_id' => $caisse->id,
+            'user_id' => $epargne->vente->agent_id,
+            'type' => 'restitution_epargne',
+            'montant' => $epargne->montant,
+            'reference' => 'REST-' . substr($epargne->uuid, 0, 8),
+            'motif' => 'Restitution épargne à ' . ($epargne->debiteur->nom ?? 'client'),
+            'date_mouvement' => now(),
+            'statut_validation' => 'en_attente',
+        ]);
+
+        $epargne->update([
+            'statut' => 'recuperee',
+            'recuperee_par' => $user->id,
+            'date_recuperation' => now(),
+            'confirmation_client' => true,
+            'mouvement_caisse_id' => $mouvement->id,
+        ]);
+
+        \App\Services\CaisseService::recalculer($caisse);
+        \App\Services\ComptabiliteService::ecrireRestitutionEpargne($epargne, $mouvement);
+
+        return response()->json(['success' => true, 'message' => 'Restitution validée.']);
+    }
+
+}

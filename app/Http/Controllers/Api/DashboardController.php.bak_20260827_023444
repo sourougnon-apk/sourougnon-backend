@@ -1,0 +1,234 @@
+<?php
+namespace App\Http\Controllers\Api;
+use App\Services\SyntheseService;
+use App\Http\Controllers\Controller;
+use App\Models\Recouvrement;
+use App\Models\User;
+use App\Models\Vente;
+use App\Models\Debiteur;
+use App\Models\Produit;
+use App\Models\Echeance;
+use App\Services\AlerteService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class DashboardController extends Controller
+{
+    public function index()
+{
+    AlerteService::verifierEtGenerer();
+    SyntheseService::generer();
+
+    $aujourdhui = now()->toDateString();
+
+    // 1. Top Agents du Jour
+    $topAgents = Recouvrement::with('agent:id,nom,prenom')
+        ->whereDate('date_recouvrement', $aujourdhui)
+        ->where('statut', 'paye')
+        ->select('agent_id', DB::raw('SUM(montant) as total_encaisse'))
+        ->groupBy('agent_id')
+        ->orderByDesc('total_encaisse')
+        ->get();
+
+    // 2. Alertes Retard
+    $alertesRetard = $this->alertesRetard();
+
+    // 3. Performance Agents
+    $performanceAgents = User::where('role', 'agent')
+        ->where('actif', true)
+        ->withCount(['debiteurs' => function ($q) {
+            $q->where('actif', true);
+        }])
+        ->get()
+        ->map(function ($agent) {
+            return [
+                'nom' => $agent->nom,
+                'prenom' => $agent->prenom,
+                'debiteurs_count' => $agent->debiteurs_count,
+                'portefeuille' => Vente::where('agent_id', $agent->id)
+                    ->where('statut', 'en_cours')
+                    ->sum('montant_total')
+            ];
+        });
+
+    return response()->json([
+        'kpis' => [
+            'total_debiteurs' => Debiteur::where('actif', true)->count(),
+            'debiteurs_actifs' => Vente::where('statut', 'en_cours')->distinct('debiteur_id')->count(),
+            'debiteurs_a_jour' => $this->debiteursAjour($aujourdhui),
+            'debiteurs_en_retard' => $this->debiteursEnRetard($aujourdhui),
+            'encours_total' => Vente::where('statut', 'en_cours')->sum('montant_total'),
+            'creances_totales' => $this->creancesTotales(),
+            'encaisse_aujourdhui' => Recouvrement::whereDate('date_recouvrement', $aujourdhui)->where('statut', 'paye')->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))->sum('montant'),
+            'attendu_aujourdhui' => Vente::where('statut', 'en_cours')->whereDate('date_debut', '<=', $aujourdhui)->whereDate('date_fin', '>=', $aujourdhui)->sum('montant_journalier'),
+            'restant_aujourdhui' => $this->restantAujourdhui($aujourdhui),
+            'paye_aujourdhui' => $this->payeAujourdhui($aujourdhui),
+            'non_paye_aujourdhui' => $this->nonPayeAujourdhui($aujourdhui),
+            'chiffre_affaires_jour' => Recouvrement::whereDate('date_recouvrement', $aujourdhui)->where('statut', 'paye')->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))->sum('montant'),
+            'taux_recouvrement' => $this->tauxRecouvrement(),
+            'stocks_faibles' => Produit::where('actif', true)->where('stock', '<=', DB::raw('seuil_alerte'))->count(),
+            'alertes_non_lues' => \App\Models\Alerte::where('lue', false)->count(),
+        ],
+        'top_agents' => $topAgents,
+        'alertes_retard' => $alertesRetard,
+        'performance_agents' => $performanceAgents,
+        'produits_plus_vendus' => $this->produitsPlusVendus(),
+        'evolution_encaissements' => $this->evolutionEncaissements(7),
+        'evolution_retards' => $this->retardsParJour(7),
+    ]);
+}
+    private function debiteursAjour(string $date): int
+    {
+        // Débiteurs actifs sans échéance impayée passée ou aujourd'hui
+        return DB::table('ventes')
+            ->where('ventes.statut', 'en_cours')
+            ->whereDate('ventes.date_debut', '<=', $date)
+            ->whereDate('ventes.date_fin', '>=', $date)
+            ->whereNotExists(function ($q) use ($date) {
+                $q->select(DB::raw(1))
+                  ->from('echeances')
+                  ->whereColumn('echeances.vente_id', 'ventes.id')
+                  ->whereDate('echeances.date_echeance', '<=', $date)
+                  ->where(function($q) use ($date) {
+                        $q->where('echeances.statut', 'en_retard')
+                          ->orWhere(function($q2) use ($date) {
+                              $q2->where('echeances.statut', 'partiel')
+                                 ->whereDate('echeances.date_echeance', '<', $date);
+                          });
+                    });
+            })
+            ->distinct('ventes.debiteur_id')
+            ->count();
+    }
+
+    private function debiteursEnRetard(string $date): int
+    {
+        return DB::table('ventes')
+            ->where('ventes.statut', 'en_cours')
+            ->whereDate('ventes.date_debut', '<=', $date)
+            ->whereDate('ventes.date_fin', '>=', $date)
+            ->whereExists(function ($q) use ($date) {
+                $q->select(DB::raw(1))
+                  ->from('echeances')
+                  ->whereColumn('echeances.vente_id', 'ventes.id')
+                  ->whereDate('echeances.date_echeance', '<=', $date)
+                  ->where(function($q) use ($date) {
+                        $q->where('echeances.statut', 'en_retard')
+                          ->orWhere(function($q2) use ($date) {
+                              $q2->where('echeances.statut', 'partiel')
+                                 ->whereDate('echeances.date_echeance', '<', $date);
+                          });
+                    });
+            })
+            ->distinct('ventes.debiteur_id')
+            ->count();
+    }
+
+    private function creancesTotales(): float
+    {
+        return Vente::where('statut', 'en_cours')->get()->sum(fn($v) => $v->resteAPayer());
+    }
+
+    private function restantAujourdhui(string $date): float
+    {
+        return DB::table('echeances')
+            ->whereDate('date_echeance', $date)
+            ->whereIn('statut', ['en_attente', 'en_retard', 'partiel'])
+            ->sum(DB::raw('montant_prevu - montant_paye'));
+    }
+
+    private function payeAujourdhui(string $date): int
+    {
+        return DB::table('ventes')->where('statut', 'en_cours')->whereDate('date_debut', '<=', $date)->whereDate('date_fin', '>=', $date)
+            ->whereExists(function ($q) use ($date) {
+                $q->select(DB::raw(1))->from('echeances')->whereColumn('echeances.vente_id', 'ventes.id')->whereDate('echeances.date_echeance', $date)->whereIn('echeances.statut', ['paye', 'partiel']);
+            })->distinct('debiteur_id')->count();
+    }
+
+    private function nonPayeAujourdhui(string $date): int
+    {
+        return DB::table('ventes')->where('statut', 'en_cours')->whereDate('date_debut', '<=', $date)->whereDate('date_fin', '>=', $date)
+            ->whereExists(function ($q) use ($date) {
+                $q->select(DB::raw(1))->from('echeances')->whereColumn('echeances.vente_id', 'ventes.id')->whereDate('echeances.date_echeance', $date)->whereIn('echeances.statut', ['en_attente', 'en_retard']);
+            })->distinct('debiteur_id')->count();
+    }
+
+    private function tauxRecouvrement(): float
+    {
+        $totalDu = Vente::where('statut', 'en_cours')->sum('montant_total');
+        if ($totalDu <= 0) return 0;
+        return round((Recouvrement::where('statut', 'paye')->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))->sum('montant') / $totalDu) * 100, 1);
+    }
+
+    private function topAgents(string $date): array
+    {
+        return Recouvrement::whereDate('date_recouvrement', $date)->where('statut', 'paye')->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))
+            ->selectRaw('agent_id, SUM(montant) as total_encaisse')->with('agent:id,uuid,nom,prenom')
+            ->groupBy('agent_id')->orderByDesc('total_encaisse')->get()->toArray();
+    }
+
+    private function alertesRetard(): array
+    {
+        return \App\Models\Echeance::where('statut', 'en_retard')
+            ->whereHas('vente', fn($q) => $q->where('statut', 'en_cours'))
+            ->with(['vente.debiteur:id,nom,quartier'])
+            ->orderByDesc('jours_retard')
+            ->limit(10)
+            ->get()
+            ->map(fn($e) => [
+                'debiteur' => [
+                    'nom' => $e->vente->debiteur->nom,
+                    'quartier' => $e->vente->debiteur->quartier,
+                ],
+                'statut' => 'Retard',
+            ])
+            ->toArray();
+    }
+
+    private function performanceAgents(): array
+    {
+        return User::where('role', 'agent')->where('actif', true)->withCount('debiteurs')
+            ->withSum(['ventes as portefeuille' => fn($q) => $q->where('statut', 'en_cours')], 'montant_total')
+            ->get(['id','uuid','nom','prenom'])->toArray();
+    }
+
+    private function produitsPlusVendus(): array
+    {
+        return DB::table('vente_produits as vp')
+            ->join('ventes as v', 'v.id', '=', 'vp.vente_id')
+            ->join('produits as p', 'p.id', '=', 'vp.produit_id')
+            ->where('v.statut', '!=', 'annule')
+            ->groupBy('vp.produit_id', 'p.nom')
+            ->selectRaw('vp.produit_id, p.nom as nom, SUM(vp.quantite) as nb_ventes, SUM(vp.quantite * vp.prix_unitaire) as total')
+            ->orderByDesc('nb_ventes')
+            ->limit(5)
+            ->get()
+            ->map(fn($r) => (array) $r)
+            ->toArray();
+    }
+
+    private function retardsParJour(int $jours): array
+    {
+        $labels = []; $retards = [];
+        for ($i = $jours - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $labels[] = now()->subDays($i)->format('d/m');
+            $retards[] = \App\Models\Echeance::whereDate('date_echeance', $date)
+                ->where('statut', 'en_retard')
+                ->whereHas('vente', fn($q) => $q->where('statut', 'en_cours'))
+                ->sum('montant_prevu');
+        }
+        return ['labels' => $labels, 'montants' => $retards];
+    }
+
+    private function evolutionEncaissements(int $jours): array
+    {
+        $labels = []; $montants = [];
+        for ($i = $jours - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $labels[] = now()->subDays($i)->format('d/m');
+            $montants[] = Recouvrement::whereDate('date_recouvrement', $date)->where('statut', 'paye')->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))->sum('montant');
+        }
+        return ['labels' => $labels, 'montants' => $montants];
+    }
+}

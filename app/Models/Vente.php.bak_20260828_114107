@@ -1,0 +1,110 @@
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use App\Observers\VenteObserver;
+
+class Vente extends Model
+{
+    protected static function booted(): void
+    {
+        static::observe(VenteObserver::class);
+    }
+
+    protected $fillable = [
+        'uuid','debiteur_id','agent_id','created_by','produit_id',
+        'type_vente','montant_total','montant_journalier',
+        'nombre_jours','delai_avant_echeances','epargne','epargne_par_jour','epargne_total',
+        'penalite_par_jour','penalite_active','motif_penalite','mise_agent',
+        'date_debut','date_fin','heure_creation','statut',
+    ];
+    protected $casts = ['date_debut' => 'date','date_fin' => 'date'];
+
+    public function debiteur() { return $this->belongsTo(Debiteur::class); }
+    public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
+    public function createur() { return $this->belongsTo(User::class, 'created_by'); }
+    public function produit() { return $this->belongsTo(Produit::class); }
+    public function venteProduits() { return $this->hasMany(VenteProduit::class); }
+    public function recouvrements() { return $this->hasMany(Recouvrement::class); }
+    public function penalites() { return $this->hasMany(Penalite::class); }
+    public function echeances() { return $this->hasMany(Echeance::class)->orderBy('date_echeance'); }
+    public function demandeRemboursement() { return $this->hasOne(DemandeRemboursement::class); }
+
+    public function ratioEpargne(): float
+    {
+        return $this->montant_total > 0 ? ($this->epargne_total ?? 0) / $this->montant_total : 0;
+    }
+
+    public function montantEpargnePaye(): float
+    {
+        return round($this->totalPaye() * $this->ratioEpargne(), 2);
+    }
+
+    public function montantCreditPaye(): float
+    {
+        return round($this->totalPaye() - $this->montantEpargnePaye(), 2);
+    }
+
+    public function scopeActives($q) { return $q->whereIn('statut', ['en_cours', 'termine', 'defaut']); }
+
+    public function totalPaye(): float
+    {
+        return $this->recouvrements()->where('statut', 'paye')->sum('montant');
+    }
+    public function resteAPayer(): float
+    {
+        return max(0, $this->montant_total - $this->totalPaye());
+    }
+
+    // Tous les articles du panier, avec repli sur le produit unique (ventes historiques)
+    public function produitsPanier(): array
+    {
+        $items = $this->venteProduits()->with('produit')->get()->map(function ($vp) {
+            return [
+                'nom'           => $vp->produit?->nom ?? '--',
+                'quantite'      => (int) $vp->quantite,
+                'prix_unitaire' => (float) $vp->prix_unitaire,
+                'total'         => (float) $vp->quantite * (float) $vp->prix_unitaire,
+            ];
+        })->values()->all();
+
+        if (empty($items) && $this->produit) {
+            $items[] = [
+                'nom'           => $this->produit->nom,
+                'quantite'      => 1,
+                'prix_unitaire' => (float) ($this->produit->prix_vente ?? 0),
+                'total'         => (float) ($this->produit->prix_vente ?? 0),
+            ];
+        }
+        return $items;
+    }
+
+    // Générer les échéances
+    public function genererEcheances(): void
+    {
+        if ($this->type_vente !== 'credit') return;
+        $this->echeances()->delete();
+        $delai = max(0, (int) ($this->delai_avant_echeances ?? 1));
+        $reste = $this->montant_total;
+        $jours = (int) $this->nombre_jours;
+        $journalier = $this->montant_journalier;
+        for ($i = 0; $i < $jours; $i++) {
+            $montant = ($i === $jours - 1) ? $reste : $journalier;
+            $this->echeances()->create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'date_echeance' => $this->date_debut->copy()->addDays($delai + $i),
+                'montant_prevu' => $montant,
+                'statut' => 'en_attente',
+            ]);
+            $reste -= $montant;
+        }
+    }
+
+    // Mettre à jour le statut global de la vente
+    public function mettreAJourStatutGlobal(): void
+    {
+        $toutesPayees = $this->echeances()->where('statut', '!=', 'paye')->doesntExist();
+        if ($toutesPayees && $this->echeances()->count() > 0) {
+            $this->update(['statut' => 'termine']);
+        }
+    }
+}

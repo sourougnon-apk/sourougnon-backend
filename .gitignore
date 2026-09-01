@@ -1,0 +1,21 @@
+/vendor
+/node_modules
+/storage/*.key
+.env
+*.bak
+*.bak.*
+*.broken
+*.broken.*
+*.orig
+*.orig.*
+*.save
+*.old
+*.sql
+*.log
+app.bak_*/
+public/*.bak*
+public/dashboard/*.bak*
+public/dashboard/chef/*.bak*
+storage/backups/*
+Mouvement de stock non trouvé.
+false,

@@ -1,0 +1,455 @@
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Caisse;
+use App\Models\MouvementCaisse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class CaisseController extends Controller
+{
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $caisse = Caisse::where('user_id', $user->id)
+            ->where('statut', 'ouverte')
+            ->whereDate('date_ouverture', now()->toDateString())
+            ->orderByDesc('date_ouverture')
+            ->first();
+
+        $soldeInitial = 0;
+        if (!$caisse) {
+            $precedente = Caisse::where('user_id', $user->id)
+                ->where('statut', 'ouverte')
+                ->whereDate('date_ouverture', '<', now()->toDateString())
+                ->orderByDesc('date_ouverture')
+                ->first();
+
+            if ($precedente) {
+                $soldeInitial = $precedente->solde_theorique;
+                $precedente->update([
+                    'statut' => 'fermee',
+                    'date_fermeture' => now()->toDateString(),
+                ]);
+            }
+
+            $caisse = Caisse::create([
+                'uuid' => Str::uuid(),
+                'user_id' => $user->id,
+                'date_ouverture' => now()->toDateString(),
+                'statut' => 'ouverte',
+                'solde_initial' => $soldeInitial,
+            ]);
+        }
+        $caisse->load(['mouvements' => fn($q) => $q->whereNotIn('statut_validation', ['en_attente','rejete'])->orderByDesc('date_mouvement')->limit(100), 'mouvements.user']);
+        $mouvements = $caisse->mouvements;
+        $totalEncaissements = $mouvements->where('type', 'encaissement')->sum('montant');
+        $totalDecaissements = $mouvements->whereIn('type', ['decaissement', 'salaire'])->sum('montant');
+        $totalSalaires = $mouvements->where('type', 'salaire')->sum('montant');
+        $totalEpargnes = $mouvements->where('type', 'epargne')->sum('montant');
+        $totalPenalites = $mouvements->where('type', 'penalite')->sum('montant');
+        $totalRemises = $mouvements->where('type', 'remise')->sum('montant');
+        $soldeTheorique = $caisse->solde_initial + $totalEncaissements + $totalEpargnes + $totalPenalites - $totalDecaissements - $totalRemises;
+        return response()->json([
+            'total_epargnes' => $totalEpargnes,
+            'total_penalites' => $totalPenalites,
+            'total_remises' => $totalRemises,
+            'caisse' => $caisse,
+            'total_encaissements' => $totalEncaissements,
+            'total_decaissements' => $totalDecaissements,
+            'total_salaires' => $totalSalaires,
+            'solde_theorique' => $soldeTheorique,
+            'nb_mouvements' => $mouvements->count(),
+        ]);
+    }
+
+    public function historique(Request $request)
+    {
+        $query = Caisse::with('user')->orderByDesc('date_ouverture');
+        if ($request->user_id) $query->where('user_id', $request->user_id);
+        return response()->json($query->limit(50)->get());
+    }
+
+    public function decaisser(Request $request)
+    {
+        $request->validate(['montant' => 'required|numeric|min:0', 'motif' => 'required|string']);
+        $caisse = Caisse::where('user_id', $request->user()->id)->where('statut', 'ouverte')->whereDate('date_ouverture', now()->toDateString())->orderByDesc('date_ouverture')->firstOrFail();
+        MouvementCaisse::create([
+            'uuid' => Str::uuid(), 'caisse_id' => $caisse->id, 'user_id' => $request->user()->id,
+            'type' => 'decaissement', 'montant' => $request->montant, 'motif' => $request->motif, 'date_mouvement' => now(),
+        ]);
+        return response()->json(['success' => true]);
+    }
+
+    public function payerSalaire(Request $request)
+    {
+        $request->validate(['montant' => 'required|numeric|min:0', 'beneficiaire' => 'required|string', 'motif' => 'nullable|string']);
+        $caisse = Caisse::where('user_id', $request->user()->id)->where('statut', 'ouverte')->whereDate('date_ouverture', now()->toDateString())->orderByDesc('date_ouverture')->firstOrFail();
+        MouvementCaisse::create([
+            'uuid' => Str::uuid(), 'caisse_id' => $caisse->id, 'user_id' => $request->user()->id,
+            'type' => 'salaire', 'montant' => $request->montant, 'beneficiaire' => $request->beneficiaire,
+            'motif' => $request->motif ?? 'Paiement salaire', 'date_mouvement' => now(),
+        ]);
+        return response()->json(['success' => true]);
+    }
+
+    public function cloturer(Request $request)
+    {
+        $request->validate(['solde_reel' => 'required|numeric|min:0', 'notes' => 'nullable|string']);
+        $caisse = Caisse::where('user_id', $request->user()->id)->where('statut', 'ouverte')->whereDate('date_ouverture', now()->toDateString())->orderByDesc('date_ouverture')->firstOrFail();
+        $mouvements = $caisse->mouvements;
+        $totalEncaissements = $mouvements->where('type', 'encaissement')->sum('montant');
+        $totalDecaissements = $mouvements->whereIn('type', ['decaissement', 'salaire'])->sum('montant');
+        $soldeTheorique = $caisse->solde_initial + $totalEncaissements - $totalDecaissements;
+        $ecart = $request->solde_reel - $soldeTheorique;
+        $caisse->update([
+            'solde_theorique' => $soldeTheorique,
+            'solde_reel' => $request->solde_reel,
+            'ecart' => $ecart,
+            'statut' => 'fermee',
+            'date_fermeture' => now()->toDateString(),
+            'notes' => $request->notes,
+        ]);
+        return response()->json(['success' => true, 'ecart' => $ecart, 'solde_theorique' => $soldeTheorique]);
+    }
+
+    /**
+     * Remise d'un agent vers la caisse d'agence.
+     */
+    public function remise(Request $request)
+    {
+        $request->validate([
+            'montant' => 'required|numeric|min:0',
+            'agent_id' => 'nullable|exists:users,uuid',
+            'sync_uuid' => 'nullable|string|max:36',
+        ]);
+
+        $agent = $request->agent_id
+            ? \App\Models\User::where('uuid', $request->agent_id)->first()
+            : $request->user();
+
+        if (!$agent) {
+            return response()->json(['error' => 'Agent introuvable.'], 422);
+        }
+
+        // Idempotence : si sync_uuid déjà traité, renvoyer succès sans doublon
+        if ($request->sync_uuid) {
+            $exist = \App\Models\Remise::where('sync_uuid', $request->sync_uuid)->first();
+            if ($exist) {
+                return response()->json(['success' => true, 'deja_traite' => true, 'reference' => $exist->reference]);
+            }
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($agent, $request) {
+            $caisseAgent = \App\Services\CaisseService::getCaisseActive($agent->id, 'jour');
+            $caisseAgence = \App\Services\CaisseService::getCaisseActive(
+                \App\Models\User::where('role', 'chef_agence')->value('id') ?? $agent->id,
+                'jour'
+            );
+
+            $reference = 'REMISE-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
+
+            // Créer la remise
+            $remise = \App\Models\Remise::create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'agent_id' => $agent->id,
+                'montant_declare' => $request->montant,
+                'statut' => 'en_attente',
+                'reference' => $reference,
+                'sync_uuid' => $request->sync_uuid,
+            ]);
+
+            // Associer les encaissements en attente de l'agent (sans remise_id)
+            \App\Models\MouvementCaisse::where('user_id', $agent->id)
+                ->where('type', 'encaissement')
+                ->where('statut_validation', 'en_attente')
+                ->whereNull('remise_id')
+                ->update(['remise_id' => $remise->id, 'reference' => $reference]);
+
+            // Sortie de la caisse agent
+            \App\Models\MouvementCaisse::create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'caisse_id' => $caisseAgent->id,
+                'user_id' => $agent->id,
+                'type' => 'remise',
+                'montant' => $request->montant,
+                'montant_declare' => $request->montant,
+                'reference' => $reference,
+                'motif' => 'Remise à l agence',
+                'date_mouvement' => now(),
+                'statut_validation' => 'en_attente',
+                'sync_uuid' => $request->sync_uuid,
+                'remise_id' => $remise->id,
+            ]);
+
+            // Entrée dans la caisse agence
+            \App\Models\MouvementCaisse::create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'caisse_id' => $caisseAgence->id,
+                'user_id' => $agent->id,
+                'type' => 'versement',
+                'montant' => $request->montant,
+                'montant_declare' => $request->montant,
+                'reference' => $reference,
+                'motif' => 'Versement de ' . $agent->nom,
+                'date_mouvement' => now(),
+                'statut_validation' => 'en_attente',
+                'sync_uuid' => $request->sync_uuid,
+                'remise_id' => $remise->id,
+            ]);
+
+            \App\Services\CaisseService::recalculer($caisseAgent);
+            \App\Services\CaisseService::recalculer($caisseAgence);
+
+            return response()->json(['success' => true, 'reference' => $reference]);
+        });
+    }
+
+    public function consolidee(Request $request)
+    {
+        $debut = $request->debut ?? now()->startOfMonth()->toDateString();
+        $fin   = $request->fin ?? now()->toDateString();
+
+        $mouvements = MouvementCaisse::whereBetween('date_mouvement', [$debut . ' 00:00:00', $fin . ' 23:59:59'])
+            ->whereNotIn('type', ['remise', 'versement'])
+            ->whereNotIn('statut_validation', ['en_attente','rejete'])
+            ->get();
+
+        // Flux réels uniquement : exclure les transferts internes remise/versement
+        $encaissements = $mouvements->where('type', 'encaissement')->sum('montant');
+        $decaissements = $mouvements->whereIn('type', ['decaissement', 'salaire'])->sum('montant');
+        $epargnes      = $mouvements->where('type', 'epargne')->sum('montant');
+        $penalites     = $mouvements->where('type', 'penalite')->sum('montant');
+        $solde         = $encaissements + $epargnes + $penalites - $decaissements;
+
+        return response()->json([
+            'encaissements' => $encaissements,
+            'decaissements' => $decaissements,
+            'epargnes'      => $epargnes,
+            'penalites'     => $penalites,
+            'solde'         => $solde,
+        ]);
+    }
+
+
+    public function periode(Request $request)
+    {
+        $debut = $request->input('debut', now()->startOfMonth()->toDateString());
+        $fin = $request->input('fin', now()->endOfMonth()->toDateString());
+
+        $mouvements = MouvementCaisse::query()
+            ->whereBetween('date_mouvement', [$debut . ' 00:00:00', $fin . ' 23:59:59'])
+            ->whereNotIn('type', ['remise', 'versement'])
+            ->whereNotIn('statut_validation', ['en_attente','rejete'])
+            ->get()
+            ->groupBy(fn($m) => $m->date_mouvement->format('Y-m-d'));
+
+        $caisses = Caisse::query()
+            ->whereBetween('date_ouverture', [$debut, $fin])
+            ->get()
+            ->groupBy(fn($c) => \Carbon\Carbon::parse($c->date_ouverture)->format('Y-m-d'));
+
+        $resultat = [];
+
+        foreach ($mouvements as $jour => $liste) {
+            $caissesDuJour = $caisses->get($jour, collect());
+            $nonCloture = $caissesDuJour->isNotEmpty()
+                && $caissesDuJour->contains(fn($c) => $c->statut !== 'fermee');
+            $ecart = (float) $caissesDuJour->sum(fn($c) => (float)($c->ecart ?? 0));
+
+            $resultat[] = [
+                'jour' => $jour,
+                'encaissements' => (float) $liste->where('type', 'encaissement')->sum('montant'),
+                'decaissements' => (float) $liste->whereIn('type', ['decaissement','salaire'])->sum('montant'),
+                'epargnes' => (float) $liste->where('type', 'epargne')->sum('montant'),
+                'penalites' => (float) $liste->where('type', 'penalite')->sum('montant'),
+                'remises' => (float) $liste->where('type', 'remise')->sum('montant'),
+                'versements' => (float) $liste->where('type', 'versement')->sum('montant'),
+                'nb_mouvements' => $liste->count(),
+                'non_cloture' => $nonCloture,
+                'ecart' => $ecart,
+            ];
+        }
+
+        foreach ($caisses as $jour => $liste) {
+            if ($mouvements->has($jour)) continue;
+            $nonCloture = $liste->contains(fn($c) => $c->statut !== 'fermee');
+            if (!$nonCloture) continue;
+            $resultat[] = [
+                'jour' => $jour,
+                'encaissements' => 0,
+                'decaissements' => 0,
+                'epargnes' => 0,
+                'penalites' => 0,
+                'remises' => 0,
+                'versements' => 0,
+                'nb_mouvements' => 0,
+                'non_cloture' => true,
+                'ecart' => 0,
+            ];
+        }
+
+        usort($resultat, fn($a, $b) => strcmp($a['jour'], $b['jour']));
+        return response()->json($resultat);
+    }
+
+
+    public function exportPeriode(Request $request)
+    {
+        $request->validate([
+            'debut' => ['nullable', 'date'],
+            'fin' => ['nullable', 'date', 'after_or_equal:debut'],
+            'type' => ['nullable', 'string'],
+            'agent_uuid' => ['nullable', 'exists:users,uuid'],
+        ]);
+
+        $debut = $request->input('debut', now()->startOfMonth()->toDateString());
+        $fin = $request->input('fin', now()->toDateString());
+
+        $query = MouvementCaisse::query()
+            ->with('user')
+            ->whereBetween('date_mouvement', [
+                $debut . ' 00:00:00',
+                $fin . ' 23:59:59',
+            ]);
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->filled('agent_uuid')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('uuid', $request->input('agent_uuid'));
+            });
+        }
+
+        $mouvements = $query->orderBy('date_mouvement')->get();
+
+        return response()->streamDownload(function () use ($mouvements) {
+            $file = fopen('php://output', 'w');
+            fwrite($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($file, ['Date', 'Heure', 'Type', 'Montant', 'Mode', 'Référence', 'Motif', 'Utilisateur']);
+
+            foreach ($mouvements as $mouvement) {
+                $date = $mouvement->date_mouvement;
+                fputcsv($file, [
+                    $date ? $date->format('Y-m-d') : '',
+                    $date ? $date->format('H:i') : '',
+                    $mouvement->type ?? '',
+                    $mouvement->montant ?? '',
+                    $mouvement->mode_paiement ?? '',
+                    $mouvement->reference ?? '',
+                    $mouvement->motif ?? '',
+                    trim(($mouvement->user->nom ?? '') . ' ' . ($mouvement->user->prenom ?? '')),
+                ]);
+            }
+
+            fclose($file);
+        }, "caisse_{$debut}_au_{$fin}.csv", [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+
+    public function validerRemise(Request $request, string $reference)
+    {
+        $chef = $request->user();
+
+        if (!in_array($chef->role, ['chef_agence', 'gerante'], true)) {
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($reference, $chef, $request) {
+            $remise = \App\Models\Remise::where('reference', $reference)->lockForUpdate()->first();
+            if (!$remise) {
+                return response()->json(['error' => 'Remise introuvable'], 404);
+            }
+
+            if ($remise->statut !== 'en_attente') {
+                return response()->json(['error' => 'Remise déjà traitée'], 422);
+            }
+
+            $agent = $remise->agent;
+            if ($agent && $chef->agence_id && $agent->agence_id && $chef->agence_id !== $agent->agence_id) {
+                return response()->json(['error' => 'Remise d une autre agence'], 403);
+            }
+
+            if ($remise->agent_id === $chef->id) {
+                return response()->json(['error' => 'Auto-validation interdite'], 403);
+            }
+
+            $statut = $request->statut ?? 'valide';
+            $montantRecu = $request->montant_recu ?? null;
+            $motifRejet = $request->motif_rejet ?? null;
+
+            $remise->statut = $statut;
+            $remise->save();
+
+            \App\Models\MouvementCaisse::where('remise_id', $remise->id)
+                ->where('statut_validation', 'en_attente')
+                ->update([
+                    'statut_validation' => $statut,
+                    'valide_par' => $chef->id,
+                    'valide_le' => now(),
+                    'montant_recu' => $montantRecu,
+                    'ecart_remise' => $montantRecu !== null ? (float) $remise->montant_declare - (float) $montantRecu : null,
+                    'motif_rejet' => $motifRejet,
+                ]);
+
+            return response()->json(['success' => true, 'reference' => $reference, 'statut' => $statut]);
+        });
+    }
+
+    public function remisesEnAttente(Request $request)
+    {
+        $remises = \App\Models\Remise::where('statut', 'en_attente')
+            ->with('agent:id,uuid,nom,prenom')
+            ->orderBy('created_at')
+            ->get();
+
+        return response()->json($remises);
+    }
+
+    public function encaissementsAttenteAgent(Request $request)
+    {
+        $user = $request->user();
+        $encaissements = MouvementCaisse::where('user_id', $user->id)
+            ->where('type', 'encaissement')
+            ->where('statut_validation', 'en_attente')
+            ->whereNull('remise_id')
+            ->orderByDesc('date_mouvement')
+            ->get();
+
+        return response()->json($encaissements);
+    }
+
+    public function remisesAgent(Request $request)
+    {
+        $user = $request->user();
+        $remises = \App\Models\Remise::where('agent_id', $user->id)
+            ->with('mouvements')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($remises);
+    }
+
+    public function export(Request $request)
+    {
+        $uuid = $request->uuid;
+        $caisse = Caisse::where('uuid', $uuid)->firstOrFail();
+        $mouvements = $caisse->mouvements()->with('user')->orderBy('date_mouvement')->get();
+        $headers = ['Content-Type' => 'text/csv; charset=utf-8', 'Content-Disposition' => 'attachment; filename=caisse_' . $caisse->date_ouverture . '.csv'];
+        $callback = function() use ($caisse, $mouvements) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($file, ['Date', 'Type', 'Montant', 'Mode', 'Bénéficiaire', 'Motif', 'Utilisateur']);
+            foreach ($mouvements as $m) {
+                fputcsv($file, [$m->date_mouvement, $m->type, $m->montant, $m->mode_paiement, $m->beneficiaire, $m->motif, $m->user?->nom]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+}

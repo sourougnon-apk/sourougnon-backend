@@ -1,0 +1,316 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Debiteur;
+use App\Models\Echeance;
+use App\Models\Produit;
+use App\Models\User;
+use App\Models\Alerte;
+use App\Services\CaisseService;
+use App\Services\ComptabiliteService;
+use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+
+class ChefAgenceController extends Controller
+{
+    public function dashboard()
+    {
+        $user = auth()->user();
+        $aujourdhui = now()->toDateString();
+
+        $debiteurs = Debiteur::where('actif', true)->get();
+        $debiteursEnRetard = collect();
+        foreach ($debiteurs as $d) {
+            $aDesRetards = $d->ventes()
+                ->where('statut', 'en_cours')
+                ->whereHas('echeances', fn($q) => $q->whereIn('statut', ['en_retard', 'partiel'])->whereDate('date_echeance', '<=', $aujourdhui))
+                ->exists();
+            if ($aDesRetards) $debiteursEnRetard->push($d);
+        }
+
+        $nbEnRetard = $debiteursEnRetard->count();
+        $nbAJour = $debiteurs->count() - $nbEnRetard;
+
+        $totalEcheancesRetard = Echeance::whereIn('statut', ['en_retard', 'partiel'])
+            ->whereDate('date_echeance', '<=', $aujourdhui)
+            ->whereHas('vente', fn($q) => $q->where('statut', 'en_cours'))
+            ->sum('montant_prevu');
+
+        return response()->json([
+            'kpis' => [
+                'agents_count' => User::where('role', 'agent')->count(),
+                'debiteurs_actifs' => Debiteur::where('actif', true)->count(),
+                'debiteurs_a_jour' => $nbAJour,
+                'debiteurs_en_retard' => $nbEnRetard,
+                'encaisse_du_jour' => Recouvrement::whereDate('date_recouvrement', today())->where('statut', 'paye')->sum('montant'),
+                'creances_en_retard' => Vente::where('statut', 'en_cours')
+                    ->whereHas('echeances', fn($q) => $q->whereIn('statut', ['en_retard', 'partiel'])->whereDate('date_echeance', '<=', $aujourdhui))
+                    ->get()
+                    ->sum(fn($v) => $v->resteAPayer()),
+                'total_echeances_retard' => $totalEcheancesRetard,
+            ],
+            'agents' => User::where('role', 'agent')->withCount('debiteurs')->get(),
+            'alertes' => Echeance::whereIn('statut', ['en_retard', 'partiel'])
+                ->whereDate('date_echeance', '<=', $aujourdhui)
+                ->whereHas('vente', fn($q) => $q->where('statut', 'en_cours'))
+                ->with(['vente.debiteur', 'vente.agent'])
+                ->orderByDesc('jours_retard')
+                ->limit(10)
+                ->get()
+                ->map(fn($e) => [
+                    'debiteur' => $e->vente->debiteur?->nom ?? '—',
+                    'agent' => $e->vente->agent?->nom ?? '—',
+                    'montant' => $e->montant_prevu,
+                    'jours_retard' => $e->jours_retard,
+                    'statut' => 'Retard',
+                ]),
+        ]);
+    }
+
+    public function venteComptant(Request $request)
+    {
+        $request->validate([
+            'nom' => 'required|string','telephone' => 'nullable|string',
+            'produit_id' => 'nullable|exists:produits,uuid','montant' => 'required|numeric|min:0',
+        ]);
+        $user = $request->user();
+        $produit = $request->produit_id ? Produit::where('uuid', $request->produit_id)->first() : null;
+
+        // Créer le client comptant et récupérer son ID
+        $clientComptantId = DB::table('clients_comptant')->insertGetId([
+            'uuid' => Str::uuid(),
+            'nom' => $request->nom,
+            'telephone' => $request->telephone,
+            'quartier' => $request->quartier ?? '',
+            'agent_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $vente = Vente::create([
+            'uuid' => Str::uuid(),
+            'debiteur_id' => null,
+            'client_comptant_id' => $clientComptantId,
+            'agent_id' => $user->id,
+            'produit_id' => $produit?->id,
+            'type_vente' => 'comptant',
+            'montant_total' => $request->montant,
+            'montant_journalier' => $request->montant,
+            'nombre_jours' => 1,
+            'epargne' => 0,
+            'date_debut' => now()->toDateString(),
+            'date_fin' => now()->toDateString(),
+            'heure_creation' => now()->toTimeString(),
+            'statut' => 'termine',
+        ]);
+
+        $rec = Recouvrement::create([
+            'uuid' => Str::uuid(),
+            'vente_id' => $vente->id,
+            'agent_id' => $user->id,
+            'montant' => $request->montant,
+            'date_recouvrement' => now()->toDateString(),
+            'mode_paiement' => $request->mode_paiement ?? 'especes',
+            'statut' => 'paye',
+            'synced' => true,
+        ]);
+
+        if ($produit && $produit->stock > 0) $produit->decrement('stock');
+        CaisseService::enregistrerRecouvrement($rec, 'valide');
+        ComptabiliteService::ecrireRecouvrement($rec);
+        \App\Services\NotificationService::notifierNouvelleVente($vente);
+        NotificationService::generer();
+        return response()->json(['success' => true]);
+    }
+
+    public function venteCredit(Request $request)
+    {
+        $request->validate([
+            'debiteur_id' => 'required|exists:debiteurs,uuid',
+            'produit_id' => 'nullable|exists:produits,uuid',
+            'montant' => 'required|numeric|min:0',
+            'epargne_par_jour' => 'nullable|numeric|min:0',
+            'jours' => 'required|integer|min:1|max:20',
+            'delai_avant_echeances' => 'nullable|integer|min:0|max:30',
+            'motif_derogation' => 'nullable|string|max:500',
+            'produits' => 'nullable|array',
+            'produits.*.produit_id' => 'required',
+            'produits.*.quantite' => 'required|integer|min:1',
+        ]);
+        $user = $request->user();
+        $debiteur = Debiteur::where('uuid', $request->debiteur_id)->firstOrFail();
+
+        // 1. Contrôle du NOMBRE de crédits simultanés (pas un montant, conforme à la logique métier)
+        $nbCreditsEnCours = Vente::where('debiteur_id', $debiteur->id)->where('statut', 'en_cours')->count();
+        $maxCredits = max(1, (int) ($debiteur->credits_autorises ?: 1));
+        if ($nbCreditsEnCours >= $maxCredits) {
+            return response()->json([
+                'error' => "Ce débiteur a déjà {$nbCreditsEnCours} crédit(s) en cours (maximum autorisé : {$maxCredits}). Le chef d'agence doit augmenter le nombre de crédits autorisés dans la fiche débiteur pour permettre cet achat.",
+            ], 422);
+        }
+
+        // 2. Contrôle du score : en dessous de 40%, un motif de dérogation est obligatoire
+        $scoreResultat = app(\App\Services\ScoreSolvabiliteService::class)->calculer($debiteur);
+        $score = $scoreResultat['score'] ?? 50;
+        $motifDerogation = trim($request->motif_derogation ?? '');
+        if ($score < 40 && $motifDerogation === '') {
+            return response()->json([
+                'error' => "Le score de solvabilité de ce débiteur est critique ({$score}%). Un motif de dérogation est obligatoire pour valider cette vente.",
+                'score' => $score,
+            ], 422);
+        }
+
+        $epargneParJour = $request->epargne_par_jour ?? 300;
+        $epargneTotal = $epargneParJour * $request->jours;
+        $total = $request->montant + $epargneTotal;
+        
+        if ($request->has('produits') && is_array($request->produits) && count($request->produits) > 0) {
+            $totalProduits = 0;
+            foreach ($request->produits as $p) {
+                $prod = \App\Models\Produit::where('uuid', $p['produit_id'])->first();
+                if ($prod) {
+                    $totalProduits += ($prod->prix_vente ?? 0) * ($p['quantite'] ?? 1);
+                }
+            }
+            if ($totalProduits > 0) {
+                $total = $totalProduits + $epargneTotal;
+            }
+        }
+        $journalier = round($total / $request->jours, 2);
+        $produit = $request->produit_id ? Produit::where('uuid', $request->produit_id)->first() : null;
+        $vente = Vente::create([
+            'uuid' => Str::uuid(), 'debiteur_id' => $debiteur->id,
+            'agent_id' => $debiteur->agent_id ?: $user->id,
+            'created_by' => $user->id,
+            'produit_id' => $produit?->id, 'type_vente' => 'credit',
+            'montant_total' => $total, 'montant_journalier' => $journalier,
+            'nombre_jours' => $request->jours,
+            'delai_avant_echeances' => (int) ($request->delai_avant_echeances ?? 1),
+            'epargne' => $epargneTotal,
+            'epargne_par_jour' => $epargneParJour,
+            'epargne_total' => $epargneTotal,
+            'penalite_par_jour' => $request->penalite_par_jour ?? 1000,
+            'mise_agent' => $epargneParJour,
+            'date_debut' => now()->toDateString(),
+            'date_fin' => now()->addDays((int) ($request->delai_avant_echeances ?? 1) + $request->jours - 1)->toDateString(),
+            'statut' => 'en_cours',
+        ]);
+        // Si dérogation utilisée (score bas mais motif fourni), la tracer pour le futur recalibrage V2
+        if ($score < 40 && $motifDerogation !== '') {
+            app(\App\Services\ScoreSolvabiliteService::class)->enregistrerDerogation($debiteur, $vente->id, $motifDerogation, $request);
+        }
+
+        if ($request->has('produits') && is_array($request->produits) && count($request->produits) > 0) {
+            foreach ($request->produits as $p) {
+                $prod = \App\Models\Produit::where('uuid', $p['produit_id'])->orWhere('id', $p['produit_id'])->first();
+                if ($prod) {
+                    \App\Models\VenteProduit::create([
+                        'vente_id' => $vente->id,
+                        'produit_id' => $prod->id,
+                        'quantite' => $p['quantite'] ?? 1,
+                        'prix_unitaire' => $prod->prix_vente ?? 0,
+                    ]);
+                    $qte = (int) ($p['quantite'] ?? 1);
+                    $avant = (int) $prod->stock;
+                    $prod->decrement('stock', $qte);
+                    \App\Models\MouvementStock::create([
+                        'uuid' => Str::uuid(),
+                        'produit_id' => $prod->id,
+                        'user_id' => $user->id,
+                        'type' => 'sortie',
+                        'action' => 'vente',
+                        'date_mouvement' => now()->toDateString(),
+                        'quantite' => $qte,
+                        'prix_unitaire' => $prod->prix_vente ?? 0,
+                        'stock_avant' => $avant,
+                        'stock_apres' => $avant - $qte,
+                        'motif' => 'Vente credit #' . substr($vente->uuid, 0, 8),
+                        'created_at' => now(),
+                    ]);
+                }
+            }
+        }
+        
+        $vente->genererEcheances();
+        ComptabiliteService::ecrireVenteCredit($vente);
+        \App\Services\NotificationService::notifierNouvelleVente($vente);
+        NotificationService::generer();
+        return response()->json([
+            'success' => true,
+            'vente_id' => $vente->uuid,
+            'journalier' => $journalier,
+            'epargne_par_jour' => $epargneParJour,
+            'epargne_total' => $epargneTotal,
+            'date_fin' => $vente->date_fin,
+        ]);
+    }
+
+
+    public function historiqueDebiteur($uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        
+        $ventes = Vente::where('debiteur_id', $debiteur->id)
+            ->with(['produit', 'venteProduits.produit'])
+            ->orderByDesc('date_debut')
+            ->get()
+            ->map(function($v) {
+                return [
+                    'uuid' => $v->uuid,
+                    'date' => $v->date_debut->format('d/m/Y'),
+                    'produit' => $v->produit?->nom ?? '--',
+                    'produits' => $v->produitsPanier(),
+                    'produits_resume' => empty($v->produitsPanier()) ? '--' : implode(', ', array_map(function($p){ return $p['nom'].' x'.$p['quantite']; }, $v->produitsPanier())),
+                    'montant_total' => $v->montant_total,
+                    'statut' => $v->statut,
+                    'type_vente' => $v->type_vente,
+                    'reste_a_payer' => $v->resteAPayer(),
+                ];
+            });
+        
+        $paiements = Recouvrement::whereIn('vente_id', Vente::where('debiteur_id', $debiteur->id)->pluck('id'))
+            ->orderByDesc('date_recouvrement')
+            ->get()
+            ->map(function($r) {
+                return [
+                    'id' => $r->id,
+                    'date' => $r->date_recouvrement->format('d/m/Y'),
+                    'montant' => $r->montant,
+                    'mode' => $r->mode_paiement,
+                    'statut' => $r->statut,
+                ];
+            });
+        
+        $soldeTotal = Vente::where('debiteur_id', $debiteur->id)
+            ->where('statut', 'en_cours')
+            ->get()
+            ->sum(function($v) { return $v->resteAPayer(); });
+        
+        return response()->json([
+            'success' => true,
+            'debiteur' => [
+                'nom' => $debiteur->nom . ' ' . ($debiteur->prenom ?? ''),
+                'code_client' => $debiteur->code_client,
+                'score_solvabilite' => $debiteur->score_solvabilite,
+                'solde_total' => $soldeTotal,
+            ],
+            'ventes' => $ventes,
+            'paiements' => $paiements,
+        ]);
+    }
+    
+    public function scoreDebiteur($uuid)
+    {
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        $service = app(\App\Services\ScoreSolvabiliteService::class);
+        $resultat = $service->calculer($debiteur);
+        return response()->json($resultat);
+    }
+
+}

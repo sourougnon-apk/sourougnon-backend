@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F172A" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css?v=202608262020" />
+  <title>Sourougnon Agent</title>
+</head>
+<body>
+  <div id="splash" class="splash">
+    <div class="splash__glow"></div>
+    <div class="splash__logo-wrap">
+      <img src="assets/logo_sourougnon1.png" alt="Logo" class="splash__logo" />
+    </div>
+    <div class="splash__brand">Sourou<span>gnon</span></div>
+    <div class="splash__baseline">Crédit • Vente • Confiance</div>
+    <div class="splash__loader"><span></span></div>
+  </div>
+
+  <div id="app" class="app is-hidden">
+    <header class="topbar">
+      <div class="topbar__left">
+        <button class="icon-btn mobile-only" data-action="open-menu" aria-label="Menu">☰</button>
+        <div class="brand-mini">
+          <div class="brand-mini__logo"><img src="assets/logo_sourougnon1.png" alt="" /></div>
+          <div>
+            <div class="brand-mini__name">Sourou<span>gnon</span></div>
+            <div class="brand-mini__sub">Espace agent</div>
+          </div>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div id="networkPill" class="network-pill network-pill--online">
+          <span class="network-dot"></span>
+          <span class="network-label">En ligne</span>
+        </div>
+        <button class="icon-btn" onclick="AgentApp.syncAll()" aria-label="Synchroniser" title="Synchroniser">🔄</button>
+        <button class="icon-btn" data-screen="notifications" aria-label="Notifications">🔔<span class="icon-badge" id="notifBadge">0</span></button>
+        <div class="avatar avatar--sm" id="userInitials">AG</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- HOME -->
+      <section class="screen is-active" id="screen-home">
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow" id="todayLabel">Aujourd'hui</p>
+            <h1 id="greeting">Bonjour 👋</h1>
+            <p class="muted">Voici votre tournée et vos priorités du jour.</p>
+          </div>
+        </div>
+
+        <div class="hero-banner">
+          <div>
+            <div class="hero-banner__eyebrow">Votre tournée</div>
+            <h2 id="heroVisits">0 visites planifiées</h2>
+            <p id="heroSummary">0 à visiter • 0 payés • 0 en retard</p>
+          </div>
+          <div class="hero-banner__score">
+            <span class="hero-banner__score-label">Collecte</span>
+            <strong id="heroScore">0%</strong>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="metric-card">
+            <div class="metric-card__icon metric-card__icon--blue">📍</div>
+            <div><span>Visites</span><strong id="statVisites">0</strong></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card__icon metric-card__icon--green">✓</div>
+            <div><span>Paiements</span><strong id="statPaiements">0</strong></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card__icon metric-card__icon--red">!</div>
+            <div><span>Retards</span><strong id="statRetards">0</strong></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card__icon metric-card__icon--purple">₣</div>
+            <div><span>Collecté</span><strong id="statCollecte">0</strong></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card__icon metric-card__icon--red">⚠</div>
+            <div><span>Solde impayé</span><strong id="statSolde">0</strong></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card__icon metric-card__icon--amber">⏳</div>
+            <div><span>Échéance impayée</span><strong id="statRetardImpaye">0</strong></div>
+          </div>
+        </div>
+
+        <div class="section-row">
+          <div>
+            <h2 class="section-title">Tournée du jour</h2>
+            <p class="muted">Vos clients attitrés, dans l'ordre de passage.</p>
+          </div>
+          <button class="text-btn" data-screen="debtors">Voir tout</button>
+        </div>
+
+        <div class="filter-row" id="homeFilters"></div>
+        <div class="client-list" id="clientList"></div>
+        <button class="cta cta--blue" id="btnToggleTournee" onclick="AgentApp.toggleTournee()">➤ Démarrer la tournée</button>
+      </section>
+
+      <!-- CLIENT -->
+      <section class="screen" id="screen-client">
+        <div class="screen-heading screen-heading--compact">
+          <div class="heading-with-back">
+            <button class="back-btn" data-screen="home">←</button>
+            <div>
+              <p class="eyebrow">Client attitré</p>
+              <h1>Fiche client</h1>
+            </div>
+          </div>
+        </div>
+        <div id="clientDetail"></div>
+      </section>
+
+      <!-- ENCAISSEMENT -->
+      <section class="screen" id="screen-collection">
+        <div class="screen-heading screen-heading--compact">
+          <div class="heading-with-back">
+            <button class="back-btn" data-screen="client">←</button>
+            <div>
+              <p class="eyebrow">Opération terrain</p>
+              <h1>Encaissement</h1>
+            </div>
+          </div>
+        </div>
+        <div id="collectionClient"></div>
+        <form id="collectionForm" class="form-stack">
+          <label class="field">
+            <span>Montant à encaisser</span>
+            <div class="input-with-suffix">
+              <input id="amount" type="number" min="0" step="1" required />
+              <em>FCFA</em>
+            </div>
+          </label>
+          <label class="field">
+            <span>Mode de paiement</span>
+            <select id="paymentMode">
+              <option value="especes">💵 Espèces</option>
+              <option value="mobile">📱 Mobile Money</option>
+              <option value="autre">🏦 Virement</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Statut du paiement</span>
+            <select id="paymentStatus">
+              <option value="paye">✅ Paiement complet</option>
+              <option value="partiel">🔶 Paiement partiel</option>
+              <option value="absent">❌ Absent</option>
+              <option value="refus">🚫 Refus de payer</option>
+              <option value="promesse">⏳ Promesse de payer</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Commentaire <small>(optionnel)</small></span>
+            <textarea id="comment" maxlength="150" placeholder="Ex. Paiement effectué en espèces."></textarea>
+          </label>
+          <button class="cta cta--green" type="submit">✓ Valider le paiement</button>
+        </form>
+      </section>
+
+      <!-- SUCCESS -->
+      <section class="screen screen--success" id="screen-success">
+        <div class="success-wrap">
+          <div class="confetti"></div>
+          <div class="success-icon">✓</div>
+          <p class="eyebrow">Opération réussie</p>
+          <h1>Paiement enregistré<br><span>avec succès !</span></h1>
+          <p class="muted">Merci pour votre engagement.</p>
+          <div class="receipt-card" id="successReceipt"></div>
+          <button class="cta cta--blue" data-screen="home">Continuer la tournée</button>
+        </div>
+      </section>
+
+      <!-- DEBTORS -->
+      <section class="screen" id="screen-debtors">
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Portefeuille</p>
+            <h1>Débiteurs</h1>
+            <p class="muted" id="debtorsCount">0 client(s) attitré(s)</p>
+          </div>
+        </div>
+        <div class="client-list" id="debtorsList"></div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section class="screen" id="screen-notifications">
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Centre d'activité</p>
+            <h1>Notifications</h1>
+          </div>
+        </div>
+        <div class="notification-list" id="notificationList"></div>
+      </section>
+
+      <!-- PLUS -->
+      <section class="screen" id="screen-plus">
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Menu</p>
+            <h1>Plus</h1>
+          </div>
+        </div>
+        <div class="client-list">
+          <button class="client-card" style="cursor:pointer;text-align:left;" onclick="AgentApp.loadProfile()">
+            <div class="avatar avatar--blue">◉</div>
+            <div class="client-card__main">
+              <div class="client-card__title"><h3>Mon profil</h3></div>
+            </div>
+          </button>
+          <button class="client-card" style="cursor:pointer;text-align:left;" onclick="AgentApp.openEpargnes()">
+            <div class="avatar avatar--green">₣</div>
+            <div class="client-card__main">
+              <div class="client-card__title"><h3>Épargne tontine</h3></div>
+            </div>
+          </button>
+
+          <button class="client-card" style="cursor:pointer;text-align:left;" onclick="AgentApp.openRemise()">
+            <div class="avatar avatar--purple">💵</div>
+            <div class="client-card__main">
+              <div class="client-card__title"><h3>Remise à l'agence</h3></div>
+            </div>
+          </button>
+<button class="client-card" style="cursor:pointer;text-align:left;" onclick="AgentApp.openArchives()">
+            <div class="avatar avatar--amber">📅</div>
+            <div class="client-card__main">
+              <div class="client-card__title"><h3>Archives</h3></div>
+            </div>
+          </button>
+          <button class="client-card" style="cursor:pointer;text-align:left;" onclick="AgentApp.openPenalites()">
+            <div class="avatar avatar--red">⚠</div>
+            <div class="client-card__main">
+              <div class="client-card__title"><h3>Pénalités</h3></div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- EPARGNES AGENT -->
+      <section class="screen" id="screen-epargnes">
+        <div class="screen-heading screen-heading--compact">
+          <div class="heading-with-back">
+            <button class="back-btn" data-screen="plus">←</button>
+            <div>
+              <p class="eyebrow">Tontine</p>
+              <h1>Épargne tontine</h1>
+            </div>
+          </div>
+        </div>
+        <div id="agentEpargnesContent"></div>
+      </section>
+
+      <!-- PENALITES AGENT -->
+      <section class="screen" id="screen-penalites">
+        <div class="screen-heading screen-heading--compact">
+          <div class="heading-with-back">
+            <button class="back-btn" data-screen="plus">←</button>
+            <div>
+              <p class="eyebrow">Recouvrement</p>
+              <h1>Pénalités</h1>
+            </div>
+          </div>
+        </div>
+        <div id="agentPenalitesContent"></div>
+      </section>
+
+      <!-- ARCHIVES AGENT -->
+      <section class="screen" id="screen-archives">
+        <div class="screen-heading screen-heading--compact">
+          <div class="heading-with-back">
+            <button class="back-btn" data-screen="plus">←</button>
+            <div>
+              <p class="eyebrow">Historique</p>
+              <h1>Archives</h1>
+            </div>
+          </div>
+        </div>
+        <div id="archivesContent">
+          <div class="flex items-center justify-between mb-3">
+            <button class="text-btn" onclick="AgentApp.changeArchiveMonth(-1)">◀</button>
+            <h4 class="font-semibold" id="archiveMonthYear"></h4>
+            <button class="text-btn" onclick="AgentApp.changeArchiveMonth(1)">▶</button>
+          </div>
+          <div class="panel p-4">
+            <div id="archiveCalendar" class="grid grid-cols-7 gap-1"></div>
+          </div>
+          <div id="archiveDetail" class="mt-3"></div>
+        </div>
+      </section>
+
+      <!-- REMISE AGENT -->
+      <section class="screen" id="screen-remise">
+        <div class="screen-heading screen-heading--compact">
+          <div class="heading-with-back">
+            <button class="back-btn" data-screen="plus">←</button>
+            <div>
+              <p class="eyebrow">Caisse</p>
+              <h1>Remise à l'agence</h1>
+            </div>
+          </div>
+        </div>
+        <div id="remiseAgentContent"></div>
+        <button id="btnTransmettreRemise" class="cta cta--blue" style="margin-top:12px;" onclick="AgentApp.soumettreRemise()">Transmettre à l'agence</button>
+      </section>
+
+      <!-- PROFILE -->
+      <section class="screen" id="screen-profile">
+        <div class="screen-heading">
+          <div>
+            <p class="eyebrow">Compte</p>
+            <h1>Mon profil</h1>
+          </div>
+        </div>
+        <div id="profileContent"></div>
+        <button class="cta cta--outline" onclick="AgentApp.logout()">Se déconnecter</button>
+      </section>
+    </main>
+
+    <div id="offlineBar" class="offline-bar is-hidden">
+      <div>
+        <strong>🔴 Vous êtes hors ligne</strong>
+        <span>Certaines actions seront synchronisées automatiquement.</span>
+      </div>
+      <button id="syncBtn" class="sync-btn">↻ Synchroniser</button>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-item is-active" data-screen="home"><span>⌂</span><small>Tournée</small></button>
+      <button class="nav-item" data-screen="debtors"><span>👥</span><small>Débiteurs</small></button>
+      <button class="nav-item" data-screen="collection"><span>▣</span><small>Encaisser</small></button>
+      <button class="nav-item" data-screen="notifications"><span class="nav-icon-wrap">🔔<b id="notifCountSmall">0</b></span><small>Notif.</small></button>
+      <button class="nav-item" data-screen="plus"><span>⋯</span><small>Plus</small></button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+<!-- Modale générique moderne -->
+<div id="ui-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:#fff;border-radius:20px;max-width:420px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.25);">
+    <div id="ui-modal-icon" style="font-size:28px;margin-bottom:10px;"></div>
+    <div id="ui-modal-message" style="font-size:15px;line-height:1.5;color:#0F172A;margin-bottom:18px;"></div>
+    <div id="ui-modal-actions" style="display:flex;gap:10px;justify-content:flex-end;"></div>
+  </div>
+</div>
+  <script>
+  sessionStorage.removeItem('redir_agent');
+  window.__hideSplash = function () {
+    var el = document.getElementById('splash');
+    if (el) el.remove();
+  };
+  setTimeout(window.__hideSplash, 5000);
+  window.addEventListener('error', function (e) {
+    console.error('Erreur bloquante:', e.message);
+    window.__hideSplash();
+  });
+</script>
+<script src="db.js?v=2026082301"></script>
+  <script src="app.js?v=202608311931"></script>
+
+<script>
+
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(err){ console.log('SW error', err); });
+  }
+</script></body>
+</html>

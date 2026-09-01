@@ -1,0 +1,23 @@
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('produits', function (Blueprint $table) {
+            if (!Schema::hasColumn('produits', 'conditionnement')) $table->string('conditionnement')->nullable();
+            if (!Schema::hasColumn('produits', 'unite')) $table->string('unite')->nullable()->default('pièce');
+            if (!Schema::hasColumn('produits', 'code')) $table->string('code')->nullable()->unique();
+            if (!Schema::hasColumn('produits', 'description')) $table->text('description')->nullable();
+            if (!Schema::hasColumn('produits', 'marge')) $table->decimal('marge', 5, 2)->nullable()->virtualAs('prix_vente - prix_achat');
+        });
+    }
+    public function down(): void
+    {
+        Schema::table('produits', function (Blueprint $table) {
+            $table->dropColumn(['conditionnement', 'unite', 'code', 'description']);
+        });
+    }
+};

@@ -1,0 +1,224 @@
+<?php
+namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Controller;
+use App\Models\Journal;
+use App\Models\Vente;
+use App\Models\Recouvrement;
+use App\Models\Produit;
+use Illuminate\Http\Request;
+
+class ComptabiliteController extends Controller
+{
+    public function journal(Request $request)
+    {
+        $query = Journal::where('type_compta', 'principale')->orderByDesc('date_ecriture')->orderByDesc('id');
+        if ($request->compte) $query->where(function($q) use ($request) { $q->where('compte_debit', $request->compte)->orWhere('compte_credit', $request->compte); });
+        if ($request->date_debut) $query->whereDate('date_ecriture', '>=', $request->date_debut);
+        if ($request->date_fin) $query->whereDate('date_ecriture', '<=', $request->date_fin);
+
+        $page = max(1, (int) ($request->page ?? 1));
+        $parPage = max(1, min(100, (int) ($request->par_page ?? 50)));
+        $total = $query->count();
+        $ecritures = $query->skip(($page - 1) * $parPage)->take($parPage)->get();
+
+        return response()->json([
+            'donnees' => $ecritures,
+            'page' => $page,
+            'par_page' => $parPage,
+            'total' => $total,
+            'total_pages' => (int) ceil($total / $parPage),
+        ]);
+    }
+
+    public function grandLivre(Request $request)
+    {
+        $journals = Journal::where('type_compta', 'principale')->orderBy('compte_debit')->orderBy('date_ecriture')->get();
+        $comptes = [];
+        foreach ($journals as $j) {
+            $debit = $j->compte_debit;
+            $credit = $j->compte_credit;
+            if (!isset($comptes[$debit])) $comptes[$debit] = ['compte' => $debit, 'libelle' => $this->libelleCompte($debit), 'debit' => 0, 'credit' => 0];
+            if (!isset($comptes[$credit])) $comptes[$credit] = ['compte' => $credit, 'libelle' => $this->libelleCompte($credit), 'debit' => 0, 'credit' => 0];
+            $comptes[$debit]['debit'] += $j->montant;
+            $comptes[$credit]['credit'] += $j->montant;
+        }
+        foreach ($comptes as &$c) { $c['solde'] = $c['debit'] - $c['credit']; }
+        return response()->json(array_values($comptes));
+    }
+
+    public function balance(Request $request)
+    {
+        $debits = Journal::where('type_compta', 'principale')->selectRaw('compte_debit AS compte, SUM(montant) AS total')->groupBy('compte_debit')->pluck('total', 'compte');
+        $credits = Journal::where('type_compta', 'principale')->selectRaw('compte_credit AS compte, SUM(montant) AS total')->groupBy('compte_credit')->pluck('total', 'compte');
+
+        $totalDebit = $debits->sum();
+        $totalCredit = $credits->sum();
+
+        return response()->json([
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
+            'equilibree' => abs($totalDebit - $totalCredit) < 0.01,
+            'equilibre' => abs($totalDebit - $totalCredit) < 0.01,
+            'comptes' => $this->grandLivre($request)->original ?? [],
+        ]);
+    }
+
+    public function etatsFinanciers(Request $request)
+    {
+        $debut = $request->date_debut ?? now()->startOfMonth()->toDateString();
+        $fin = $request->date_fin ?? now()->toDateString();
+
+        $ventesActives = Vente::actives()->whereDate('date_debut', '>=', $debut)->whereDate('date_debut', '<=', $fin);
+        $chiffreAffaires = $ventesActives->sum('montant_total');
+        $encaissements = Recouvrement::where('statut', 'paye')->whereDate('date_recouvrement', '>=', $debut)->whereDate('date_recouvrement', '<=', $fin)->sum('montant');
+        
+        $valeurStock = Produit::where('actif', true)->get()->sum(fn($p) => $p->stock * $p->prix_achat);
+        
+        $charges = Journal::where('compte_debit', 'like', '601%')->whereDate('date_ecriture', '>=', $debut)->whereDate('date_ecriture', '<=', $fin)->sum('montant');
+        
+        $beneficeBrut = $chiffreAffaires - $charges;
+
+        return response()->json([
+            'compte_resultat' => [
+                'chiffre_affaires' => $chiffreAffaires,
+                'encaissements' => $encaissements,
+                'charges' => $charges,
+                'benefice_brut' => $beneficeBrut,
+                'valeur_stock' => $valeurStock,
+            ],
+            'bilan_synthetique' => [
+                'actif_total' => $valeurStock + $encaissements,
+                'passif_total' => $chiffreAffaires - $encaissements,
+            ],
+        ]);
+    }
+
+    public function exportJournal(Request $request)
+    {
+        $journal = $this->journal($request);
+        $ecritures = $journal->original['donnees'] ?? $journal->original ?? [];
+
+        $filename = 'journal_comptable_' . now()->format('Ymd_His') . '.csv';
+        $path = storage_path('app/public/' . $filename);
+
+        $f = fopen($path, 'w');
+        fputcsv($f, ['Date', 'Numéro', 'Compte débit', 'Compte crédit', 'Libellé', 'Montant', 'Référence']);
+        foreach ($ecritures as $e) {
+            fputcsv($f, [$e['date_ecriture'], $e['numero_ecriture'], $e['compte_debit'], $e['compte_credit'], $e['libelle'], $e['montant'], $e['reference']]);
+        }
+        fclose($f);
+
+        return response()->download($path, $filename)->deleteFileAfterSend(true);
+    }
+
+    public function exportGrandLivre(Request $request)
+    {
+        $grandLivre = $this->grandLivre($request)->original ?? [];
+        $filename = 'grand_livre_' . now()->format('Ymd_His') . '.csv';
+        $path = storage_path('app/public/' . $filename);
+        $f = fopen($path, 'w');
+        fputcsv($f, ['Compte', 'Libellé', 'Débit', 'Crédit', 'Solde']);
+        foreach ($grandLivre as $ligne) {
+            fputcsv($f, [$ligne['compte'], $ligne['libelle'], $ligne['debit'], $ligne['credit'], $ligne['solde']]);
+        }
+        fclose($f);
+        return response()->download($path, $filename)->deleteFileAfterSend(true);
+    }
+
+    public function exportEtatsFinanciers(Request $request)
+    {
+        $etats = $this->etatsFinanciers($request)->original ?? [];
+        $filename = 'etats_financiers_' . now()->format('Ymd_His') . '.csv';
+        $path = storage_path('app/public/' . $filename);
+        $f = fopen($path, 'w');
+        fputcsv($f, ['Indicateur', 'Valeur']);
+        fputcsv($f, ['Chiffre d\'affaires', $etats['compte_resultat']['chiffre_affaires'] ?? 0]);
+        fputcsv($f, ['Encaissements', $etats['compte_resultat']['encaissements'] ?? 0]);
+        fputcsv($f, ['Charges', $etats['compte_resultat']['charges'] ?? 0]);
+        fputcsv($f, ['Bénéfice brut', $etats['compte_resultat']['benefice_brut'] ?? 0]);
+        fputcsv($f, ['Valeur stock', $etats['compte_resultat']['valeur_stock'] ?? 0]);
+        fputcsv($f, ['Actif total', $etats['bilan_synthetique']['actif_total'] ?? 0]);
+        fputcsv($f, ['Passif total', $etats['bilan_synthetique']['passif_total'] ?? 0]);
+        fclose($f);
+        return response()->download($path, $filename)->deleteFileAfterSend(true);
+    }
+
+    private function libelleCompte(string $compte): string { return match(substr($compte, 0, 3)) { '411' => 'Clients', '521' => 'Caisse', '701' => 'Ventes', '601' => 'Charges', default => 'Compte ' . $compte }; }
+    public function secondaire(Request $request)
+    {
+        $query = Journal::where('type_compta', 'secondaire')->orderByDesc('date_ecriture')->orderByDesc('id');
+        // filtres similaires au journal principal
+        if ($request->compte) {
+            $query->where(function($q) use ($request) {
+                $q->where('compte_debit', $request->compte)->orWhere('compte_credit', $request->compte);
+            });
+        }
+        if ($request->date_debut) $query->whereDate('date_ecriture', '>=', $request->date_debut);
+        if ($request->date_fin) $query->whereDate('date_ecriture', '<=', $request->date_fin);
+
+        $page = max(1, (int) ($request->page ?? 1));
+        $parPage = max(1, min(100, (int) ($request->par_page ?? 50)));
+        $total = $query->count();
+        $ecritures = $query->skip(($page - 1) * $parPage)->take($parPage)->get();
+
+        $grandLivre = $this->grandLivreSecondaire();
+        $balance = $this->balanceSecondaire();
+
+        return response()->json([
+            'donnees' => $ecritures,
+            'page' => $page,
+            'par_page' => $parPage,
+            'total' => $total,
+            'total_pages' => (int) ceil($total / $parPage),
+            'grand_livre' => $grandLivre,
+            'balance' => $balance,
+        ]);
+    }
+
+    public function consolidee(Request $request)
+    {
+        $principale = Journal::where('type_compta', 'principale')->sum('montant');
+        $secondaire = Journal::where('type_compta', 'secondaire')->sum('montant');
+        return response()->json([
+            'principale' => $principale,
+            'secondaire' => $secondaire,
+            'totale' => $principale + $secondaire,
+        ]);
+    }
+
+    private function grandLivreSecondaire(): array
+    {
+        $journals = Journal::where('type_compta', 'secondaire')->orderBy('compte_debit')->orderBy('date_ecriture')->get();
+        $comptes = [];
+        foreach ($journals as $j) {
+            $debit = $j->compte_debit;
+            $credit = $j->compte_credit;
+            if (!isset($comptes[$debit])) $comptes[$debit] = ['compte' => $debit, 'libelle' => $this->libelleCompte($debit), 'debit' => 0, 'credit' => 0];
+            if (!isset($comptes[$credit])) $comptes[$credit] = ['compte' => $credit, 'libelle' => $this->libelleCompte($credit), 'debit' => 0, 'credit' => 0];
+            $comptes[$debit]['debit'] += $j->montant;
+            $comptes[$credit]['credit'] += $j->montant;
+        }
+        foreach ($comptes as &$c) { $c['solde'] = $c['debit'] - $c['credit']; }
+        return array_values($comptes);
+    }
+
+    private function balanceSecondaire(): array
+    {
+        $debits = Journal::where('type_compta', 'secondaire')
+            ->selectRaw('compte_debit AS compte, SUM(montant) AS total')
+            ->groupBy('compte_debit')->pluck('total', 'compte');
+        $credits = Journal::where('type_compta', 'secondaire')
+            ->selectRaw('compte_credit AS compte, SUM(montant) AS total')
+            ->groupBy('compte_credit')->pluck('total', 'compte');
+
+        $totalDebit = $debits->sum();
+        $totalCredit = $credits->sum();
+
+        return [
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
+            'equilibree' => abs($totalDebit - $totalCredit) < 0.01,
+        ];
+    }
+
+}

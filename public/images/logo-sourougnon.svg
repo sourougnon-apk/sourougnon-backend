@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="100%" height="100%" role="img" aria-label="Sourougnon Groupe">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C9A227" />
+      <stop offset="100%" stop-color="#E6C552" />
+    </linearGradient>
+    <linearGradient id="green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1F5C2E" />
+      <stop offset="100%" stop-color="#2E7D3B" />
+    </linearGradient>
+  </defs>
+
+  <!-- Monogramme circulaire -->
+  <circle cx="50" cy="50" r="38" fill="#0F172A" />
+  <text x="50" y="72" font-family="Georgia, serif" font-size="56" font-weight="bold" text-anchor="middle" fill="url(#gold)">S</text>
+  <text x="72" y="72" font-family="Georgia, serif" font-size="56" font-weight="bold" text-anchor="middle" fill="url(#green)">G</text>
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#C9A227" stroke-width="2" stroke-dasharray="4 6" />
+
+  <!-- Nom complet -->
+  <text x="110" y="52" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="700" fill="#1F5C2E">Sourougnon</text>
+  <text x="110" y="82" font-family="Georgia, 'Times New Roman', serif" font-size="20" font-weight="600" fill="#C9A227" letter-spacing="3">GROUPE</text>
+</svg>

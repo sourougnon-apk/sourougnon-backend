@@ -1,0 +1,458 @@
+=== MIGRATIONS ===
+2026_08_05_172745_create_users_table.php
+2026_08_05_172746_create_debiteurs_table.php
+2026_08_05_172747_create_produits_table.php
+2026_08_05_172748_create_ventes_table.php
+2026_08_05_172749_create_recouvrements_table.php
+2026_08_05_172750_create_sync_logs_table.php
+2026_08_05_182038_create_cache_table.php
+2026_08_05_192156_add_transfer_columns_to_debiteurs_table.php
+2026_08_05_195936_add_transfer_columns_to_debiteurs_table.php
+2026_08_05_200016_create_audit_logs_table.php
+2026_08_05_210405_add_type_vente_epargne_to_ventes_table.php
+2026_08_05_210520_add_type_vente_epargne_to_ventes_table.php
+2026_08_08_210309_create_mouvements_stock_table.php
+2026_08_08_234847_add_fields_to_produits_table.php
+2026_08_08_235137_add_date_mouvement_to_mouvements_stock.php
+2026_08_09_010353_create_clients_comptant_table.php
+2026_08_09_020716_create_echeances_table.php
+2026_08_09_023935_create_alertes_table.php
+2026_08_09_030158_create_caisses_table.php
+2026_08_09_033517_create_journal_table.php
+2026_08_09_102839_create_notifications_table.php
+2026_08_11_004137_create_synthese_journaliere_table.php
+2026_08_11_114941_modify_role_column_in_users_table.php
+2026_08_11_115255_update_role_values_in_users_table.php
+2026_08_11_115451_update_role_values_in_users_table.php
+2026_08_11_191524_add_epargne_penalite_to_ventes.php
+2026_08_11_191648_create_epargnes_table.php
+2026_08_11_191802_create_penalites_table.php
+2026_08_11_233253_add_penalite_config_to_ventes.php
+2026_08_11_XXXXXX_update_role_values_in_users_table.php
+2026_08_11_XXXXXX_update_role_values_in_users_table.php.save
+2026_08_12_122929_create_permissions_table.php
+2026_08_12_131354_enrichir_debiteurs_table.php
+2026_08_12_131428_create_scores_solvabilite_table.php
+2026_08_12_143834_create_localisations_benin_table.php
+2026_08_12_220220_create_categories_table.php
+2026_08_12_221342_add_stock_initial_to_produits.php
+2026_08_12_221345_create_approvisionnements_table.php
+2026_08_13_002723_add_action_to_mouvements_stock.php
+2026_08_14_045958_create_vente_produits_table.php
+2026_08_14_212438_fix_score_solvabilite_decimal.php
+2026_08_17_151240_add_delai_avant_echeances_to_ventes.php
+2026_08_17_194639_create_demandes_remboursement_table.php
+2026_08_18_002250_add_created_by_to_ventes.php
+
+=== SCHÉMA DES TABLES ===
+--- agences ---
+id (int(11))
+uuid (varchar(36))
+nom (varchar(150))
+adresse (text)
+telephone (varchar(20))
+actif (tinyint(1))
+created_at (timestamp)
+--- alertes ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+produit_id (bigint(20) unsigned)
+type (varchar(255))
+titre (varchar(255))
+message (text)
+niveau (enum('info','avertissement','critique'))
+lue (tinyint(1))
+date_alerte (timestamp)
+created_at (timestamp)
+updated_at (timestamp)
+--- approvisionnements ---
+id (bigint(20) unsigned)
+uuid (char(36))
+produit_id (bigint(20) unsigned)
+quantite (decimal(10,2))
+prix_achat_unitaire (decimal(10,2))
+prix_vente_unitaire (decimal(10,2))
+fournisseur (varchar(255))
+reference (varchar(255))
+user_id (bigint(20) unsigned)
+created_at (timestamp)
+updated_at (timestamp)
+--- audit_logs ---
+id (bigint(20) unsigned)
+gerante_id (bigint(20) unsigned)
+ancien_agent_id (bigint(20) unsigned)
+nouvel_agent_id (bigint(20) unsigned)
+nb_debiteurs_transferes (int(11))
+details (longtext)
+created_at (timestamp)
+updated_at (timestamp)
+--- cache ---
+key (varchar(255))
+value (mediumtext)
+expiration (int(11))
+--- cache_locks ---
+key (varchar(255))
+owner (varchar(255))
+expiration (int(11))
+--- caisses ---
+id (bigint(20) unsigned)
+uuid (char(36))
+user_id (bigint(20) unsigned)
+date_ouverture (date)
+date_fermeture (date)
+solde_initial (decimal(12,2))
+solde_theorique (decimal(12,2))
+solde_reel (decimal(12,2))
+ecart (decimal(12,2))
+statut (enum('ouverte','fermee'))
+notes (text)
+created_at (timestamp)
+updated_at (timestamp)
+periode (varchar(20))
+total_encaissements (decimal(12,2))
+total_decaissements (decimal(12,2))
+total_salaires (decimal(12,2))
+total_epargnes (decimal(12,2))
+total_penalites (decimal(12,2))
+--- categories ---
+id (bigint(20) unsigned)
+nom (varchar(255))
+description (text)
+created_at (timestamp)
+updated_at (timestamp)
+--- clients_comptant ---
+id (bigint(20) unsigned)
+uuid (char(36))
+nom (varchar(255))
+telephone (varchar(255))
+quartier (varchar(255))
+agent_id (bigint(20) unsigned)
+created_at (timestamp)
+updated_at (timestamp)
+--- debiteurs ---
+id (bigint(20) unsigned)
+uuid (char(36))
+code_client (varchar(20))
+agent_id (bigint(20) unsigned)
+nom (varchar(255))
+prenom (varchar(255))
+telephone (varchar(255))
+quartier (varchar(255))
+adresse (text)
+personne_reference_nom (varchar(255))
+personne_reference_tel (varchar(255))
+activite (varchar(255))
+score_solvabilite (decimal(5,2))
+limite_credit (decimal(12,2))
+credits_autorises (int(10) unsigned)
+actif (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+ancien_agent_id (bigint(20) unsigned)
+date_transfert (timestamp)
+taux_recouvrement_au_transfert (decimal(5,2))
+reste_a_payer_au_transfert (decimal(12,2))
+--- demandes_remboursement ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+demandeur_id (bigint(20) unsigned)
+validateur_id (bigint(20) unsigned)
+montant_credit_paye (decimal(12,2))
+montant_rembourse (decimal(12,2))
+montant_epargne_rembourse (decimal(12,2))
+statut (varchar(20))
+commentaire_gerante (text)
+date_validation (timestamp)
+created_at (timestamp)
+updated_at (timestamp)
+--- derogation_solvabilites ---
+id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+vente_id (bigint(20) unsigned)
+user_id (bigint(20) unsigned)
+score_au_moment (decimal(5,2))
+motif (text)
+created_at (timestamp)
+updated_at (timestamp)
+resultat_credit (varchar(30))
+--- echeances ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+date_echeance (date)
+montant_prevu (decimal(12,2))
+montant_paye (decimal(12,2))
+statut (enum('en_attente','paye','partiel','en_retard','annule'))
+jours_retard (int(11))
+date_paiement (date)
+created_at (timestamp)
+updated_at (timestamp)
+--- epargnes ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+montant (decimal(10,2))
+date_collecte (date)
+statut (enum('collecte','recuperee'))
+recuperee_par (bigint(20) unsigned)
+date_recuperation (date)
+confirmation_client (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+--- journals ---
+id (bigint(20) unsigned)
+uuid (char(36))
+numero_ecriture (varchar(255))
+date_ecriture (date)
+compte_debit (varchar(255))
+compte_credit (varchar(255))
+montant (decimal(12,2))
+montant_ht (decimal(12,2))
+montant_tva (decimal(12,2))
+montant_ttc (decimal(12,2))
+taux_tva (decimal(5,2))
+libelle (varchar(255))
+reference (varchar(255))
+recouvrement_id (bigint(20) unsigned)
+vente_id (bigint(20) unsigned)
+mouvement_caisse_id (bigint(20) unsigned)
+user_id (bigint(20) unsigned)
+created_at (timestamp)
+updated_at (timestamp)
+--- localisations ---
+id (bigint(20) unsigned)
+type (varchar(255))
+nom (varchar(255))
+parent_nom (varchar(255))
+parent_type (varchar(255))
+created_at (timestamp)
+updated_at (timestamp)
+--- magasins ---
+id (int(11))
+uuid (varchar(36))
+nom (varchar(150))
+adresse (text)
+responsable (varchar(100))
+actif (tinyint(1))
+created_at (timestamp)
+--- migrations ---
+id (int(10) unsigned)
+migration (varchar(255))
+batch (int(11))
+--- mouvements_caisse ---
+id (bigint(20) unsigned)
+uuid (char(36))
+caisse_id (bigint(20) unsigned)
+user_id (bigint(20) unsigned)
+recouvrement_id (bigint(20) unsigned)
+type (enum('encaissement','decaissement','depot','retrait','transfert','salaire','epargne','penalite'))
+montant (decimal(12,2))
+mode_paiement (varchar(255))
+reference (varchar(255))
+motif (text)
+date_mouvement (datetime)
+heure_mouvement (time)
+created_at (timestamp)
+updated_at (timestamp)
+beneficiaire (varchar(255))
+--- mouvements_stock ---
+id (bigint(20) unsigned)
+uuid (char(36))
+produit_id (bigint(20) unsigned)
+user_id (bigint(20) unsigned)
+type (enum('entree','sortie','inventaire','retour','perte'))
+action (varchar(20))
+date_mouvement (timestamp)
+quantite (int(11))
+prix_unitaire (decimal(12,2))
+fournisseur (varchar(255))
+reference (varchar(255))
+motif (text)
+stock_avant (int(11))
+stock_apres (int(11))
+created_at (timestamp)
+updated_at (timestamp)
+--- notifications ---
+id (bigint(20) unsigned)
+uuid (char(36))
+user_id (bigint(20) unsigned)
+type (varchar(255))
+titre (varchar(255))
+message (text)
+lien (varchar(255))
+lue (tinyint(1))
+envoyee_whatsapp (tinyint(1))
+date_envoi (timestamp)
+created_at (timestamp)
+updated_at (timestamp)
+--- penalites ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+echeance_id (bigint(20) unsigned)
+recouvrement_id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+montant (decimal(10,2))
+jours_retard (int(11))
+date_appliquee (date)
+created_at (timestamp)
+updated_at (timestamp)
+--- permissions ---
+id (bigint(20) unsigned)
+user_id (bigint(20) unsigned)
+page (varchar(255))
+acces (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+--- produits ---
+id (bigint(20) unsigned)
+uuid (char(36))
+categorie_id (bigint(20) unsigned)
+nom (varchar(255))
+categorie (varchar(255))
+prix_achat (decimal(12,2))
+prix_vente (decimal(12,2))
+stock (int(11))
+stock_initial (decimal(10,2))
+seuil_alerte (int(11))
+actif (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+conditionnement (varchar(255))
+unite (varchar(255))
+code (varchar(255))
+description (text)
+marge (decimal(5,2))
+--- recouvrements ---
+id (bigint(20) unsigned)
+uuid (char(36))
+vente_id (bigint(20) unsigned)
+agent_id (bigint(20) unsigned)
+montant (decimal(12,2))
+date_recouvrement (date)
+heure_recouvrement (time)
+mode_paiement (enum('especes','mobile','autre'))
+statut (enum('paye','partiel','refus','absent','promesse'))
+commentaire (text)
+synced (tinyint(1))
+sync_uuid (char(36))
+created_at (timestamp)
+updated_at (timestamp)
+--- scores_solvabilite ---
+id (bigint(20) unsigned)
+debiteur_id (bigint(20) unsigned)
+score (int(11))
+nb_credits_total (int(11))
+nb_credits_termines (int(11))
+nb_retards (int(11))
+montant_total_rembourse (decimal(12,2))
+montant_total_du (decimal(12,2))
+date_calcul (timestamp)
+created_at (timestamp)
+updated_at (timestamp)
+--- sync_logs ---
+id (bigint(20) unsigned)
+sync_uuid (char(36))
+agent_id (bigint(20) unsigned)
+status (enum('pending','success','conflict','failed'))
+payload (longtext)
+created_at (timestamp)
+updated_at (timestamp)
+--- synthese_journaliere ---
+id (bigint(20) unsigned)
+date (date)
+agent_id (bigint(20) unsigned)
+nb_debiteurs (int(11))
+montant_attendu (decimal(12,2))
+montant_encaisse (decimal(12,2))
+montant_impaye (decimal(12,2))
+taux_recouvrement (decimal(5,2))
+created_at (timestamp)
+updated_at (timestamp)
+--- users ---
+id (bigint(20) unsigned)
+uuid (char(36))
+nom (varchar(255))
+prenom (varchar(255))
+email (varchar(255))
+telephone (varchar(255))
+role (enum('gerante','chef_agence','agent'))
+password (varchar(255))
+token (varchar(64))
+token_expires_at (timestamp)
+actif (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+--- vente_produits ---
+id (bigint(20) unsigned)
+vente_id (bigint(20) unsigned)
+produit_id (bigint(20) unsigned)
+quantite (int(11))
+prix_unitaire (decimal(12,2))
+created_at (timestamp)
+updated_at (timestamp)
+--- ventes ---
+id (bigint(20) unsigned)
+uuid (char(36))
+debiteur_id (bigint(20) unsigned)
+agent_id (bigint(20) unsigned)
+created_by (bigint(20) unsigned)
+produit_id (bigint(20) unsigned)
+type_vente (enum('comptant','credit'))
+montant_total (decimal(12,2))
+montant_journalier (decimal(12,2))
+nombre_jours (int(11))
+delai_avant_echeances (tinyint(3) unsigned)
+epargne (decimal(12,2))
+epargne_par_jour (decimal(8,2))
+epargne_total (decimal(10,2))
+penalite_par_jour (decimal(8,2))
+penalite_active (tinyint(1))
+motif_penalite (text)
+mise_agent (decimal(8,2))
+date_debut (date)
+date_fin (date)
+heure_creation (time)
+statut (enum('en_cours','termine','defaut','annule'))
+created_at (timestamp)
+updated_at (timestamp)
+
+=== RECHERCHE SYNC / OFFLINE ===
+app/Http/Controllers/Api/VenteController.php:114:                'synced' => true,
+app/Http/Controllers/Api/RecouvrementController.php:33:            'mode_paiement' => 'required|in:especes,mobile,autre',
+app/Http/Controllers/Api/RecouvrementController.php:52:            'synced' => true,
+app/Http/Controllers/Api/RecouvrementController.php:100:                'synced' => true,
+app/Http/Controllers/Api/AgentSpaceController.php:84:            'mode_paiement' => 'required|in:especes,mobile,autre',
+app/Http/Controllers/Api/AgentSpaceController.php:100:            'synced' => true,
+app/Http/Controllers/Api/ChefAgenceController.php:74:            'mode_paiement' => $request->mode_paiement ?? 'especes', 'statut' => 'paye', 'synced' => true,
+app/Models/Recouvrement.php:12:        'commentaire', 'synced', 'sync_uuid', 'heure_recouvrement',
+app/Models/Recouvrement.php:14:    protected $casts = ['synced' => 'boolean', 'date_recouvrement' => 'date', 'montant' => 'decimal:2'];
+app/Models/SyncLog.php:9:    protected $fillable = ['sync_uuid', 'agent_id', 'status', 'payload'];
+database/migrations/2026_08_05_172749_create_recouvrements_table.php:16:            $table->enum('mode_paiement', ['especes', 'mobile', 'autre'])->default('especes');
+database/migrations/2026_08_05_172749_create_recouvrements_table.php:19:            $table->boolean('synced')->default(false);
+database/migrations/2026_08_05_172749_create_recouvrements_table.php:20:            $table->uuid('sync_uuid')->nullable();
+database/migrations/2026_08_05_172750_create_sync_logs_table.php:9:        Schema::create('sync_logs', function (Blueprint $table) {
+database/migrations/2026_08_05_172750_create_sync_logs_table.php:11:            $table->uuid('sync_uuid')->unique();
+database/migrations/2026_08_05_172750_create_sync_logs_table.php:18:    public function down(): void { Schema::dropIfExists('sync_logs'); }
+public/dashboard/js/benin-localisation.js:33:    async function chargerOptions(type, parent, selectId, placeholder) {
+public/dashboard/index.html:71:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/index.html:135:                    <option value="mobile">Mobile Money</option>
+public/dashboard/login.html:43:        async function handleLogin(e) {
+public/dashboard/chef/index.html:70:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/chef/index.html:133:                    <option value="mobile">Mobile Money</option>
+public/dashboard/chef/login.html:40:        async function handleLogin(e) {
+public/dashboard/chef/js/benin-localisation.js:33:    async function chargerOptions(type, parent, selectId, placeholder) {
+public/dashboard/chef/index.html.bak.20260814062036:68:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/chef/index.html.bak.20260814062036:121:                    <option value="mobile">Mobile Money</option>
+public/dashboard/chef/index.html.bak.20260814062601:68:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/chef/index.html.bak.20260814062601:121:                    <option value="mobile">Mobile Money</option>
+public/dashboard/chef/index.html.bak.20260818224525:70:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" readonly class="bg-slate-100 cursor-not-allowed" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/chef/index.html.bak.20260818224525:133:                    <option value="mobile">Mobile Money</option>
+public/dashboard/index.html.bak.20260814062036:68:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/index.html.bak.20260814062036:121:                    <option value="mobile">Mobile Money</option>
+public/dashboard/index.html.bak.20260814062601:68:<div id="vente-comptant-modal" class="hidden fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 overflow-y-auto py-8"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in my-auto"><h3 class="text-lg font-bold mb-4">Vente au Comptant</h3><form onsubmit="submitVenteComptant(event)" class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs text-muted mb-1">Date</label><input type="date" id="vc-date" value="2026-08-12" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div><div><label class="block text-xs text-muted mb-1">Heure</label><input type="time" id="vc-heure" value="02:01" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div></div><input type="text" id="vc-nom" placeholder="Nom du client *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><input type="text" id="vc-telephone" placeholder="Telephone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-produit" onchange="onProduitChangeComptant()" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="">-- Produit --</option></select><div class="grid grid-cols-2 gap-3"><input type="number" id="vc-montant" placeholder="Montant (FCFA) *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><select id="vc-mode" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="especes">Especes</option><option value="mobile">Mobile Money</option><option value="autre">Autre</option></select></div><div class="flex gap-3 pt-2"><button type="button" onclick="closeVenteComptantModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Enregistrer</button></div></form></div></div>
+public/dashboard/index.html.bak.20260814062601:121:                    <option value="mobile">Mobile Money</option>

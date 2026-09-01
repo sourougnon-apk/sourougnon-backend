@@ -1,0 +1,148 @@
+<?php
+namespace App\Services;
+use App\Models\Journal;
+use App\Models\Recouvrement;
+use App\Models\Vente;
+use App\Models\MouvementCaisse;
+use App\Models\Penalite;
+use Illuminate\Support\Str;
+
+class ComptabiliteService
+{
+    // Enregistrer une écriture pour un recouvrement
+    public static function ecrireRecouvrement(Recouvrement $recouvrement): void
+    {
+        if ($recouvrement->statut !== 'paye') return;
+        $vente = $recouvrement->vente;
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $recouvrement->date_recouvrement,
+            'compte_debit' => '521000', // Caisse
+            'compte_credit' => '411000', // Clients
+            'montant' => $recouvrement->montant,
+            'libelle' => 'Encaissement ' . ($vente->debiteur?->nom ?? 'client') . ' - Vente #' . substr($vente->uuid, 0, 8),
+            'reference' => 'REC-' . substr($recouvrement->uuid, 0, 8),
+            'recouvrement_id' => $recouvrement->id,
+            'vente_id' => $vente->id,
+            'user_id' => $recouvrement->agent_id,
+        ]);
+    }
+
+    // Écriture pour une vente à crédit (créance)
+    public static function ecrireVenteCredit(Vente $vente): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        $montantTTC = $vente->montant_total;
+        $tauxTVA = 18.00;
+        $montantHT = round($montantTTC / (1 + $tauxTVA / 100), 2);
+        $montantTVA = round($montantTTC - $montantHT, 2);
+
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $vente->date_debut,
+            'compte_debit' => '411000', // Clients
+            'compte_credit' => '701000', // Ventes
+            'montant' => $montantTTC,
+            'montant_ht' => $montantHT,
+            'montant_tva' => $montantTVA,
+            'montant_ttc' => $montantTTC,
+            'taux_tva' => $tauxTVA,
+            'libelle' => 'Vente crédit ' . ($vente->debiteur?->nom ?? 'client'),
+            'reference' => 'VTE-' . substr($vente->uuid, 0, 8),
+            'vente_id' => $vente->id,
+            'user_id' => $vente->agent_id,
+        ]);
+    }
+
+    // Écriture pour dépense caisse
+    public static function ecrireDecaissement(MouvementCaisse $mouvement): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $mouvement->date_mouvement->toDateString(),
+            'compte_debit' => '601000', // Charges
+            'compte_credit' => '521000', // Caisse
+            'montant' => $mouvement->montant,
+            'libelle' => $mouvement->motif ?: 'Dépense',
+            'reference' => 'DEP-' . substr($mouvement->uuid, 0, 8),
+            'mouvement_caisse_id' => $mouvement->id,
+            'user_id' => $mouvement->user_id,
+        ]);
+    }
+
+    public static function ecrireRemboursement(\App\Models\Vente $vente, \App\Models\DemandeRemboursement $d, int $userId): void
+    {
+        $num = 'RMB-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => now()->toDateString(),
+            'compte_debit' => '411000',
+            'compte_credit' => '521000',
+            'montant' => $d->montant_rembourse + $d->montant_epargne_rembourse,
+            'libelle' => 'Remboursement (50% credit + epargne) vente #' . substr($vente->uuid, 0, 8),
+            'reference' => 'RMB-' . substr($vente->uuid, 0, 8),
+            'vente_id' => $vente->id,
+            'user_id' => $userId,
+        ]);
+    }
+
+    // Écriture pour pénalité de retard (compte divers)
+    public static function ecrirePenalite(Penalite $penalite): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $penalite->date_appliquee,
+            'compte_debit' => '521000', // Caisse
+            'compte_credit' => '758000', // Produits divers
+            'montant' => $penalite->montant,
+            'type_compta' => 'secondaire',
+            'libelle' => 'Pénalité retard ' . $penalite->jours_retard . 'j - ' . ($penalite->debiteur->nom ?? 'client'),
+            'reference' => 'PENAL-' . substr($penalite->uuid, 0, 8),
+            'user_id' => $penalite->vente->agent_id,
+        ]);
+    }
+    public static function ecrireEpargneCollecte(\App\Models\Epargne $epargne, \App\Models\MouvementCaisse $mouvement): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $mouvement->date_mouvement->toDateString(),
+            'compte_debit' => '521000',   // Caisse
+            'compte_credit' => '422000',  // Dettes épargne
+            'montant' => $mouvement->montant,
+            'libelle' => 'Collecte épargne ' . ($epargne->debiteur->nom ?? 'client'),
+            'reference' => 'EPARGNE-' . substr($epargne->uuid, 0, 8),
+            'mouvement_caisse_id' => $mouvement->id,
+            'user_id' => $mouvement->user_id,
+            'type_compta' => 'secondaire',
+        ]);
+    }
+
+    public static function ecrireRestitutionEpargne(\App\Models\Epargne $epargne, \App\Models\MouvementCaisse $mouvement): void
+    {
+        $num = 'ECR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+        Journal::create([
+            'uuid' => Str::uuid(),
+            'numero_ecriture' => $num,
+            'date_ecriture' => $mouvement->date_mouvement->toDateString(),
+            'compte_debit' => '422000',   // Dettes épargne
+            'compte_credit' => '521000',  // Caisse
+            'montant' => $mouvement->montant,
+            'libelle' => 'Restitution épargne ' . ($epargne->debiteur->nom ?? 'client'),
+            'reference' => 'REST-' . substr($epargne->uuid, 0, 8),
+            'mouvement_caisse_id' => $mouvement->id,
+            'user_id' => $mouvement->user_id,
+            'type_compta' => 'secondaire',
+        ]);
+    }
+
+}

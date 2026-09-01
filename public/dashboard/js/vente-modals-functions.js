@@ -1,0 +1,197 @@
+function showVenteComptantModal(){document.getElementById('vente-comptant-modal').classList.remove('hidden');apiFetch('/produits').then(function(p){document.getElementById('vc-produit').innerHTML='<option value="">-- Produit (optionnel) --</option>'+p.map(function(x){return '<option value="'+x.uuid+'" data-prix="'+x.prix_vente+'">'+x.nom+' - '+new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(x.prix_vente)+'</option>';}).join('');});}
+function closeVenteComptantModal(){document.getElementById('vente-comptant-modal').classList.add('hidden');}
+function onProduitChangeComptant(){var s=document.getElementById('vc-produit');var p=s.options[s.selectedIndex].getAttribute('data-prix');if(p)document.getElementById('vc-montant').value=p;}
+function submitVenteComptant(e){e.preventDefault();var data={nom:document.getElementById('vc-nom').value,telephone:document.getElementById('vc-telephone').value,produit_id:document.getElementById('vc-produit').value||null,montant:parseFloat(document.getElementById('vc-montant').value),mode_paiement:document.getElementById('vc-mode').value};apiFetch('/chef-agence/vente-comptant',{method:'POST',body:JSON.stringify(data)}).then(function(r){if(r.success){closeVenteComptantModal();showAlert('Vente comptant enregistrée avec succès.');loadPage('chef-agence');}});}
+function showVenteCreditModal(){
+    setTimeout(function(){
+        var debSelect=document.getElementById("vcr-debiteur");
+        if(debSelect) debSelect.onchange=onDebiteurChangeCredit;
+    }, 200);document.getElementById('vente-credit-modal').classList.remove('hidden');apiFetch('/debiteurs').then(function(d){document.getElementById('vcr-debiteur').innerHTML='<option value="">-- Debiteur --</option>'+d.map(function(x){return '<option value="'+x.uuid+'">'+x.nom+' '+(x.prenom||'')+'</option>';}).join('');});apiFetch('/produits').then(function(p){document.getElementById('vcr-produit').innerHTML='<option value="">-- Produit (optionnel) --</option>'+p.map(function(x){return '<option value="'+x.uuid+'" data-prix="'+x.prix_vente+'">'+x.nom+' - '+new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(x.prix_vente)+'</option>';}).join('');});}
+function closeVenteCreditModal(){document.getElementById('vente-credit-modal').classList.add('hidden');}
+function onProduitChangeCredit(){var s=document.getElementById('vcr-produit');var opt=s.options[s.selectedIndex];var p=opt.getAttribute('data-prix');if(p){document.getElementById('vcr-montant').value=p;document.getElementById('vcr-prix-vente').value=p;}calculerJournalier();}
+function calculerJournalier(){var m=parseFloat(document.getElementById('vcr-montant').value)||0;var e=parseFloat(document.getElementById('vcr-epargne').value)||0;var j=parseInt(document.getElementById('vcr-jours').value)||20;var epargneTotal=e*j;var total=m+epargneTotal;var jr=Math.round(total/j);document.getElementById('vcr-journalier').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(jr);var recap=document.getElementById('vcr-recap');if(recap){recap.classList.remove('hidden');document.getElementById('vcr-recap-epargne').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(epargneTotal);document.getElementById('vcr-recap-total').textContent=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(total);}}
+function showNewDebiteurModal(){document.getElementById('new-debiteur-modal').classList.remove('hidden');}
+function closeNewDebiteurModal(){document.getElementById('new-debiteur-modal').classList.add('hidden');}
+function submitNewDebiteur(e){e.preventDefault();apiFetch('/chef-agence/create-debiteur',{method:'POST',body:JSON.stringify({nom:document.getElementById('nd-nom').value,prenom:document.getElementById('nd-prenom').value,telephone:document.getElementById('nd-telephone').value,quartier:document.getElementById('nd-quartier').value,activite:document.getElementById('nd-activite').value})}).then(function(){closeNewDebiteurModal();apiFetch('/debiteurs').then(function(d){document.getElementById('vcr-debiteur').innerHTML='<option value="">-- Debiteur --</option>'+d.map(function(x){return '<option value="'+x.uuid+'">'+x.nom+' '+(x.prenom||'')+'</option>';}).join('');});});}
+function submitVenteCredit(e){
+    e.preventDefault();
+    var motifEl = document.getElementById('vcr-motif');
+    var data = {
+        debiteur_id: document.getElementById('vcr-debiteur').value,
+        produit_id: null,
+        montant: parseFloat(document.getElementById('vcr-montant').value),
+        epargne_par_jour: parseFloat(document.getElementById('vcr-epargne').value) || 300,
+        jours: parseInt(document.getElementById('vcr-jours').value),
+        delai_avant_echeances: (function(){var d=document.getElementById('vcr-delai');return d?(parseInt(d.value,10)||0):1;})(),
+        penalite_par_jour: parseFloat(document.getElementById('vcr-penalite').value) || 1000,
+        motif_derogation: motifEl ? motifEl.value.trim() : '',
+        produits: (typeof vcrPanier !== 'undefined' && vcrPanier.length > 0) ? vcrPanier.map(function(p){ return {produit_id: p.produit_id, quantite: p.quantite || 1}; }) : null
+    };
+
+    apiFetch('/chef-agence/vente-credit', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }).then(function(r){
+        if (r.error) {
+            showAlert(r.error);
+            return;
+        }
+
+        // Fermeture inconditionnelle dès que la vente est actée
+        closeVenteCreditModal();
+
+        var venteId = r.vente_id || r.uuid || null;
+        var journalier = r.journalier || r.montant_journalier || 0;
+
+        derniereVenteId = venteId;
+        var journalierFormate = new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(journalier);
+        var confJournalier = document.getElementById('conf-journalier');
+        if (confJournalier) confJournalier.textContent = journalierFormate;
+        document.getElementById('confirmation-vente-modal').classList.remove('hidden');
+    }).catch(function(err){
+        console.error('Erreur vente crédit:', err);
+        showAlert('Erreur inattendue lors de l\'enregistrement. Vérifiez la connexion ou contactez le support.');
+    });
+}
+
+
+
+var vcrPanier = [];
+
+function ajouterAuPanier() {
+    var select = document.getElementById('vcr-produit');
+    if (!select || !select.value) return;
+    
+    var opt = select.options[select.selectedIndex];
+    var produitId = select.value;
+    var nom = opt.text.split(' - ')[0] || 'Produit';
+    var prix = parseFloat(opt.getAttribute('data-prix')) || 0;
+    var quantiteInput = document.getElementById('vcr-quantite');
+    var quantite = quantiteInput ? parseInt(quantiteInput.value) || 1 : 1;
+    
+    if (quantite < 1) quantite = 1;
+    
+    vcrPanier.push({produit_id: produitId, nom: nom, prix: prix, quantite: quantite});
+    renderPanierUI();
+}
+
+function retirerDuPanier(index) {
+    vcrPanier.splice(index, 1);
+    renderPanierUI();
+}
+
+function renderPanierUI() {
+    var itemsEl = document.getElementById('vcr-panier-items');
+    var countEl = document.getElementById('vcr-panier-count');
+    if (countEl) countEl.textContent = vcrPanier.length;
+    
+    if (!itemsEl) return;
+    
+    if (vcrPanier.length === 0) {
+        itemsEl.innerHTML = '<p class="text-xs text-slate-400 italic">Aucun produit dans le panier</p>';
+        var mtInput = document.getElementById('vcr-montant');
+        var pvInput = document.getElementById('vcr-prix-vente');
+        if (mtInput) mtInput.value = '';
+        if (pvInput) pvInput.value = '';
+        if (typeof calculerJournalier === 'function') calculerJournalier();
+        return;
+    }
+    
+    var total = vcrPanier.reduce(function(sum, item) { return sum + (item.prix * (item.quantite || 1)); }, 0);
+    
+    itemsEl.innerHTML = vcrPanier.map(function(item, idx) {
+        return '<div class="flex justify-between items-center p-2 bg-white border border-slate-200 rounded-lg text-xs shadow-sm">' +
+               '<span class="font-medium text-slate-800">' + item.nom + ' × ' + (item.quantite || 1) + '</span>' +
+               '<div class="flex items-center gap-2">' +
+               '<span class="font-bold">' + new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'XOF'}).format(item.prix * (item.quantite || 1)) + '</span>' +
+               '<button type="button" onclick="retirerDuPanier(' + idx + ')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded font-semibold text-xs">✕ Retirer</button>' +
+               '</div></div>';
+    }).join('');
+    
+    var mtInput = document.getElementById('vcr-montant');
+    var pvInput = document.getElementById('vcr-prix-vente');
+    if (mtInput) mtInput.value = total;
+    if (pvInput) pvInput.value = total;
+    if (typeof calculerJournalier === 'function') calculerJournalier();
+}
+
+function genererContrat(uuid) {
+    // 1. Ouvrir la fenêtre IMMÉDIATEMENT pendant le geste utilisateur
+    var w = window.open('', '_blank');
+    if (!w) {
+        showAlert('Autorisez les pop-ups pour ce site, puis réessayez de générer le contrat.');
+        return;
+    }
+    w.document.write('<p style="font-family:sans-serif;padding:20px">Génération du contrat…</p>');
+
+    // 2. Puis charger les données
+    apiFetch('/ventes/' + uuid + '/contrat').then(function(r) {
+        if (!r || !r.success) {
+            w.close();
+            showAlert('Erreur : contrat introuvable.');
+            return;
+        }
+        var c = r.contrat;
+        var html = '<html><head><meta charset="utf-8"><title>Contrat ' + c.numero + '</title><style>body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:20px;line-height:1.6}h1{text-align:center;color:#0066ff}h2{color:#333}table{width:100%;border-collapse:collapse;margin:20px 0}td,th{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f5f5f5}.signature{margin-top:60px;display:flex;justify-content:space-between}.signature div{width:200px;border-top:1px solid #000;padding-top:5px;text-align:center}</style></head><body><h1>SOUROUGNON</h1><h2>Contrat de Vente a Credit N°' + c.numero + '</h2><p>Date : ' + c.date + '</p><table><tr><th>Debiteur</th><td>' + (c.debiteur_nom || '--') + '</td></tr><tr><th>Telephone</th><td>' + (c.debiteur_tel || '--') + '</td></tr><tr><th>Quartier</th><td>' + (c.debiteur_quartier || '--') + '</td></tr><tr><th>Produits</th><td>' + (function(){var f=function(v){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF",maximumFractionDigits:0}).format(v||0);};if(c.produits&&c.produits.length){return '<table style="width:100%;margin:0"><tr><th>Article</th><th>Qte</th><th>P.U.</th><th>Total</th></tr>'+c.produits.map(function(p){return '<tr><td>'+p.nom+'</td><td>'+p.quantite+'</td><td>'+f(p.prix_unitaire)+'</td><td>'+f(p.total)+'</td></tr>';}).join('')+'</table>';}return c.produit||'Non specifie';})() + '</td></tr><tr><th>Prix de vente</th><td>' + new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF"}).format(c.prix_vente) + '</td></tr><tr><th>Epargne/jour</th><td>' + new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF"}).format(c.epargne_par_jour) + '</td></tr><tr><th>Epargne totale</th><td>' + new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF"}).format(c.epargne_total) + '</td></tr><tr><th>Total a rembourser</th><td><strong>' + new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF"}).format(c.montant_total) + '</strong></td></tr><tr><th>Journalier</th><td><strong>' + new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF"}).format(c.montant_journalier) + '</strong></td></tr><tr><th>Duree</th><td>' + c.nombre_jours + ' jours</td></tr><tr><th>Penalite/jour</th><td>' + new Intl.NumberFormat("fr-FR",{style:"currency",currency:"XOF"}).format(c.penalite_par_jour) + '</td></tr><tr><th>Date fin</th><td>' + c.date_fin + '</td></tr><tr><th>Agent</th><td>' + (c.agent_nom || '--') + '</td></tr></table><div class="signature"><div>La Gerante</div><div>Le Client<br>(lu et approuve)</div></div></body></html>';
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        setTimeout(function() { w.print(); }, 500);
+    }).catch(function(err) {
+        console.error('Contrat:', err);
+        try { w.close(); } catch(e) {}
+        showAlert('Erreur lors de la génération du contrat : ' + (err.message || 'inconnue'));
+    });
+}
+
+
+function onDebiteurChangeCredit() {
+    var debiteurId = document.getElementById('vcr-debiteur').value;
+    var scoreBadge = document.getElementById('vcr-score-badge');
+    var motifField = document.getElementById('vcr-motif');
+    
+    if (!debiteurId) {
+        if (scoreBadge) scoreBadge.innerHTML = '';
+        if (motifField) motifField.required = false;
+        return;
+    }
+    
+    apiFetch('/debiteurs/' + debiteurId + '/score').then(function(r) {
+        if (scoreBadge && r.score !== undefined) {
+            var color = r.score >= 80 ? '#00c853' : r.score >= 60 ? '#0066ff' : r.score >= 40 ? '#f59e0b' : '#ef4444';
+            scoreBadge.innerHTML = '<span class="badge" style="background:'+color+'20;color:'+color+';font-weight:bold;font-size:12px;padding:4px 8px;border-radius:6px;display:inline-block;">Score: ' + r.score + '% (' + (r.label || '') + ')</span>';
+            
+            // Si le score est < 40, le motif devient obligatoire
+            if (motifField) {
+                if (r.score < 40) {
+                    motifField.required = true;
+                    motifField.placeholder = 'MOTIF OBLIGATOIRE - Score insuffisant (' + r.score + '%)';
+                    motifField.classList.add('border-red-500');
+                } else {
+                    motifField.required = false;
+                    motifField.placeholder = 'Ex: Client fidèle, situation exceptionnelle...';
+                    motifField.classList.remove('border-red-500');
+                }
+            }
+        }
+    }).catch(function() {
+        if (scoreBadge) scoreBadge.innerHTML = '';
+    });
+}
+
+
+var derniereVenteId = null;
+
+function fermerConfirmationVente() {
+    document.getElementById('confirmation-vente-modal').classList.add('hidden');
+    loadPage('agent-space');
+}
+
+function confirmerGenerationPDF() {
+    document.getElementById('confirmation-vente-modal').classList.add('hidden');
+    if (derniereVenteId) {
+        genererContrat(derniereVenteId);
+    } else {
+        loadPage('agent-space');
+    }
+}
