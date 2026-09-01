@@ -11,7 +11,11 @@
 *.save
 *.old
 *.sql
+*.sql.gz
 *.log
+diagnostic*.txt
+snapshot*.txt
+backups/
 app.bak_*/
 public/*.bak*
 public/dashboard/*.bak*
