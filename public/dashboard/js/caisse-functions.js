@@ -257,6 +257,7 @@ function exportCaissePeriode() {
     } else {
         window.location.href = `/api/caisse/export-periode?debut=${debut}&fin=${fin}`;
     }
+}
 async function loadRestitutionsAttente() {
     try {
         const restitutions = await apiFetch('/caisse/restitutions-attente');
@@ -293,7 +294,4 @@ async function validerRestitutionAction(uuid) {
             loadPage('caisse');
         })
         .catch(e => showAlert('Erreur : ' + e.message));
-}
-
-
 }

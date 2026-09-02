@@ -1,3 +1,6 @@
+
+function formatDate(iso) { if (!iso) return '-'; const d = new Date(iso); return isNaN(d.getTime()) ? iso : d.toLocaleDateString('fr-FR'); }
+
 function loadComptant(c) {
     apiFetch('/ventes?type_vente=comptant').then(function(v) {
         function f(x) {
@@ -19,7 +22,7 @@ function loadComptant(c) {
                         return vp.produit ? vp.produit.nom : '--';
                     }).join(', ');
                 }
-                return '<tr><td>' + x.date_debut + '</td><td class="font-medium">' + clientNom + '</td><td>' + clientTel + '</td><td>' + produitNom + '</td><td class="font-semibold">' + f(x.montant_total) + '</td><td>Especes</td></tr>';
+                return '<tr><td>' + formatDate(x.date_debut) + '</td><td class="font-medium">' + clientNom + '</td><td>' + clientTel + '</td><td>' + produitNom + '</td><td class="font-semibold">' + f(x.montant_total) + '</td><td>Especes</td></tr>';
             }).join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Aucune vente comptant</td></tr>') +
             '</tbody></table></div></div></div>';
     });
