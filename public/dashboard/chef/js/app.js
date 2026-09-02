@@ -130,7 +130,10 @@ function loadPage(page) {
         'tournees': loadTournees,
         'epargnes': loadEpargnes,
         'penalites': loadPenalites,
-        'rapports': loadRapports
+        'rapports': loadRapports,
+        'sauvegarde': loadSauvegarde,
+        'gestion-bancaire': loadGestionBancaire,
+        'ressources-humaines': loadRessourcesHumaines,
     };
     if (funcs[page]) funcs[page](c);
     else c.innerHTML = '<div class="panel text-center py-12"><p class="text-muted">Page inconnue: ' + page + '</p></div>';
