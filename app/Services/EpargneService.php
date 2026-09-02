@@ -11,10 +11,11 @@ class EpargneService
      * Enregistrer l'épargne quotidienne lors d'un encaissement.
      * L'épargne va UNIQUEMENT dans la caisse, pas en comptabilité.
      */
-    public static function collecter(Vente $vente, Recouvrement $recouvrement): void
+    public static function collecter(Vente $vente, Recouvrement $recouvrement, ?string $dateCollecte = null): void
     {
         if ($vente->epargne_par_jour <= 0) return;
 
+        $date = $dateCollecte ?? $recouvrement->date_recouvrement;
         $mouvement = CaisseService::enregistrerEpargne($vente, $vente->epargne_par_jour);
 
         $epargne = Epargne::create([
@@ -22,7 +23,7 @@ class EpargneService
             'vente_id' => $vente->id,
             'debiteur_id' => $vente->debiteur_id,
             'montant' => $vente->epargne_par_jour,
-            'date_collecte' => $recouvrement->date_recouvrement,
+            'date_collecte' => $date,
             'statut' => 'collecte',
             'mouvement_caisse_id' => $mouvement?->id,
         ]);

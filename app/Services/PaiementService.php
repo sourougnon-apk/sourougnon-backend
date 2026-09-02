@@ -62,6 +62,9 @@ class PaiementService
             $echeance->jours_retard = 0;
             $echeance->statut = $echeance->montant_paye >= $echeance->montant_prevu ? 'paye' : 'partiel';
             $echeance->save();
+            if ($echeance->statut === 'paye') {
+                EpargneService::collecter($vente, $recouvrement, $echeance->date_echeance->toDateString());
+            }
 
             $montantRestant -= $payer;
         }
@@ -84,6 +87,9 @@ class PaiementService
                 $echeance->date_paiement = $recouvrement->date_recouvrement;
                 $echeance->statut = $echeance->montant_paye >= $echeance->montant_prevu ? 'paye' : 'partiel';
                 $echeance->save();
+                if ($echeance->statut === 'paye') {
+                    EpargneService::collecter($vente, $recouvrement, $echeance->date_echeance->toDateString());
+                }
 
                 $montantRestant -= $payer;
             }
@@ -92,10 +98,6 @@ class PaiementService
         // Mettre à jour le statut global de la vente
         $vente->mettreAJourStatutGlobal();
 
-        // Épargne et pénalités uniquement en cas de paiement complet
-        if ($recouvrement->statut === 'paye') {
-            EpargneService::collecter($vente, $recouvrement);
-            PenaliteService::appliquer($vente, $recouvrement);
-        }
+        PenaliteService::appliquer($vente, $recouvrement);
     }
 }
