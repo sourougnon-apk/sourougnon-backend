@@ -78,9 +78,6 @@ class ChefAgenceController extends Controller
         $request->validate([
             'nom' => 'required|string','telephone' => 'nullable|string',
             'produit_id' => 'nullable|exists:produits,uuid','montant' => 'required|numeric|min:0',
-            'produits' => 'nullable|array',
-            'produits.*.produit_id' => 'required|exists:produits,uuid',
-            'produits.*.quantite' => 'required|integer|min:1',
         ]);
         $user = $request->user();
         $produit = $request->produit_id ? Produit::where('uuid', $request->produit_id)->first() : null;
@@ -96,20 +93,6 @@ class ChefAgenceController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Calculer le montant total à partir du panier si fourni
-        $montantTotal = $request->montant;
-        $produitsArray = $request->input('produits', []);
-        if (!empty($produitsArray)) {
-            $montantTotal = 0;
-            foreach ($produitsArray as $p) {
-                $prod = Produit::where('uuid', $p['produit_id'])->first();
-                if ($prod) {
-                    $montantTotal += ($prod->prix_vente ?? 0) * ($p['quantite'] ?? 1);
-                }
-            }
-            $montantTotal = round($montantTotal, 2);
-        }
-
         $vente = Vente::create([
             'uuid' => Str::uuid(),
             'debiteur_id' => null,
@@ -117,8 +100,8 @@ class ChefAgenceController extends Controller
             'agent_id' => $user->id,
             'produit_id' => $produit?->id,
             'type_vente' => 'comptant',
-            'montant_total' => $montantTotal,
-            'montant_journalier' => $montantTotal,
+            'montant_total' => $request->montant,
+            'montant_journalier' => $request->montant,
             'nombre_jours' => 1,
             'epargne' => 0,
             'date_debut' => now()->toDateString(),
@@ -127,30 +110,11 @@ class ChefAgenceController extends Controller
             'statut' => 'termine',
         ]);
 
-        // Enregistrer les produits du panier
-        if (!empty($produitsArray)) {
-            foreach ($produitsArray as $p) {
-                $prod = Produit::where('uuid', $p['produit_id'])->first();
-                if ($prod) {
-                    \App\Models\VenteProduit::create([
-                        'vente_id' => $vente->id,
-                        'produit_id' => $prod->id,
-                        'quantite' => $p['quantite'] ?? 1,
-                        'prix_unitaire' => $prod->prix_vente ?? 0,
-                    ]);
-                    if ($prod->stock > 0) $prod->decrement('stock', $p['quantite'] ?? 1);
-                }
-            }
-        } else if ($produit && $produit->stock > 0) {
-            // Cas produit unique historique
-            $produit->decrement('stock');
-        }
-
         $rec = Recouvrement::create([
             'uuid' => Str::uuid(),
             'vente_id' => $vente->id,
             'agent_id' => $user->id,
-            'montant' => $montantTotal,
+            'montant' => $request->montant,
             'date_recouvrement' => now()->toDateString(),
             'mode_paiement' => $request->mode_paiement ?? 'especes',
             'statut' => 'paye',

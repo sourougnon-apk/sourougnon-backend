@@ -13,7 +13,7 @@ class VenteController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Vente::with(['debiteur:id,uuid,nom,prenom,telephone', 'agent:id,uuid,nom,prenom', 'produit:id,uuid,nom', 'clientComptant:id,uuid,nom,telephone', 'venteProduits.produit:id,uuid,nom']);
+        $query = Vente::with(['debiteur:id,uuid,nom,prenom,telephone', 'agent:id,uuid,nom,prenom', 'produit:id,uuid,nom']);
 
         if ($request->agent_id) {
             $query->whereHas('agent', fn($q) => $q->where('uuid', $request->agent_id));

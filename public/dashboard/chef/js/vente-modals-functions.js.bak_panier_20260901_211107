@@ -1,117 +1,12 @@
-function showVenteComptantModal() {
-    // Initialiser date et heure automatiques
-    var now = new Date();
-    var dateStr = now.toISOString().split('T')[0];
-    var heureStr = now.toTimeString().slice(0,5);
-    document.getElementById('vc-date').value = dateStr;
-    document.getElementById('vc-heure').value = heureStr;
+function showVenteComptantModal(){
+    var todayStr = new Date().toISOString().split('T')[0]; var dIn = document.getElementById('vc-date'); if(dIn){ dIn.value = todayStr; dIn.readOnly = true; }
 
-    // Vider le panier comptant
-    vcPanier = [];
-    renderPanierComptantUI();
-    document.getElementById('vc-nom').value = '';
-    document.getElementById('vc-telephone').value = '';
-    document.getElementById('vc-quantite').value = 1;
-    document.getElementById('vc-mode').value = 'especes';
-
-    document.getElementById('vente-comptant-modal').classList.remove('hidden');
-
-    // Charger les produits
-    apiFetch('/produits').then(function(p) {
-        document.getElementById('vc-produit').innerHTML = '<option value="">-- Produit --</option>' +
-            p.map(function(x) {
-                return '<option value="'+x.uuid+'" data-prix="'+x.prix_vente+'" data-nom="'+x.nom+'">'+x.nom+' - '+new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(x.prix_vente)+'</option>';
-            }).join('');
-    });
-}
-
-function closeVenteComptantModal() {
-    document.getElementById('vente-comptant-modal').classList.add('hidden');
-}
-
-function onProduitChangeComptant() {
-    // La sélection se fait via le bouton "Ajouter"
-}
-
-var vcPanier = [];
-
-function ajouterAuPanierComptant() {
-    var select = document.getElementById('vc-produit');
-    if (!select || !select.value) return;
-
-    var opt = select.options[select.selectedIndex];
-    var produitId = select.value;
-    var nom = opt.getAttribute('data-nom') || 'Produit';
-    var prix = parseFloat(opt.getAttribute('data-prix')) || 0;
-    var quantiteInput = document.getElementById('vc-quantite');
-    var quantite = quantiteInput ? (parseInt(quantiteInput.value) || 1) : 1;
-    if (quantite < 1) quantite = 1;
-
-    vcPanier.push({produit_id: produitId, nom: nom, prix: prix, quantite: quantite});
-    renderPanierComptantUI();
-    select.value = '';
-    document.getElementById('vc-quantite').value = 1;
-}
-
-function retirerDuPanierComptant(index) {
-    vcPanier.splice(index, 1);
-    renderPanierComptantUI();
-}
-
-function renderPanierComptantUI() {
-    var itemsEl = document.getElementById('vc-panier-items');
-    var countEl = document.getElementById('vc-panier-count');
-    var totalEl = document.getElementById('vc-total');
-    var mtInput = document.getElementById('vc-montant');
-    if (countEl) countEl.textContent = vcPanier.length;
-
-    if (!itemsEl) return;
-
-    if (vcPanier.length === 0) {
-        itemsEl.innerHTML = '<p class="text-xs text-slate-400 italic">Aucun produit dans le panier</p>';
-        if (totalEl) totalEl.textContent = '0 FCFA';
-        if (mtInput) mtInput.value = '';
-        return;
-    }
-
-    var total = vcPanier.reduce(function(sum, item) { return sum + (item.prix * item.quantite); }, 0);
-
-    itemsEl.innerHTML = vcPanier.map(function(item, idx) {
-        return '<div class="flex justify-between items-center p-2 bg-white border border-slate-200 rounded-lg text-xs shadow-sm">' +
-               '<span class="font-medium text-slate-800">' + item.nom + ' × ' + item.quantite + '</span>' +
-               '<div class="flex items-center gap-2">' +
-               '<span class="font-bold">' + new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'XOF'}).format(item.prix * item.quantite) + '</span>' +
-               '<button type="button" onclick="retirerDuPanierComptant(' + idx + ')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded font-semibold text-xs">✕ Retirer</button>' +
-               '</div></div>';
-    }).join('');
-
-    if (totalEl) totalEl.textContent = new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'XOF', maximumFractionDigits: 0}).format(total);
-    if (mtInput) mtInput.value = total;
-}
-
-function submitVenteComptant(e) {
-    e.preventDefault();
-    var data = {
-        nom: document.getElementById('vc-nom').value,
-        telephone: document.getElementById('vc-telephone').value,
-        mode_paiement: document.getElementById('vc-mode').value,
-        montant: parseFloat(document.getElementById('vc-montant').value) || 0,
-        produits: vcPanier.length > 0 ? vcPanier.map(function(p) { return {produit_id: p.produit_id, quantite: p.quantite}; }) : null
-    };
-    apiFetch('/chef-agence/vente-comptant', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    }).then(function(r) {
-        if (r.success) {
-            closeVenteComptantModal();
-            showAlert('Vente comptant enregistrée avec succès.');
-            loadPage('chef-agence');
-        } else {
-            showAlert(r.error || 'Erreur lors de l\'enregistrement.');
-        }
-    });
-}
-
+    var todayStr = new Date().toISOString().split('T')[0];
+    var dIn=document.getElementById('vc-date'); if(dIn){dIn.value=todayStr; dIn.max=todayStr;}
+document.getElementById('vente-comptant-modal').classList.remove('hidden');apiFetch('/produits').then(function(p){document.getElementById('vc-produit').innerHTML='<option value="">-- Produit (optionnel) --</option>'+p.map(function(x){return '<option value="'+x.uuid+'" data-prix="'+x.prix_vente+'">'+x.nom+' - '+new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(x.prix_vente)+'</option>';}).join('');});}
+function closeVenteComptantModal(){document.getElementById('vente-comptant-modal').classList.add('hidden');}
+function onProduitChangeComptant(){var s=document.getElementById('vc-produit');var p=s.options[s.selectedIndex].getAttribute('data-prix');if(p)document.getElementById('vc-montant').value=p;}
+function submitVenteComptant(e){e.preventDefault();var data={nom:document.getElementById('vc-nom').value,telephone:document.getElementById('vc-telephone').value,produit_id:document.getElementById('vc-produit').value||null,montant:parseFloat(document.getElementById('vc-montant').value),mode_paiement:document.getElementById('vc-mode').value};apiFetch('/chef-agence/vente-comptant',{method:'POST',body:JSON.stringify(data)}).then(function(r){if(r.success){closeVenteComptantModal();var confElem=document.getElementById('conf-journalier');if(confElem)confElem.parentElement.style.display='none';var modalElem=document.getElementById('confirmation-vente-modal');if(modalElem)modalElem.classList.remove('hidden');if(typeof loadDashboard==='function')loadDashboard();}});}
 function showVenteCreditModal(){
     var todayStr = new Date().toISOString().split('T')[0]; var dIn = document.getElementById('vcr-date-achat'); if(dIn){ dIn.value = todayStr; dIn.readOnly = true; }
     if(typeof vcrPanier !== 'undefined') { vcrPanier = []; renderPanier(); }
