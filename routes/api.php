@@ -171,7 +171,13 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/rapports/resume-pdf', [App\Http\Controllers\Api\RapportController::class, 'resumePdf']);
         Route::get('/statistiques', [StatistiquesController::class, 'index']);
         Route::get('/recherche', [RechercheController::class, 'globale']);
+    
+    Route::middleware('role:gerante')->group(function () {
+        Route::post('/sauvegarde/run', [App\Http\Controllers\Api\SauvegardeController::class, 'run']);
+        Route::get('/sauvegarde/lister', [App\Http\Controllers\Api\SauvegardeController::class, 'lister']);
+        Route::get('/sauvegarde/telecharger/{filename}', [App\Http\Controllers\Api\SauvegardeController::class, 'telecharger']);
     });
+});
 
     // --- Gerante exclusivement : parametres et pages futures (Banque, etc.) ---
     Route::middleware('role:gerante')->group(function () {
