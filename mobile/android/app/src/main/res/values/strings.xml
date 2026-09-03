@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sourougnon Agent</string>
+    <string name="title_activity_main">Sourougnon Agent</string>
+    <string name="package_name">com.sourougnon.app</string>
+    <string name="custom_url_scheme">com.sourougnon.app</string>
+</resources>

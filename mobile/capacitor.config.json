@@ -1,0 +1,9 @@
+{
+  "appId": "com.sourougnon.app",
+  "appName": "Sourougnon Agent",
+  "webDir": "../public/agent-app",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
