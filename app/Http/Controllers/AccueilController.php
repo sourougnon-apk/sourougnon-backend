@@ -36,7 +36,7 @@ class AccueilController extends Controller
                 ->count('date_recouvrement');
 
             $joursEcoules = max(1, now()->diffInDays(now()->startOfMonth()) + 1);
-            $regularite = $joursEcoules > 0 ? round(($nbJoursTravailles / $joursEcoules) * 100, 1) : 0;
+            $regularite = $joursEcoules > 0 ? min(100, round(($nbJoursTravailles / $joursEcoules) * 100, 1)) : 0;
             // Score non financier basé sur la régularité et le nombre de clients suivis
             $score = round(($regularite * 0.7) + (min($nbDebiteurs, 10) * 3), 1);
 

@@ -156,9 +156,24 @@ class DashboardController extends Controller
 
     private function tauxRecouvrement(): float
     {
-        $totalDu = Vente::where('statut', 'en_cours')->sum('montant_total');
-        if ($totalDu <= 0) return 0;
-        return round((Recouvrement::where('statut', 'paye')->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))->sum('montant') / $totalDu) * 100, 1);
+        $aujourdhui = now()->toDateString();
+
+        // Encaissé aujourd'hui sur ventes à crédit uniquement
+        $encaisseCredit = Recouvrement::whereDate('date_recouvrement', $aujourdhui)
+            ->where('statut', 'paye')
+            ->whereHas('mouvementCaisse', fn($q) => $q->where('statut_validation', 'valide'))
+            ->whereHas('vente', fn($q) => $q->where('type_vente', 'credit'))
+            ->sum('montant');
+
+        // Attendu aujourd'hui sur ventes à crédit en cours
+        $attenduCredit = Vente::where('statut', 'en_cours')
+            ->where('type_vente', 'credit')
+            ->whereDate('date_debut', '<=', $aujourdhui)
+            ->whereDate('date_fin', '>=', $aujourdhui)
+            ->sum('montant_journalier');
+
+        if ($attenduCredit <= 0) return 0;
+        return round(($encaisseCredit / $attenduCredit) * 100, 1);
     }
 
     private function topAgents(string $date): array
