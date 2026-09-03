@@ -27,7 +27,7 @@ async function sauvegardeLister() {
                         <td>${x.fichier}</td><td>${x.taille}</td><td>${x.date}</td>
                         <td class="flex gap-1">
                             <button class="small-btn small-btn--primary" onclick="sauvegardeTelecharger('${x.fichier}')">Télécharger</button>
-                            <button class="small-btn small-btn--danger" onclick="sauvegardeRestaurer('${x.fichier}')">Restaurer</button>
+                            <button class="small-btn small-btn--danger" style="background-color:#dc2626;border-color:#b91c1c;color:white;font-weight:700;" title="DANGER : restauration irréversible" onclick="sauvegardeRestaurer('${x.fichier}')">⚠ Restaurer</button>
                         </td>
                     </tr>
                 `).join('')}</tbody>
@@ -49,14 +49,18 @@ async function sauvegardeLancer() {
 }
 
 function sauvegardeTelecharger(fichier) {
-    const token = localStorage.getItem('sourougnon_token') || '';
-    window.location.href = `/api/sauvegarde/telecharger/${encodeURIComponent(fichier)}?token=${token}`;
+    apiDownload(`/sauvegarde/telecharger/${encodeURIComponent(fichier)}`, fichier);
 }
 
 async function sauvegardeRestaurer(fichier) {
-    const confirmation = await showPrompt(`Pour restaurer, tapez exactement : ${fichier}`, '');
+    // Modal de danger explicite avant toute chose
+    const dangerMsg = `⚠️ DANGER — RESTAURATION IRRÉVERSIBLE\n\nLe fichier ${fichier} va écraser TOUTES les données actuelles.\nCette action peut entraîner une perte définitive des opérations récentes.\n\nVoulez-vous vraiment continuer ?`;
+    if (!(await showConfirm(dangerMsg))) return;
+
+    // Deuxième confirmation : taper le nom exact
+    const confirmation = await showPrompt(`Pour confirmer, tapez exactement le nom du fichier :\n${fichier}`, '');
     if (!confirmation || confirmation !== fichier) {
-        showAlert('Confirmation incorrecte.');
+        showAlert('Confirmation incorrecte. Restauration annulée.');
         return;
     }
     try {

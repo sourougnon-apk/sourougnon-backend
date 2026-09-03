@@ -179,6 +179,30 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/sauvegarde/restaurer/{filename}', [App\Http\Controllers\Api\SauvegardeController::class, 'restaurer']);
         Route::get('/sauvegarde/logs', [App\Http\Controllers\Api\SauvegardeController::class, 'listerLogs']);
     });
+
+    Route::middleware('role:gerante,chef_agence')->group(function () {
+        // Gestion bancaire
+        Route::get('/bancaire/comptes', [App\Http\Controllers\Api\BancaireController::class, 'comptes']);
+        Route::post('/bancaire/comptes', [App\Http\Controllers\Api\BancaireController::class, 'storeCompte']);
+        Route::get('/bancaire/comptes/{uuid}/solde', [App\Http\Controllers\Api\BancaireController::class, 'solde']);
+        Route::get('/bancaire/historique', [App\Http\Controllers\Api\BancaireController::class, 'historique']);
+        Route::post('/bancaire/depot', [App\Http\Controllers\Api\BancaireController::class, 'depot']);
+        Route::post('/bancaire/retrait', [App\Http\Controllers\Api\BancaireController::class, 'retrait']);
+        Route::post('/bancaire/transfert', [App\Http\Controllers\Api\BancaireController::class, 'transfert']);
+
+        // Ressources humaines
+        Route::get('/rh/employes', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'employes']);
+        Route::post('/rh/employes', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'storeEmploye']);
+        Route::put('/rh/employes/{uuid}', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'updateEmploye']);
+        Route::get('/rh/presences', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'presences']);
+        Route::get('/rh/absences', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'absences']);
+        Route::post('/rh/absences', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'storeAbsence']);
+        Route::post('/rh/salaires/calculer', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'calculerSalaires']);
+        Route::get('/rh/salaires', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'salaires']);
+        Route::post('/rh/salaires/{uuid}/payer', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'payerSalaire']);
+        Route::put('/rh/salaires/{uuid}/retenues', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'modifierRetenues']);
+        Route::get('/rh/fiches-paie/{uuid}', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'fichePaie']);
+    });
 });
 
     // --- Gerante exclusivement : parametres et pages futures (Banque, etc.) ---
