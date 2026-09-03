@@ -262,19 +262,22 @@ const AgentApp = {
 
   async _obtenirPosition() {
     // 1) Essaie via le plugin natif Capacitor (si disponible)
-    try {
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-        const pos = await window.Capacitor.Plugins.Geolocation.getCurrentPosition({
+    const nativeGeolocation = window.Capacitor?.Plugins?.Geolocation;
+    if (nativeGeolocation) {
+      try {
+        const pos = await nativeGeolocation.getCurrentPosition({
           enableHighAccuracy: true,
           timeout: 8000,
           maximumAge: 60000,
         });
-        if (pos && pos.coords && pos.coords.latitude != null && pos.coords.longitude != null) {
-          return pos.coords.latitude.toFixed(6) + ',' + pos.coords.longitude.toFixed(6);
+        if (pos?.coords &&
+            pos.coords.latitude != null &&
+            pos.coords.longitude != null) {
+          return `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
         }
+      } catch (error) {
+        console.warn('Géolocalisation native indisponible', error);
       }
-    } catch (e) {
-      // on continue vers la géolocalisation web
     }
 
     // 2) Repli sur la géolocalisation web standard
