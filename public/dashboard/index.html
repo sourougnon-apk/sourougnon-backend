@@ -12,6 +12,12 @@
     <script>tailwind.config={theme:{extend:{colors:{sidebar:'#0f172a',accent:'#0066ff',success:'#00c853',alert:'#ef4444',surface:'#f8f9fb',card:'#ffffff',border:'#e2e8f0',text:'#1e293b',muted:'#64748b'},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
 </head>
 <body class="bg-surface text-text font-sans antialiased">
+<script>
+  if (!localStorage.getItem('sourougnon_token')) {
+    location.replace('login.html');
+  }
+</script>
+
 
 <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
 
@@ -167,11 +173,11 @@
     <script src="js/localisation-loader.js?v=202608500"></script>
     
     
-    <script src="js/Sauvegarde-functions.js?v=202609031900"></script>
-    <script src="js/GestionBancaire-functions.js?v=202609031200"></script>
-    <script src="js/RessourcesHumaines-functions.js?v=202609031200"></script>
+    <script src="js/Sauvegarde-functions.js?v=202609032100"></script>
+    <script src="js/GestionBancaire-functions.js?v=202609040100"></script>
+    <script src="js/RessourcesHumaines-functions.js?v=202609040100"></script>
     <script src="js/recherche-globale.js"></script>
-    <script src="js/app.js?v=2026082426"></script>
+    <script src="js/app.js?v=202609040100"></script>
 
 <div id="encaisser-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto">

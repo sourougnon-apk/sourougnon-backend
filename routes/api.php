@@ -176,6 +176,8 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/sauvegarde/run', [App\Http\Controllers\Api\SauvegardeController::class, 'run']);
         Route::get('/sauvegarde/lister', [App\Http\Controllers\Api\SauvegardeController::class, 'lister']);
         Route::get('/sauvegarde/telecharger/{filename}', [App\Http\Controllers\Api\SauvegardeController::class, 'telecharger']);
+        Route::post('/sauvegarde/restaurer/{filename}', [App\Http\Controllers\Api\SauvegardeController::class, 'restaurer']);
+        Route::get('/sauvegarde/logs', [App\Http\Controllers\Api\SauvegardeController::class, 'listerLogs']);
     });
 });
 
