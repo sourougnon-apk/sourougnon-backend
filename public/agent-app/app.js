@@ -261,7 +261,23 @@ const AgentApp = {
   },
 
   async _obtenirPosition() {
-    // Essaie la géolocalisation automatique
+    // 1) Essaie via le plugin natif Capacitor (si disponible)
+    try {
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+        const pos = await window.Capacitor.Plugins.Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 60000,
+        });
+        if (pos && pos.coords && pos.coords.latitude != null && pos.coords.longitude != null) {
+          return pos.coords.latitude.toFixed(6) + ',' + pos.coords.longitude.toFixed(6);
+        }
+      }
+    } catch (e) {
+      // on continue vers la géolocalisation web
+    }
+
+    // 2) Repli sur la géolocalisation web standard
     const position = await new Promise((resolve) => {
       if (!navigator.geolocation) return resolve(null);
       const timeout = setTimeout(() => resolve(null), 8000);
