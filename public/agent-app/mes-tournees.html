@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Mes tournées et positions</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { background: #f8f9fb; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+        h1 { font-size: 22px; margin-bottom: 8px; color: #0F172A; }
+        p.subtitle { color: #64748b; font-size: 13px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 13px; }
+        th { background: #f1f5f9; font-weight: 600; }
+        .btn-print { background: #0066ff; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-print:hover { background: #0052cc; }
+        .gps { color: #0F172A; font-family: monospace; }
+        .empty { text-align: center; color: #64748b; padding: 20px; }
+        .mention { font-size: 11px; color: #94a3b8; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+        @media print {
+            .btn-print { display: none; }
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Mes tournées et positions GPS</h1>
+    <p class="subtitle">Relevé des positions enregistrées au démarrage et à la clôture de chaque tournée.</p>
+    <div id="liste"></div>
+    <button class="btn-print" onclick="window.print()">Imprimer / PDF</button>
+    <div class="mention">
+        Données enregistrées par l'application Sourougnon Agent. Ce relevé comporte uniquement deux positions ponctuelles (départ et arrivée), pas un itinéraire complet.
+    </div>
+</div>
+
+<script>
+const API_BASE = 'https://sourougnon.alwaysdata.net';
+const token = localStorage.getItem('agent_token');
+if (!token) {
+    window.location.href = 'login.html';
+}
+
+async function chargerTournees() {
+    try {
+        const res = await fetch(API_BASE + '/api/agent/tournees', {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/json'
+            }
+        });
+        if (!res.ok) throw new Error('Erreur ' + res.status);
+        const tournees = await res.json();
+        const el = document.getElementById('liste');
+        if (!tournees || tournees.length === 0) {
+            el.innerHTML = '<div class="empty">Aucune tournée enregistrée</div>';
+            return;
+        }
+        let html = '<table><thead><tr><th>Date</th><th>Début</th><th>Fin</th><th>GPS départ</th><th>GPS arrivée</th></tr></thead><tbody>';
+        tournees.forEach(t => {
+            const date = t.date_tournee || '-';
+            const debut = t.heure_demarrage ? new Date(t.heure_demarrage).toLocaleString('fr-FR') : '-';
+            const fin = t.heure_fin ? new Date(t.heure_fin).toLocaleString('fr-FR') : '-';
+            const gpsDepart = t.gps_depart || '-';
+            const gpsArrivee = t.gps_arrivee || '-';
+            html += `<tr>
+                <td>${date}</td>
+                <td>${debut}</td>
+                <td>${fin}</td>
+                <td class="gps">${gpsDepart}</td>
+                <td class="gps">${gpsArrivee}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    } catch(e) {
+        document.getElementById('liste').innerHTML = '<div class="empty">Erreur de chargement : ' + e.message + '</div>';
+    }
+}
+
+chargerTournees();
+</script>
+</body>
+</html>

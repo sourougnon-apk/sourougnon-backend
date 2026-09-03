@@ -59,6 +59,7 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/agent/tournee/demarrer', [App\Http\Controllers\Api\TourneeController::class, 'demarrer']);
         Route::post('/agent/tournee/terminer', [App\Http\Controllers\Api\TourneeController::class, 'terminer']);
         Route::get('/agent/tournee/statut', [App\Http\Controllers\Api\TourneeController::class, 'statut']);
+        Route::get('/agent/tournees', [App\Http\Controllers\Api\TourneeController::class, 'mesTournees']);
 
             // Épargnes et pénalités agent
             Route::get('/agent/epargnes', [App\Http\Controllers\Api\EpargneController::class, 'indexAgent']);

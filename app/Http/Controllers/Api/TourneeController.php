@@ -147,6 +147,18 @@ class TourneeController extends Controller
         return response()->json(['success' => true, 'tournee' => $tournee, 'message' => $message]);
     }
 
+    public function mesTournees(Request $request)
+    {
+        $user = $request->user();
+        $tournees = TourneeDemarrage::where('agent_id', $user->id)
+            ->orderByDesc('date_tournee')
+            ->get([
+                'uuid','date_tournee','heure_demarrage','heure_fin',
+                'gps_depart','gps_arrivee','statut'
+            ]);
+        return response()->json($tournees);
+    }
+
     public function statut(Request $request)
     {
         $user = $request->user();

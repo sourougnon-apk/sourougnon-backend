@@ -785,6 +785,10 @@ const AgentApp = {
     this.openEpargnes();
   },
 
+  openHistoriqueGPS() {
+    window.open('mes-tournees.html', '_blank');
+  },
+
   async openPenalites() {
     const list = await this.apiGet('/agent/penalites');
     if (list.error) { this.ui.showAlert(list.error); return; }
