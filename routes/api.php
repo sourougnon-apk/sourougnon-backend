@@ -194,6 +194,7 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/rh/employes', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'employes']);
         Route::post('/rh/employes', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'storeEmploye']);
         Route::put('/rh/employes/{uuid}', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'updateEmploye']);
+        Route::put('/rh/employes/{user_uuid}/fiche-paie-config', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'updateFichePaieConfig']);
         Route::get('/rh/presences', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'presences']);
         Route::get('/rh/absences', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'absences']);
         Route::post('/rh/absences', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'storeAbsence']);

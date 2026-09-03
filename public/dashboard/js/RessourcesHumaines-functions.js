@@ -27,7 +27,10 @@ async function rhChargerEmployes() {
                     <td>${emp.poste || '--'}</td>
                     <td>${new Intl.NumberFormat('fr-FR').format(emp.salaire_base)} F</td>
                     <td>${emp.mode_calcul}</td>
-                    <td><button class="small-btn small-btn--primary" onclick="rhModifierEmploye('${emp.uuid}')">Modifier</button></td>
+                    <td>
+                        <button class="small-btn small-btn--primary" onclick="rhModifierEmploye('${emp.uuid}')">Modifier</button>
+                        <button class="small-btn small-btn--secondary" onclick="rhConfigurerFichePaie('${emp.user?.uuid}')">Config fiche</button>
+                    </td>
                 </tr>
             `).join('')}</tbody>
         </table>
@@ -122,4 +125,33 @@ async function rhModifierEmploye(uuid) {
         if (salaire) apiFetch('/rh/employes/' + uuid, {method:'PUT', body:JSON.stringify({salaire_base:parseFloat(salaire)})})
             .then(res => { showAlert('Modifié.'); rhChargerEmployes(); });
     });
+}
+
+async function rhConfigurerFichePaie(userUuid) {
+    // Récupérer la config existante (optionnel)
+    let retenues = [];
+    const nb = await showPrompt('Combien de retenues souhaitez-vous configurer ? (0 pour aucune)', '0');
+    const count = parseInt(nb || '0');
+    for (let i = 0; i < count; i++) {
+        const nom = await showPrompt(`Nom de la retenue ${i+1} (ex: CNPS, Impôt) :`, '');
+        if (!nom) continue;
+        const type = await showPrompt(`Type pour ${nom} (pourcentage ou fixe) :`, 'pourcentage');
+        const valeur = await showPrompt(`Valeur pour ${nom} :`, '');
+        if (!valeur) continue;
+        retenues.push({
+            nom: nom,
+            type: type === 'fixe' ? 'fixe' : 'pourcentage',
+            valeur: parseFloat(valeur)
+        });
+    }
+
+    const mentionsStr = await showPrompt('Mentions libres (séparées par ;) :', '');
+    const mentions_libres = mentionsStr ? mentionsStr.split(';').map(s => s.trim()).filter(Boolean) : [];
+
+    const res = await apiFetch(`/rh/employes/${userUuid}/fiche-paie-config`, {
+        method: 'PUT',
+        body: JSON.stringify({ retenues, mentions_libres })
+    });
+    if (res.success) showAlert('Configuration enregistrée. Elle sera utilisée pour les prochains calculs.');
+    else showAlert(res.error || 'Erreur');
 }

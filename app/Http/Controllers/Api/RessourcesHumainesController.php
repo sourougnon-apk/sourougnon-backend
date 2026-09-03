@@ -63,6 +63,25 @@ class RessourcesHumainesController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function updateFichePaieConfig(Request $request, $user_uuid)
+    {
+        $user = User::where('uuid', $user_uuid)->firstOrFail();
+        $request->validate([
+            'retenues' => 'nullable|array',
+            'mentions_libres' => 'nullable|array',
+        ]);
+
+        FichePaieConfig::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'retenues' => $request->input('retenues', []),
+                'mentions_libres' => $request->input('mentions_libres', []),
+            ]
+        );
+
+        return response()->json(['success' => true, 'message' => 'Configuration de fiche de paie enregistrée.']);
+    }
+
     public function presences(Request $request)
     {
         $mois = $request->input('mois', now()->format('Y-m'));
