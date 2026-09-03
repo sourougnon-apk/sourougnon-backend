@@ -192,6 +192,8 @@ Route::middleware('auth.token')->group(function () {
 
         // Ressources humaines
         Route::get('/rh/employes', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'employes']);
+        Route::get('/rh/employes/{uuid}', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'showEmploye']);
+        Route::get('/rh/employes/{uuid}/fiche-paie', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'fichePaieParEmploye']);
         Route::post('/rh/employes', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'storeEmploye']);
         Route::put('/rh/employes/{uuid}', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'updateEmploye']);
         Route::put('/rh/employes/{user_uuid}/fiche-paie-config', [App\Http\Controllers\Api\RessourcesHumainesController::class, 'updateFichePaieConfig']);

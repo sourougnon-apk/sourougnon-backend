@@ -10,7 +10,7 @@ class OperationBancaire extends Model
     protected $fillable = [
         'uuid', 'compte_debit_id', 'compte_credit_id', 'type',
         'montant', 'date_operation', 'user_id', 'source',
-        'mouvement_caisse_id', 'transfert_group', 'reference', 'motif',
+        'mouvement_caisse_id', 'transfert_group', 'reference', 'motif', 'beneficiaire',
     ];
 
     protected $casts = [

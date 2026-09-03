@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 class Salaire extends Model
 {
     protected $fillable = [
-        'uuid', 'employe_id', 'user_id', 'periode',
+        'uuid', 'employe_id', 'user_id', 'periode', 'numero',
         'nb_jours_travailles', 'nb_jours_ouvrables',
         'salaire_brut', 'salaire_net', 'lignes_retenues',
         'statut', 'date_paiement', 'created_by',
@@ -25,6 +25,11 @@ class Salaire extends Model
     {
         static::creating(function ($s) {
             if (!$s->uuid) $s->uuid = (string) Str::uuid();
+            if (!$s->numero) {
+                $last = self::where('periode', $s->periode)->orderByDesc('id')->first();
+                $num = $last ? intval(substr($last->numero, -4)) + 1 : 1;
+                $s->numero = sprintf('FP-%s-%04d', $s->periode, $num);
+            }
         });
     }
 

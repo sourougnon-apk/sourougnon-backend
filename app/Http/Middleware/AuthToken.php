@@ -12,6 +12,10 @@ class AuthToken
     {
         $token = $request->bearerToken();
 
+        if (!$token && $request->has('token')) {
+            $token = $request->query('token');
+        }
+
         if (!$token) {
             return response()->json(['error' => 'Non authentifie'], 401);
         }

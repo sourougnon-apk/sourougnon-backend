@@ -60,46 +60,48 @@ async function bancaireChargerHistorique() {
     }
 }
 
-function bancaireNouvelleOperation(type) {
-    showPrompt('Montant (FCFA) :', '').then(montant => {
-        if (!montant) return;
-        montant = parseFloat(montant);
-        if (isNaN(montant) || montant <= 0) { showAlert('Montant invalide'); return; }
+async function bancaireNouvelleOperation(type) {
+    const montant = await showPrompt('Montant (FCFA) :', '');
+    if (!montant) return;
+    const montantNum = parseFloat(montant);
+    if (isNaN(montantNum) || montantNum <= 0) { showAlert('Montant invalide'); return; }
 
-        if (type === 'transfert') {
-            apiFetch('/bancaire/comptes').then(comptes => {
-                if (!comptes.length) { showAlert('Aucun compte'); return; }
-                const options = comptes.map(c => c.uuid + ':' + c.nom).join('\n');
-                showPrompt('Compte source (uuid) :', '').then(srcUuid => {
-                    if (!srcUuid) return;
-                    showPrompt('Compte destinataire (uuid) :', '').then(destUuid => {
-                        if (!destUuid) return;
-                        apiFetch('/bancaire/transfert', {
-                            method:'POST', body: JSON.stringify({
-                                compte_source_uuid: srcUuid,
-                                compte_destinataire_uuid: destUuid,
-                                montant: montant
-                            })
-                        }).then(res => { if(res.success) { showAlert('Transfert effectué.'); bancaireChargerComptes(); bancaireChargerHistorique(); } else showAlert(res.error || 'Erreur'); });
-                    });
-                });
-            });
-        } else {
-            const isDepot = type === 'depot';
-            const endpoint = isDepot ? '/bancaire/depot' : '/bancaire/retrait';
-            const compteField = isDepot ? 'compte_destinataire_uuid' : 'compte_source_uuid';
+    const motif = await showPrompt('Motif / description :', '');
+    const beneficiaire = await showPrompt('Bénéficiaire / personne concernée :', '');
 
-            apiFetch('/bancaire/comptes').then(comptes => {
-                if (!comptes.length) { showAlert('Aucun compte'); return; }
-                const options = comptes.map(c => c.nom + ' (' + c.uuid + ')').join('\n');
-                showPrompt('Choisir un compte (uuid exact) :\n' + options, '').then(uuid => {
-                    if (!uuid) return;
-                    const source = confirm('Depuis la caisse ?') ? 'caisse' : 'externe';
-                    const body = { [compteField]: uuid, montant: montant, source: source };
-                    apiFetch(endpoint, {method:'POST', body: JSON.stringify(body)})
-                        .then(res => { if(res.success) { showAlert('Opération enregistrée.'); bancaireChargerComptes(); bancaireChargerHistorique(); } else showAlert(res.error || 'Erreur'); });
-                });
-            });
-        }
-    });
+    if (type === 'transfert') {
+        apiFetch('/bancaire/comptes').then(async comptes => {
+            if (!comptes.length) { showAlert('Aucun compte'); return; }
+            const options = comptes.map(c => c.uuid + ' : ' + c.nom).join('\n');
+            const srcUuid = await showPrompt('Compte source (UUID) :\n' + options, '');
+            if (!srcUuid) return;
+            const destUuid = await showPrompt('Compte destinataire (UUID) :\n' + options, '');
+            if (!destUuid) return;
+            apiFetch('/bancaire/transfert', {
+                method:'POST', body: JSON.stringify({
+                    compte_source_uuid: srcUuid,
+                    compte_destinataire_uuid: destUuid,
+                    montant: montantNum,
+                    motif: motif,
+                    beneficiaire: beneficiaire
+                })
+            }).then(res => { if(res.success) { showAlert('Transfert effectué.'); bancaireChargerComptes(); bancaireChargerHistorique(); } else showAlert(res.error || 'Erreur'); });
+        });
+    } else {
+        const isDepot = type === 'depot';
+        const endpoint = isDepot ? '/bancaire/depot' : '/bancaire/retrait';
+        const compteField = isDepot ? 'compte_destinataire_uuid' : 'compte_source_uuid';
+
+        apiFetch('/bancaire/comptes').then(async comptes => {
+            if (!comptes.length) { showAlert('Aucun compte'); return; }
+            const options = comptes.map(c => c.uuid + ' : ' + c.nom).join('\n');
+            const uuid = await showPrompt('Choisir un compte (UUID exact) :\n' + options, '');
+            if (!uuid) return;
+            const source = await showConfirm('Depuis la caisse ?') ? 'caisse' : 'externe';
+            const body = { [compteField]: uuid, montant: montantNum, motif: motif, beneficiaire: beneficiaire, source: source };
+            apiFetch(endpoint, {method:'POST', body: JSON.stringify(body)})
+                .then(res => { if(res.success) { showAlert('Opération enregistrée.'); bancaireChargerComptes(); bancaireChargerHistorique(); } else showAlert(res.error || 'Erreur'); });
+        });
+    }
 }
+

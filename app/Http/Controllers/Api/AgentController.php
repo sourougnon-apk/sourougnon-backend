@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Employe;
 use App\Models\Debiteur;
 use App\Models\Vente;
 use App\Models\AuditLog;
@@ -31,6 +32,17 @@ class AgentController extends Controller
             'email' => $request->email, 'telephone' => $request->telephone ?? '',
             'role' => 'agent', 'password' => bcrypt($request->password ?? 'agent123'),
         ]);
+
+        // Créer automatiquement une fiche employé RH
+        Employe::create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $agent->id,
+            'poste' => 'Agent de terrain',
+            'date_embauche' => now()->toDateString(),
+            'salaire_base' => 0,
+            'mode_calcul' => 'journalier',
+        ]);
+
         return response()->json(['success' => true, 'uuid' => $agent->uuid], 201);
     }
 

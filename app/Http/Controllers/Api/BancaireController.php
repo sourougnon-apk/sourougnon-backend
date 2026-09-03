@@ -75,6 +75,9 @@ class BancaireController extends Controller
             'montant' => 'required|numeric|min:0',
             'source' => 'required|in:caisse,externe',
             'motif' => 'nullable|string',
+            'beneficiaire' => 'nullable|string',
+            'beneficiaire' => 'nullable|string',
+            'beneficiaire' => 'nullable|string',
         ]);
 
         $compteDest = CompteBancaire::where('uuid', $request->compte_destinataire_uuid)->first();
@@ -113,6 +116,9 @@ class BancaireController extends Controller
                 'source' => $request->source,
                 'mouvement_caisse_id' => $mouvementCaisseId,
                 'motif' => $request->motif,
+                'beneficiaire' => $request->beneficiaire,
+                'beneficiaire' => $request->beneficiaire,
+                'beneficiaire' => $request->beneficiaire,
             ]);
 
             return response()->json(['success' => true, 'operation' => $operation]);

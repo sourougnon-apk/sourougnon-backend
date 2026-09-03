@@ -38,4 +38,9 @@ class Employe extends Model
     {
         return $this->hasMany(Absence::class);
     }
+
+    public function fichePaieConfig()
+    {
+        return $this->hasOne(FichePaieConfig::class, 'user_id', 'user_id');
+    }
 }

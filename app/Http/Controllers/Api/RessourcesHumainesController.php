@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Absence;
 use App\Models\Employe;
+use App\Models\Agence;
 use App\Models\FichePaieConfig;
 use App\Models\Salaire;
 use App\Models\TourneeDemarrage;
@@ -16,6 +17,14 @@ use Illuminate\Support\Str;
 
 class RessourcesHumainesController extends Controller
 {
+    public function showEmploye(Request $request, $uuid)
+    {
+        $employe = Employe::where('uuid', $uuid)
+            ->with(['user', 'salaires', 'absences', 'fichePaieConfig'])
+            ->firstOrFail();
+        return response()->json($employe);
+    }
+
     public function employes()
     {
         $employes = Employe::with('user:id,uuid,nom,prenom,email,role,actif')->get();
@@ -263,6 +272,31 @@ class RessourcesHumainesController extends Controller
         $salaire->save();
 
         return response()->json(['success' => true, 'salaire' => $salaire]);
+    }
+
+    public function fichePaieParEmploye(Request $request, $uuid)
+    {
+        $employe = Employe::where('uuid', $uuid)->firstOrFail();
+        $periode = now()->format('Y-m');
+
+        // Récupère ou crée le salaire pour la période en cours
+        $salaire = Salaire::firstOrCreate(
+            ['user_id' => $employe->user_id, 'periode' => $periode],
+            [
+                'uuid' => (string) Str::uuid(),
+                'employe_id' => $employe->id,
+                'nb_jours_travailles' => 0,
+                'nb_jours_ouvrables' => 26,
+                'salaire_brut' => 0,
+                'salaire_net' => 0,
+                'lignes_retenues' => [],
+                'statut' => 'pending',
+                'created_by' => $request->user()->id,
+            ]
+        );
+
+        $agence = Agence::first();
+        return view('rh.fiche-paie', compact('salaire', 'agence'));
     }
 
     public function fichePaie($uuid)
