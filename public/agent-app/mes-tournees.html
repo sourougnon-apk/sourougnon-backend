@@ -6,31 +6,50 @@
     <title>Mes tournées et positions</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        body { background: #f8f9fb; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
-        h1 { font-size: 22px; margin-bottom: 8px; color: #0F172A; }
+        body { background: #f8f9fb; padding: 16px; font-family: 'Inter', system-ui, sans-serif; }
+        .container { max-width: 900px; margin: auto; background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+        .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: #0F172A; text-decoration: none; }
+        .back-btn:hover { background: #e2e8f0; }
+        h1 { font-size: 22px; margin: 0; color: #0F172A; flex: 1; }
         p.subtitle { color: #64748b; font-size: 13px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f1f5f9; font-weight: 600; }
-        .btn-print { background: #0066ff; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn-print:hover { background: #0052cc; }
-        .gps { color: #0F172A; font-family: monospace; }
+        .gps { font-family: monospace; font-size: 12px; }
         .empty { text-align: center; color: #64748b; padding: 20px; }
+        .actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: #0066ff; color: white; }
+        .btn-primary:hover { background: #0052cc; }
+        .btn-secondary { background: #f1f5f9; color: #0F172A; }
+        .btn-secondary:hover { background: #e2e8f0; }
         .mention { font-size: 11px; color: #94a3b8; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
         @media print {
-            .btn-print { display: none; }
+            .actions, .topbar { display: none; }
             body { background: white; padding: 0; }
             .container { box-shadow: none; border-radius: 0; }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            table { font-size: 11px; }
+            th, td { padding: 6px 4px; }
+            h1 { font-size: 18px; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Mes tournées et positions GPS</h1>
+    <div class="topbar">
+        <a href="index.html" class="back-btn">← Retour</a>
+        <h1>Mes tournées et positions GPS</h1>
+    </div>
     <p class="subtitle">Relevé des positions enregistrées au démarrage et à la clôture de chaque tournée.</p>
+    <div class="actions">
+        <button class="btn btn-primary" onclick="telechargerPDF()">Télécharger / Imprimer PDF</button>
+        <button class="btn btn-secondary" onclick="partager()">Partager</button>
+    </div>
     <div id="liste"></div>
-    <button class="btn-print" onclick="window.print()">Imprimer / PDF</button>
     <div class="mention">
         Données enregistrées par l'application Sourougnon Agent. Ce relevé comporte uniquement deux positions ponctuelles (départ et arrivée), pas un itinéraire complet.
     </div>
@@ -41,6 +60,22 @@ const API_BASE = 'https://sourougnon.alwaysdata.net';
 const token = localStorage.getItem('agent_token');
 if (!token) {
     window.location.href = 'login.html';
+}
+
+function formatDate(input) {
+    if (!input) return '-';
+    // Si la date est déjà au format YYYY-MM-DD, on la garde telle quelle
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+    const d = new Date(input);
+    if (isNaN(d.getTime())) return input;
+    return d.toLocaleDateString('fr-FR', { timeZone: 'UTC' });
+}
+
+function formatDateTime(input) {
+    if (!input) return '-';
+    const d = new Date(input);
+    if (isNaN(d.getTime())) return input;
+    return d.toLocaleString('fr-FR');
 }
 
 async function chargerTournees() {
@@ -60,9 +95,9 @@ async function chargerTournees() {
         }
         let html = '<table><thead><tr><th>Date</th><th>Début</th><th>Fin</th><th>GPS départ</th><th>GPS arrivée</th></tr></thead><tbody>';
         tournees.forEach(t => {
-            const date = t.date_tournee || '-';
-            const debut = t.heure_demarrage ? new Date(t.heure_demarrage).toLocaleString('fr-FR') : '-';
-            const fin = t.heure_fin ? new Date(t.heure_fin).toLocaleString('fr-FR') : '-';
+            const date = formatDate(t.date_tournee);
+            const debut = formatDateTime(t.heure_demarrage);
+            const fin = formatDateTime(t.heure_fin);
             const gpsDepart = t.gps_depart || '-';
             const gpsArrivee = t.gps_arrivee || '-';
             html += `<tr>
@@ -77,6 +112,33 @@ async function chargerTournees() {
         el.innerHTML = html;
     } catch(e) {
         document.getElementById('liste').innerHTML = '<div class="empty">Erreur de chargement : ' + e.message + '</div>';
+    }
+}
+
+function telechargerPDF() {
+    window.print();
+}
+
+async function partager() {
+    if (navigator.share) {
+        try {
+            const contenu = document.getElementById('liste').innerText;
+            await navigator.share({
+                title: 'Mes tournées et positions GPS',
+                text: contenu,
+            });
+        } catch (err) {
+            console.warn('Partage annulé ou indisponible', err);
+        }
+    } else {
+        // Fallback : copier dans le presse-papiers
+        const contenu = document.getElementById('liste').innerText;
+        try {
+            await navigator.clipboard.writeText(contenu);
+            alert('Contenu copié dans le presse-papiers.');
+        } catch (e) {
+            alert('Partage non disponible. Utilisez le bouton Imprimer pour enregistrer en PDF.');
+        }
     }
 }
 
