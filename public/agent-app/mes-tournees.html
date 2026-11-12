@@ -7,46 +7,61 @@
     <title>Mes tournées et positions</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Styles spécifiques pour s'assurer que la page est bien intégrée */
-        body { background: var(--surface, #f8f9fb); font-family: 'Inter', system-ui, sans-serif; margin: 0; padding-bottom: 40px; }
-        .header-container { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--line, #e2e8f0); padding: 16px; display: flex; align-items: center; gap: 12px; }
-        .header-container h1 { font-size: 18px; margin: 0; color: var(--navy, #0F172A); flex: 1; }
-        .back-btn-modern { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: #f1f5f9; color: var(--navy, #0F172A); text-decoration: none; font-size: 18px; }
+        body { background: #f8f9fb; font-family: 'Inter', system-ui, sans-serif; margin: 0; padding-bottom: 40px; }
+        
+        /* En-tête avec un léger fond bleu marine */
+        .header-container { position: sticky; top: 0; z-index: 10; background: #0F172A; padding: 16px; display: flex; align-items: center; gap: 12px; color: white; }
+        .header-container h1 { font-size: 18px; margin: 0; flex: 1; font-weight: 600; }
+        .back-btn-modern { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.1); color: white; text-decoration: none; font-size: 18px; transition: background 0.2s; }
+        .back-btn-modern:active { background: rgba(255,255,255,0.2); }
         
         .content-wrap { padding: 16px; max-width: 800px; margin: 0 auto; }
-        .subtitle { color: var(--muted, #64748b); font-size: 13px; margin-bottom: 20px; }
+        .subtitle { color: #64748b; font-size: 13px; margin-bottom: 20px; }
         
         .actions-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .btn-action { border: none; padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-        .btn-primary { background: var(--blue, #0066ff); color: white; }
-        .btn-secondary { background: #f1f5f9; color: var(--navy, #0F172A); }
+        .btn-primary { background: #0066ff; color: white; box-shadow: 0 4px 10px rgba(0,102,255,0.2); }
+        .btn-secondary { background: #e2e8f0; color: #0F172A; }
         
-        /* Cartes de tournée au lieu d'un tableau */
-        .tournee-card { background: white; border: 1px solid var(--line, #e2e8f0); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(15,23,42,.03); }
-        .tournee-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--line, #e2e8f0); padding-bottom: 10px; margin-bottom: 10px; }
-        .tournee-date { font-size: 15px; font-weight: 700; color: var(--navy, #0F172A); }
-        .tournee-hours { font-size: 12px; color: var(--muted, #64748b); font-weight: 500; }
+        /* Cartes avec bordure colorée à gauche */
+        .tournee-card { background: white; border: 1px solid #e2e8f0; border-left: 4px solid #0066ff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         
+        .tournee-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px; margin-bottom: 12px; }
+        .tournee-date { font-size: 15px; font-weight: 700; color: #0F172A; }
+        .tournee-time { font-size: 13px; color: #64748b; font-weight: 500; }
+        
+        /* Badge "En cours" */
+        .badge-encours { background: #fef3c7; color: #b45309; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+        
+        /* Boîtes GPS colorées */
         .tournee-body { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .gps-box { background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #f1f5f9; }
-        .gps-label { font-size: 10px; text-transform: uppercase; color: var(--muted, #64748b); letter-spacing: 0.5px; margin-bottom: 4px; display: block; }
-        .gps-value { font-family: monospace; font-size: 12px; font-weight: 600; color: var(--navy, #0F172A); word-break: break-all; }
+        
+        .gps-box { padding: 10px; border-radius: 8px; }
+        .gps-box.depart { background: #ecfdf5; border: 1px solid #d1fae5; }
+        .gps-box.arrivee { background: #fff7ed; border: 1px solid #ffedd5; }
+        
+        .gps-label { font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+        .gps-box.depart .gps-label { color: #047857; }
+        .gps-box.arrivee .gps-label { color: #c2410c; }
+        
+        .gps-value { font-family: monospace; font-size: 12px; font-weight: 600; color: #1e293b; word-break: break-all; }
+        .gps-value.missing { color: #94a3b8; font-style: italic; font-family: 'Inter', sans-serif; font-weight: 400; }
         
         .mention { font-size: 11px; color: #94a3b8; margin-top: 30px; text-align: center; line-height: 1.5; }
-        
-        .empty-state { text-align: center; color: var(--muted); padding: 40px 20px; background: white; border-radius: 16px; border: 1px solid var(--line); }
+        .empty-state { text-align: center; color: #64748b; padding: 40px 20px; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
 
         @media print {
             .header-container, .actions-row { display: none; }
             body { background: white; }
-            .tournee-card { break-inside: avoid; border: none; box-shadow: none; padding: 0 0 15px 0; border-bottom: 1px solid #ccc; border-radius: 0; margin-bottom: 15px; }
+            .tournee-card { border-left: none; box-shadow: none; padding: 0 0 15px 0; border-bottom: 1px solid #ccc; border-radius: 0; margin-bottom: 15px; }
+            .gps-box { border: 1px solid #ccc; background: transparent !important; }
         }
     </style>
 </head>
 <body>
 
 <div class="header-container">
-    <a href="index.html" class="back-btn-modern" onclick="retourApp(event)">←</a>
+    <a href="index.html" class="back-btn-modern">←</a>
     <h1>Mes positions GPS</h1>
 </div>
 
@@ -79,7 +94,6 @@ function formatDateHeure(dateStr) {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    // Force le format local
     return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
@@ -112,23 +126,35 @@ async function chargerTournees() {
             const dateAffichage = formatDateHeure(t.date_tournee);
             const heureDebut = formatHeure(t.heure_demarrage);
             const heureFin = formatHeure(t.heure_fin);
-            const gpsDepart = t.gps_depart || 'Non enregistré';
-            const gpsArrivee = t.gps_arrivee || 'Non enregistré';
+            
+            // Gestion de l'affichage du statut (En cours ou Heure de fin)
+            const timeDisplay = t.heure_fin 
+                ? `<span class="tournee-time">${heureDebut} - ${heureFin}</span>` 
+                : `<span class="tournee-time">${heureDebut}</span> <span class="badge-encours">En cours</span>`;
+
+            // Affichage conditionnel des coordonnées GPS
+            const gpsDepartHtml = t.gps_depart 
+                ? `<div class="gps-value">${t.gps_depart}</div>` 
+                : `<div class="gps-value missing">Non enregistré</div>`;
+                
+            const gpsArriveeHtml = t.gps_arrivee 
+                ? `<div class="gps-value">${t.gps_arrivee}</div>` 
+                : `<div class="gps-value missing">Non enregistré</div>`;
             
             html += `
             <div class="tournee-card">
                 <div class="tournee-header">
                     <span class="tournee-date">${dateAffichage}</span>
-                    <span class="tournee-hours">${heureDebut} - ${heureFin !== '-' ? heureFin : 'En cours'}</span>
+                    ${timeDisplay}
                 </div>
                 <div class="tournee-body">
-                    <div class="gps-box">
-                        <span class="gps-label">GPS Départ</span>
-                        <div class="gps-value">${gpsDepart}</div>
+                    <div class="gps-box depart">
+                        <span class="gps-label">📍 Départ</span>
+                        ${gpsDepartHtml}
                     </div>
-                    <div class="gps-box">
-                        <span class="gps-label">GPS Arrivée</span>
-                        <div class="gps-value">${gpsArrivee}</div>
+                    <div class="gps-box arrivee">
+                        <span class="gps-label">🏁 Arrivée</span>
+                        ${gpsArriveeHtml}
                     </div>
                 </div>
             </div>`;
@@ -138,12 +164,6 @@ async function chargerTournees() {
     } catch(e) {
         document.getElementById('liste').innerHTML = '<div class="empty-state" style="color: #ef4444;">Erreur de chargement des données.</div>';
     }
-}
-
-function retourApp(e) {
-    e.preventDefault();
-    // Redirige vers l'index de l'app agent
-    window.location.href = 'index.html';
 }
 
 async function partager() {
@@ -161,7 +181,7 @@ async function partager() {
     } else {
         try {
             await navigator.clipboard.writeText(texte);
-            alert('Le relevé a été copié dans le presse-papiers.');
+            alert('Le relevé a été copié dans les presse-papiers.');
         } catch (e) {
             alert('Le partage natif n\'est pas disponible sur cet appareil.');
         }
