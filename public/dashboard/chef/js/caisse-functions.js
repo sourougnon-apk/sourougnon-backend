@@ -194,6 +194,7 @@ async function loadCaisseMouvements(date) {
     }
 }
 
+
 async function loadRemisesEnAttente() {
     try {
         const remises = await apiFetch('/caisse/remises-en-attente');
@@ -202,34 +203,137 @@ async function loadRemisesEnAttente() {
         if (!container) return;
 
         if (!Array.isArray(remises) || remises.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted py-2">Aucune remise en attente</p>';
+            container.innerHTML = '<p class="text-center text-muted py-4">Aucune remise en attente de validation.</p>';
             return;
         }
 
-        container.innerHTML = `<h4 class="font-semibold mb-2">Remises en attente de validation</h4>
-        <div class="table-wrapper"><table class="min-w-full">
-            <thead><tr><th>Agent</th><th>Montant déclaré</th><th>Référence</th><th>Actions</th></tr></thead>
-            <tbody>${remises.map(r => `<tr>
-                <td>${r.user ? r.user.nom + ' ' + r.user.prenom : '-'}</td>
-                <td>${f(r.montant_declare || r.montant)}</td>
-                <td class="text-xs">${r.reference}</td>
-                <td>
-                    <button class="small-btn small-btn--primary" onclick="validerRemiseAction('${r.reference}')">Valider</button>
-                    <button class="small-btn small-btn--secondary" onclick="rejeterRemiseAction('${r.reference}')">Rejeter</button>
-                </td></tr>`).join('')}
-            </tbody></table></div>`;
+        // On ajoute les styles pour la modale si ce n'est pas déjà fait
+        if (!document.getElementById('remise-modal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'remise-modal-styles';
+            style.innerHTML = `
+                .remise-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.03); }
+                .remise-header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed #e2e8f0; padding-bottom:12px; margin-bottom:12px; }
+                .remise-totaux { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+                .remise-badge { padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; }
+                .rb-enc { background:#ecfdf5; color:#047857; }
+                .rb-pen { background:#fef2f2; color:#b91c1c; }
+                .rb-epa { background:#eff6ff; color:#1d4ed8; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        container.innerHTML = `<h4 class="font-semibold mb-3">Remises en attente de validation</h4>
+        <div class="space-y-3">
+            ${remises.map(r => `
+                <div class="remise-card">
+                    <div class="remise-header">
+                        <div>
+                            <h4 class="font-bold text-slate-800">${r.agent ? r.agent.nom + ' ' + r.agent.prenom : 'Agent inconnu'}</h4>
+                            <p class="text-xs text-slate-500">${r.reference} • ${new Date(r.created_at).toLocaleDateString('fr-FR')}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-lg font-bold text-blue-600">${f(r.montant_declare)}</span>
+                            <span class="text-xs text-slate-500">Déclaré</span>
+                        </div>
+                    </div>
+                    <div class="remise-totaux">
+                        <span class="remise-badge rb-enc">Encaissements: ${f(r.totaux.encaissements)}</span>
+                        <span class="remise-badge rb-pen">Pénalités: ${f(r.totaux.penalites)}</span>
+                        <span class="remise-badge rb-epa">Épargnes: ${f(r.totaux.epargnes)}</span>
+                    </div>
+                    <div class="flex justify-end gap-2 mt-3">
+                        <button class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-sm hover:bg-slate-200" onclick="ouvrirDetailsRemise('${r.reference}')">Voir détails</button>
+                        <button class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700" onclick="validerRemiseAction('${r.reference}', ${r.montant_declare})">Valider</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
     } catch(e) {
         console.warn('Erreur remises attente', e);
     }
 }
 
-async function validerRemiseAction(reference) {
-    if (!(await showConfirm('Valider cette remise ?'))) return;
-    apiFetch(`/caisse/remise/${reference}/valider`, {method:'POST', body: JSON.stringify({statut:'valide'})}).then(() => {
-        showAlert('Remise validée.');
-        loadPage('caisse');
+async function ouvrirDetailsRemise(reference) {
+    const remises = await apiFetch('/caisse/remises-en-attente');
+    const remise = remises.find(r => r.reference === reference);
+    if (!remise) return;
+
+    const f = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);
+    
+    // Grouper par type
+    const enc = remise.mouvements.filter(m => m.type === 'encaissement');
+    const pen = remise.mouvements.filter(m => m.type === 'penalite');
+    const epa = remise.mouvements.filter(m => m.type === 'epargne');
+
+    const html = `
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" id="modal-detail-remise">
+            <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">Détails de la remise</h3>
+                        <p class="text-slate-300 text-xs">${remise.reference} - ${remise.agent.nom} ${remise.agent.prenom}</p>
+                    </div>
+                    <button onclick="document.getElementById('modal-detail-remise').remove()" class="text-slate-400 hover:text-white">✕</button>
+                </div>
+                
+                <div class="p-4 overflow-y-auto flex-1">
+                    ${enc.length > 0 ? `
+                        <h4 class="font-bold text-green-700 mb-2 border-b pb-1">Encaissements (${f(remise.totaux.encaissements)})</h4>
+                        <table class="w-full text-sm mb-4">
+                            ${enc.map(m => `<tr class="border-b border-slate-100"><td class="py-1">${m.nom_debiteur}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
+                        </table>
+                    ` : ''}
+
+                    ${pen.length > 0 ? `
+                        <h4 class="font-bold text-red-700 mb-2 border-b pb-1">Pénalités (${f(remise.totaux.penalites)})</h4>
+                        <table class="w-full text-sm mb-4">
+                            ${pen.map(m => `<tr class="border-b border-slate-100"><td class="py-1">${m.nom_debiteur}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
+                        </table>
+                    ` : ''}
+
+                    ${epa.length > 0 ? `
+                        <h4 class="font-bold text-blue-700 mb-2 border-b pb-1">Épargnes (${f(remise.totaux.epargnes)})</h4>
+                        <table class="w-full text-sm mb-4">
+                            ${epa.map(m => `<tr class="border-b border-slate-100"><td class="py-1">${m.nom_debiteur}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
+                        </table>
+                    ` : ''}
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t flex justify-end">
+                    <button onclick="document.getElementById('modal-detail-remise').remove()" class="px-4 py-2 bg-slate-200 rounded-lg text-sm font-semibold">Fermer</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function validerRemiseAction(reference, montantDeclare) {
+    // Demander le montant réellement compté
+    const montantRecuStr = await showPrompt(`Montant réellement reçu (Déclaré: ${montantDeclare} FCFA) :`, montantDeclare);
+    if (montantRecuStr === null) return; // Annulé
+    
+    const montantRecu = parseFloat(montantRecuStr);
+    if (isNaN(montantRecu) || montantRecu < 0) {
+        showAlert('Montant invalide.');
+        return;
+    }
+
+    if (!(await showConfirm('Confirmer la validation de cette remise ?'))) return;
+
+    apiFetch(`/caisse/remise/${reference}/valider`, {
+        method:'POST', 
+        body: JSON.stringify({
+            statut: 'valide',
+            montant_recu: montantRecu
+        })
+    }).then(() => {
+        showAlert('Remise validée avec succès.');
+        loadPage('caisse'); // Recharge la page pour rafraichir les données
     }).catch(e => showAlert('Erreur : ' + e.message));
 }
+
 
 async function rejeterRemiseAction(reference) {
     const motif = await showPrompt('Motif du rejet :');

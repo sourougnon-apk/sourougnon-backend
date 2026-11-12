@@ -413,9 +413,35 @@ class CaisseController extends Controller
     public function remisesEnAttente(Request $request)
     {
         $remises = \App\Models\Remise::where('statut', 'en_attente')
-            ->with('agent:id,uuid,nom,prenom')
+            ->with([
+                'agent:id,uuid,nom,prenom',
+                'mouvements.recouvrement.vente.debiteur:id,nom,prenom'
+            ])
             ->orderBy('created_at')
             ->get();
+
+        // Calculer les totaux par catégorie pour chaque remise
+        $remises->each(function($remise) {
+            $remise->totaux = [
+                'encaissements' => $remise->mouvements->where('type', 'encaissement')->sum('montant'),
+                'penalites' => $remise->mouvements->where('type', 'penalite')->sum('montant'),
+                'epargnes' => $remise->mouvements->where('type', 'epargne')->sum('montant'),
+            ];
+            
+            // Enrichir chaque mouvement avec le nom du débiteur si possible
+            $remise->mouvements->each(function($m) {
+                if ($m->recouvrement && $m->recouvrement->vente && $m->recouvrement->vente->debiteur) {
+                    $m->nom_debiteur = $m->recouvrement->vente->debiteur->nom . ' ' . $m->recouvrement->vente->debiteur->prenom;
+                } else {
+                    // Fallback : essayer d'extraire le nom du motif (ex: "Pénalité retard ... - Maxim")
+                    $m->nom_debiteur = 'Inconnu';
+                    if (str_contains($m->motif, ' - ')) {
+                        $parts = explode(' - ', $m->motif);
+                        $m->nom_debiteur = trim(end($parts));
+                    }
+                }
+            });
+        });
 
         return response()->json($remises);
     }
