@@ -3,6 +3,10 @@ name: Build Android APK
 on:
   push:
     branches: [ master ]
+    paths:
+      - 'public/agent-app/**'
+      - 'mobile/**'
+      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,7 +33,6 @@ jobs:
         run: |
           cd mobile
           npm install
-
 
       - name: Sync Capacitor
         run: |
