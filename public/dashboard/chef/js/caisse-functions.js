@@ -261,10 +261,29 @@ async function ouvrirDetailsRemise(reference) {
 
     const f = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);
     
-    // Grouper par type
-    const enc = remise.mouvements.filter(m => m.type === 'encaissement');
-    const pen = remise.mouvements.filter(m => m.type === 'penalite');
-    const epa = remise.mouvements.filter(m => m.type === 'epargne');
+    // Grouper les mouvements par débiteur
+    const parDebiteur = {};
+    remise.mouvements.forEach(m => {
+        const nom = m.nom_debiteur || 'Inconnu';
+        if (!parDebiteur[nom]) parDebiteur[nom] = [];
+        parDebiteur[nom].push(m);
+    });
+
+    let detailsHtml = '';
+    for (const [nom, mouvements] of Object.entries(parDebiteur)) {
+        const totalClient = mouvements.reduce((sum, m) => sum + parseFloat(m.montant), 0);
+        detailsHtml += `
+            <div class="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-2">
+                    <strong class="text-slate-800 text-sm">${nom}</strong>
+                    <strong class="text-blue-600">${f(totalClient)}</strong>
+                </div>
+                <table class="w-full text-xs text-slate-600">
+                    ${mouvements.map(m => `<tr><td class="py-1">${m.motif}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
+                </table>
+            </div>
+        `;
+    }
 
     const html = `
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" id="modal-detail-remise">
@@ -278,29 +297,15 @@ async function ouvrirDetailsRemise(reference) {
                 </div>
                 
                 <div class="p-4 overflow-y-auto flex-1">
-                    ${enc.length > 0 ? `
-                        <h4 class="font-bold text-green-700 mb-2 border-b pb-1">Encaissements (${f(remise.totaux.encaissements)})</h4>
-                        <table class="w-full text-sm mb-4">
-                            ${enc.map(m => `<tr class="border-b border-slate-100"><td class="py-1">${m.nom_debiteur}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
-                        </table>
-                    ` : ''}
-
-                    ${pen.length > 0 ? `
-                        <h4 class="font-bold text-red-700 mb-2 border-b pb-1">Pénalités (${f(remise.totaux.penalites)})</h4>
-                        <table class="w-full text-sm mb-4">
-                            ${pen.map(m => `<tr class="border-b border-slate-100"><td class="py-1">${m.nom_debiteur}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
-                        </table>
-                    ` : ''}
-
-                    ${epa.length > 0 ? `
-                        <h4 class="font-bold text-blue-700 mb-2 border-b pb-1">Épargnes (${f(remise.totaux.epargnes)})</h4>
-                        <table class="w-full text-sm mb-4">
-                            ${epa.map(m => `<tr class="border-b border-slate-100"><td class="py-1">${m.nom_debiteur}</td><td class="text-right font-medium">${f(m.montant)}</td></tr>`).join('')}
-                        </table>
-                    ` : ''}
+                    <h4 class="font-bold text-slate-700 mb-3 border-b pb-2">Paiements par client</h4>
+                    ${detailsHtml}
                 </div>
 
-                <div class="p-4 bg-slate-50 border-t flex justify-end">
+                <div class="p-4 bg-slate-50 border-t flex justify-between items-center">
+                    <div>
+                        <span class="text-xs text-slate-500">Total déclaré</span>
+                        <div class="font-bold text-lg text-slate-800">${f(remise.montant_declare)}</div>
+                    </div>
                     <button onclick="document.getElementById('modal-detail-remise').remove()" class="px-4 py-2 bg-slate-200 rounded-lg text-sm font-semibold">Fermer</button>
                 </div>
             </div>

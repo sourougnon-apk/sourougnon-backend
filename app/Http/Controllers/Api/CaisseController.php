@@ -502,9 +502,26 @@ class CaisseController extends Controller
     {
         $user = $request->user();
         $remises = \App\Models\Remise::where('agent_id', $user->id)
-            ->with('mouvements')
+            ->with(['mouvements.recouvrement.vente.debiteur'])
             ->orderByDesc('created_at')
+            ->take(20) // On limite à 20 pour ne pas surcharger le mobile
             ->get();
+            
+        // Enrichir avec le nom du débiteur
+        $remises->each(function($r) {
+            $r->mouvements->each(function($m) {
+                if ($m->recouvrement && $m->recouvrement->vente && $m->recouvrement->vente->debiteur) {
+                    $m->nom_debiteur = $m->recouvrement->vente->debiteur->nom;
+                } elseif (str_contains($m->motif, ' - ')) {
+                    $parts = explode(' - ', $m->motif);
+                    $m->nom_debiteur = trim(end($parts));
+                } elseif (str_contains($m->motif, 'Épargne ')) {
+                    $m->nom_debiteur = str_replace('Épargne ', '', $m->motif);
+                } else {
+                    $m->nom_debiteur = 'Inconnu';
+                }
+            });
+        });
 
         return response()->json($remises);
     }

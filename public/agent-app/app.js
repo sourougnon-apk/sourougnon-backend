@@ -862,65 +862,75 @@ const AgentApp = {
 
     let html = '';
 
-    // En-tête Total
+    // 1. Total Global
     html += `
-      <div style="background:var(--navy); color:white; border-radius:16px; padding:20px; margin-bottom:20px; text-align:center;">
+      <div style="background:var(--navy); color:white; border-radius:16px; padding:20px; margin-bottom:16px; text-align:center;">
         <div style="font-size:12px; text-transform:uppercase; letter-spacing:1px; opacity:0.8;">Total à remettre</div>
         <div style="font-size:32px; font-weight:800; margin-top:8px;">${money(data.total_global)}</div>
       </div>
     `;
 
-    // Liste par débiteur
+    // 2. Totaux par catégorie
+    if (data.total_global > 0) {
+      html += `
+        <div class="stats-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div class="metric-card" style="padding:10px; text-align:center;">
+            <div style="font-size:10px; color:var(--muted);">Crédits</div>
+            <strong style="font-size:14px; color:var(--green);">${money(data.totaux_categories.encaissement)}</strong>
+          </div>
+          <div class="metric-card" style="padding:10px; text-align:center;">
+            <div style="font-size:10px; color:var(--muted);">Pénalités</div>
+            <strong style="font-size:14px; color:var(--red);">${money(data.totaux_categories.penalite)}</strong>
+          </div>
+          <div class="metric-card" style="padding:10px; text-align:center;">
+            <div style="font-size:10px; color:var(--muted);">Épargnes</div>
+            <strong style="font-size:14px; color:var(--blue);">${money(data.totaux_categories.epargne)}</strong>
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Liste des clients
     if (data.debiteurs && data.debiteurs.length > 0) {
-      html += `<h3 class="section-title" style="margin-top:16px;">Détail par client</h3>`;
-      html += `<div class="client-list">`;
-      
-      data.debiteurs.forEach(d => {
-        // Déterminer les icônes/couleurs selon les types payés
-        const hasEnc = d.detail.some(x => x.type === 'encaissement');
-        const hasPen = d.detail.some(x => x.type === 'penalite');
-        const hasEpa = d.detail.some(x => x.type === 'epargne');
-        
+      html += `<h3 class="section-title">Détail par client</h3><div class="client-list">`;
+      data.debiteurs.forEach((d, index) => {
         html += `
-          <div class="client-card" style="align-items:flex-start; flex-direction:column; padding:14px;">
-            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div class="avatar avatar--blue" style="width:32px; height:32px; font-size:14px;">${d.nom.charAt(0)}</div>
-                <strong style="font-size:15px; color:var(--navy);">${d.nom}</strong>
+          <div class="client-card" style="padding:14px; cursor:pointer;" onclick="AgentApp.showDetailClientRemise(${index})">
+            <div class="avatar avatar--blue" style="width:40px; height:40px; font-size:16px;">${d.nom.charAt(0)}</div>
+            <div class="client-card__main" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h3 style="font-size:15px; margin:0;">${d.nom}</h3>
+                <p style="font-size:12px; color:var(--muted); margin:2px 0 0;">${d.nb_ops} opération(s)</p>
               </div>
-              <strong style="font-size:16px; color:var(--green);">${money(d.total)}</strong>
-            </div>
-            
-            <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
-              ${hasEnc ? '<span class="status status--success" style="font-size:10px; padding:2px 6px;">Crédit</span>' : ''}
-              ${hasPen ? '<span class="status status--danger" style="font-size:10px; padding:2px 6px;">Pénalité</span>' : ''}
-              ${hasEpa ? '<span class="status" style="font-size:10px; padding:2px 6px; background:#dbeafe; color:#1e40af;">Épargne</span>' : ''}
+              <strong style="font-size:16px; color:var(--navy);">${money(d.total)}</strong>
             </div>
           </div>
         `;
       });
       html += `</div>`;
+      this._remiseData = data; // Sauvegarde pour la modale
     } else {
       html += '<p class="muted text-center" style="padding:20px;">Aucun paiement collecté pour le moment.</p>';
     }
 
-    // Historique des remises (plus discret)
-    html += `<h3 class="section-title" style="margin-top:24px;">Historique de mes remises</h3>`;
-    html += `<div class="client-list">`;
+    // 4. Historique
+    html += `<h3 class="section-title" style="margin-top:24px;">Historique des remises</h3><div class="client-list">`;
     if (!remises.error && remises.length > 0) {
       remises.forEach(r => {
+        // Extraire les noms uniques des débiteurs de cette remise
+        const noms = [...new Set(r.mouvements.map(m => m.nom_debiteur).filter(n => n !== 'Inconnu'))].join(', ');
         html += `
-          <div class="client-card" style="padding:12px; align-items:center;">
-            <div class="avatar avatar--purple" style="width:36px; height:36px; font-size:16px;">🧾</div>
+          <div class="client-card" style="padding:12px; align-items:flex-start;">
+            <div class="avatar avatar--purple" style="width:36px; height:36px; font-size:14px;">🧾</div>
             <div class="client-card__main">
               <div class="client-card__title">
                 <div>
-                  <h3 style="font-size:13px; font-weight:700;">${r.reference}</h3>
-                  <p style="font-size:11px; color:var(--muted);">${new Date(r.created_at).toLocaleDateString('fr-FR')}</p>
+                  <h3 style="font-size:13px;">${r.reference}</h3>
+                  <p style="font-size:11px;">${new Date(r.created_at).toLocaleDateString('fr-FR')} ${noms ? '- ' + noms : ''}</p>
                 </div>
                 <div style="text-align:right;">
                   <strong style="font-size:14px;">${money(r.montant_declare)}</strong><br>
-                  <span class="status ${r.statut === 'valide' ? 'status--success' : 'status--warning'}" style="font-size:10px; padding:2px 6px;">${r.statut}</span>
+                  <span class="status ${r.statut === 'valide' ? 'status--success' : 'status--warning'}" style="font-size:10px;">${r.statut}</span>
                 </div>
               </div>
             </div>
@@ -934,14 +944,20 @@ const AgentApp = {
 
     document.getElementById('remiseAgentContent').innerHTML = html;
 
-    // Gérer l'état du bouton
     const btn = document.getElementById('btnTransmettreRemise');
     if (btn) {
       btn.disabled = (data.total_global === 0);
       btn.style.opacity = (data.total_global === 0) ? '0.5' : '1';
-      btn.style.cursor = (data.total_global === 0) ? 'not-allowed' : 'pointer';
       btn.textContent = data.total_global > 0 ? `Transmettre ${money(data.total_global)} à l'agence` : 'Rien à transmettre';
     }
+  },
+
+  showDetailClientRemise(index) {
+    if (!this._remiseData || !this._remiseData.debiteurs[index]) return;
+    const client = this._remiseData.debiteurs[index];
+    // Affichage des détails du client via l'API ? Ou on a juste le total.
+    // Comme l'API ne renvoie plus le détail par mouvement, on affiche juste le résumé.
+    this.ui.showAlert(`${client.nom} a remis un total de ${new Intl.NumberFormat('fr-FR').format(client.total)} FCFA.`);
   },
 
   async soumettreRemise() {
