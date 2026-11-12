@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class OperationBancaire extends Model
 {
+    protected $table = 'operations_bancaires';
+
     protected $fillable = [
         'uuid', 'compte_debit_id', 'compte_credit_id', 'type',
         'montant', 'date_operation', 'user_id', 'source',

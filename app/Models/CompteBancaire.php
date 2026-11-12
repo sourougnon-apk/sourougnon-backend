@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class CompteBancaire extends Model
 {
+    protected $table = 'comptes_bancaires';
+
     protected $fillable = ['uuid', 'nom', 'type', 'solde_initial', 'actif'];
 
     protected $casts = ['actif' => 'boolean'];
