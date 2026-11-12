@@ -450,23 +450,51 @@ class CaisseController extends Controller
     {
         $user = $request->user();
         
-        $mouvements = MouvementCaisse::where('user_id', $user->id)
+        $mouvements = MouvementCaisse::with(['recouvrement.vente.debiteur'])
+            ->where('user_id', $user->id)
             ->whereIn('type', ['encaissement', 'penalite', 'epargne'])
             ->where('statut_validation', 'en_attente')
             ->whereNull('remise_id')
             ->orderByDesc('date_mouvement')
             ->get();
 
+        // Regrouper par débiteur
+        $parDebiteur = [];
+        $totalGlobal = 0;
+
+        foreach ($mouvements as $m) {
+            $nomDebiteur = 'Client inconnu';
+            
+            if ($m->type === 'encaissement' && $m->recouvrement && $m->recouvrement->vente && $m->recouvrement->vente->debiteur) {
+                $nomDebiteur = $m->recouvrement->vente->debiteur->nom . ' ' . $m->recouvrement->vente->debiteur->prenom;
+            } elseif (str_contains($m->motif, ' - ')) {
+                // Extraction depuis le motif pour les pénalités/épargnes (ex: "Pénalité... - Maxim")
+                $parts = explode(' - ', $m->motif);
+                $nomDebiteur = trim(end($parts));
+            } elseif (str_contains($m->motif, 'Épargne ')) {
+                $nomDebiteur = str_replace('Épargne ', '', $m->motif);
+            }
+
+            if (!isset($parDebiteur[$nomDebiteur])) {
+                $parDebiteur[$nomDebiteur] = [
+                    'nom' => $nomDebiteur,
+                    'detail' => [],
+                    'total' => 0
+                ];
+            }
+
+            $parDebiteur[$nomDebiteur]['detail'][] = [
+                'type' => $m->type,
+                'montant' => $m->montant,
+                'date' => $m->date_mouvement
+            ];
+            $parDebiteur[$nomDebiteur]['total'] += $m->montant;
+            $totalGlobal += $m->montant;
+        }
+
         return response()->json([
-            'encaissements' => $mouvements->where('type', 'encaissement')->values(),
-            'penalites' => $mouvements->where('type', 'penalite')->values(),
-            'epargnes' => $mouvements->where('type', 'epargne')->values(),
-            'totaux' => [
-                'encaissements' => $mouvements->where('type', 'encaissement')->sum('montant'),
-                'penalites' => $mouvements->where('type', 'penalite')->sum('montant'),
-                'epargnes' => $mouvements->where('type', 'epargne')->sum('montant'),
-                'global' => $mouvements->sum('montant'),
-            ]
+            'debiteurs' => array_values($parDebiteur),
+            'total_global' => $totalGlobal
         ]);
     }
 

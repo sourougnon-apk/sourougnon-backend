@@ -860,89 +860,96 @@ const AgentApp = {
       return;
     }
 
-    const t = data.totaux;
-    
-    const renderSection = (title, items, total, icon, colorClass) => {
-      if (items.length === 0) return '';
-      return `
-        <div class="metric-card" style="flex-direction:column; align-items:flex-start; padding:16px; margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:12px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div class="metric-card__icon ${colorClass}">${icon}</div>
-              <strong style="font-size:15px;">${title}</strong>
-            </div>
-            <strong style="font-size:16px; color:var(--navy);">${money(total)}</strong>
-          </div>
-          <div style="width:100%; border-top:1px solid var(--line); padding-top:8px;">
-            ${items.map(i => `
-              <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0;">
-                <span style="color:var(--muted);">${i.motif || i.reference}</span>
-                <span style="font-weight:600;">${money(i.montant)}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    };
+    let html = '';
 
-    let html = `
+    // En-tête Total
+    html += `
       <div style="background:var(--navy); color:white; border-radius:16px; padding:20px; margin-bottom:20px; text-align:center;">
         <div style="font-size:12px; text-transform:uppercase; letter-spacing:1px; opacity:0.8;">Total à remettre</div>
-        <div style="font-size:32px; font-weight:800; margin-top:8px;">${money(t.global)}</div>
+        <div style="font-size:32px; font-weight:800; margin-top:8px;">${money(data.total_global)}</div>
       </div>
     `;
 
-    html += renderSection('Encaissements', data.encaissements, t.encaissements, '₣', 'metric-card__icon--green');
-    html += renderSection('Pénalités', data.penalites, t.penalites, '⚠', 'metric-card__icon--red');
-    html += renderSection('Épargnes', data.epargnes, t.epargnes, '🏦', 'metric-card__icon--blue');
-
-    if (t.global === 0) {
-      html += '<p class="muted text-center" style="padding:20px;">Aucun mouvement en attente de remise.</p>';
+    // Liste par débiteur
+    if (data.debiteurs && data.debiteurs.length > 0) {
+      html += `<h3 class="section-title" style="margin-top:16px;">Détail par client</h3>`;
+      html += `<div class="client-list">`;
+      
+      data.debiteurs.forEach(d => {
+        // Déterminer les icônes/couleurs selon les types payés
+        const hasEnc = d.detail.some(x => x.type === 'encaissement');
+        const hasPen = d.detail.some(x => x.type === 'penalite');
+        const hasEpa = d.detail.some(x => x.type === 'epargne');
+        
+        html += `
+          <div class="client-card" style="align-items:flex-start; flex-direction:column; padding:14px;">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="avatar avatar--blue" style="width:32px; height:32px; font-size:14px;">${d.nom.charAt(0)}</div>
+                <strong style="font-size:15px; color:var(--navy);">${d.nom}</strong>
+              </div>
+              <strong style="font-size:16px; color:var(--green);">${money(d.total)}</strong>
+            </div>
+            
+            <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+              ${hasEnc ? '<span class="status status--success" style="font-size:10px; padding:2px 6px;">Crédit</span>' : ''}
+              ${hasPen ? '<span class="status status--danger" style="font-size:10px; padding:2px 6px;">Pénalité</span>' : ''}
+              ${hasEpa ? '<span class="status" style="font-size:10px; padding:2px 6px; background:#dbeafe; color:#1e40af;">Épargne</span>' : ''}
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    } else {
+      html += '<p class="muted text-center" style="padding:20px;">Aucun paiement collecté pour le moment.</p>';
     }
 
-    html += `
-      <h3 class="section-title" style="margin-top:24px;">Historique des remises</h3>
-      <div class="client-list">
-        ${remises.error || remises.length === 0
-          ? '<p class="text-muted text-sm text-center">Aucune remise.</p>'
-          : remises.map(r => `
-            <div class="client-card" style="padding:12px; align-items:center;">
-              <div class="avatar avatar--purple">💵</div>
-              <div class="client-card__main">
-                <div class="client-card__title">
-                  <div>
-                    <h3 style="font-size:14px;">${r.reference}</h3>
-                    <p>${new Date(r.created_at).toLocaleDateString('fr-FR')}</p>
-                  </div>
-                  <span class="status ${r.statut === 'valide' ? 'status--success' : 'status--warning'}">${r.statut}</span>
+    // Historique des remises (plus discret)
+    html += `<h3 class="section-title" style="margin-top:24px;">Historique de mes remises</h3>`;
+    html += `<div class="client-list">`;
+    if (!remises.error && remises.length > 0) {
+      remises.forEach(r => {
+        html += `
+          <div class="client-card" style="padding:12px; align-items:center;">
+            <div class="avatar avatar--purple" style="width:36px; height:36px; font-size:16px;">🧾</div>
+            <div class="client-card__main">
+              <div class="client-card__title">
+                <div>
+                  <h3 style="font-size:13px; font-weight:700;">${r.reference}</h3>
+                  <p style="font-size:11px; color:var(--muted);">${new Date(r.created_at).toLocaleDateString('fr-FR')}</p>
                 </div>
-                <div class="client-card__bottom" style="margin-top:8px;">
-                  <strong>${money(r.montant_declare)}</strong>
+                <div style="text-align:right;">
+                  <strong style="font-size:14px;">${money(r.montant_declare)}</strong><br>
+                  <span class="status ${r.statut === 'valide' ? 'status--success' : 'status--warning'}" style="font-size:10px; padding:2px 6px;">${r.statut}</span>
                 </div>
               </div>
             </div>
-          `).join('')}
-      </div>
-    `;
+          </div>
+        `;
+      });
+    } else {
+      html += '<p class="text-muted text-sm text-center">Aucune remise passée.</p>';
+    }
+    html += `</div>`;
 
     document.getElementById('remiseAgentContent').innerHTML = html;
 
     // Gérer l'état du bouton
     const btn = document.getElementById('btnTransmettreRemise');
     if (btn) {
-      btn.disabled = (t.global === 0);
-      btn.style.opacity = (t.global === 0) ? '0.5' : '1';
-      btn.style.cursor = (t.global === 0) ? 'not-allowed' : 'pointer';
-      btn.textContent = t.global > 0 ? `Transmettre ${money(t.global)} à l'agence` : 'Rien à transmettre';
+      btn.disabled = (data.total_global === 0);
+      btn.style.opacity = (data.total_global === 0) ? '0.5' : '1';
+      btn.style.cursor = (data.total_global === 0) ? 'not-allowed' : 'pointer';
+      btn.textContent = data.total_global > 0 ? `Transmettre ${money(data.total_global)} à l'agence` : 'Rien à transmettre';
     }
   },
 
   async soumettreRemise() {
     const data = await this.apiGet('/agent/encaissements-attente');
-    const total = data.totaux ? data.totaux.global : 0;
+    const total = data.total_global || 0;
     
     if (total <= 0) {
-      this.ui.showAlert('Aucun mouvement à remettre.');
+      this.ui.showAlert('Aucun paiement à remettre.');
       return;
     }
 
