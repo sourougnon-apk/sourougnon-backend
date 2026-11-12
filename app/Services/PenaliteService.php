@@ -23,7 +23,10 @@ class PenaliteService
             ->get();
 
         foreach ($echeances as $echeance) {
-            $jours = max(1, $echeance->date_echeance->diffInDays(now()->startOfDay()));
+            $joursReels = max(1, $echeance->date_echeance->diffInDays(now()->startOfDay()));
+            // PLAFOND DE RÉGULATION : Maximum 7 jours de pénalités pour ne pas étouffer le débiteur
+            $jours = min($joursReels, 7); 
+            
             $montant = $jours * $echeance->vente->penalite_par_jour;
 
             Penalite::updateOrCreate(
@@ -65,8 +68,9 @@ class PenaliteService
             ->get();
 
         foreach ($echeancesRetard as $echeance) {
-            $jours = $echeance->date_echeance->diffInDays(now());
-            if ($jours <= 0) continue;
+            $joursReels = $echeance->date_echeance->diffInDays(now());
+            if ($joursReels <= 0) continue;
+            $jours = min($joursReels, 7); // Plafond de régulation
 
             Penalite::updateOrCreate(
                 ['echeance_id' => $echeance->id],

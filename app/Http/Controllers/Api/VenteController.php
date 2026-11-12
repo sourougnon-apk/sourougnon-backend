@@ -211,9 +211,20 @@ class VenteController extends Controller
             $vente->penalite_active = $request->penalite_active ?? true;
             $vente->motif_penalite = $request->motif_penalite;
             $vente->save();
+
+            // Mettre à jour immédiatement les pénalités en attente pour cette vente
+            // afin que le Chef voie l'impact de sa modification
+            $penalitesEnAttente = \App\Models\Penalite::where('vente_id', $vente->id)
+                ->where('statut', 'en_attente')->get();
+                
+            foreach ($penalitesEnAttente as $penalite) {
+                $jours = min(max(1, $penalite->jours_retard), 7); // Plafonné à 7 jours
+                $penalite->montant = $jours * $vente->penalite_par_jour;
+                $penalite->save();
+            }
         }
         
-        return response()->json(['success' => true, 'message' => 'Vente mise a jour']);
+        return response()->json(['success' => true, 'message' => 'Vente mise a jour et pénalités synchronisées']);
     }
 
 
