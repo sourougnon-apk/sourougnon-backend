@@ -160,7 +160,7 @@ class CaisseController extends Controller
 
             // Associer les encaissements en attente de l'agent (sans remise_id)
             \App\Models\MouvementCaisse::where('user_id', $agent->id)
-                ->where('type', 'encaissement')
+                ->whereIn('type', ['encaissement', 'penalite', 'epargne'])
                 ->where('statut_validation', 'en_attente')
                 ->whereNull('remise_id')
                 ->update(['remise_id' => $remise->id, 'reference' => $reference]);
@@ -423,14 +423,25 @@ class CaisseController extends Controller
     public function encaissementsAttenteAgent(Request $request)
     {
         $user = $request->user();
-        $encaissements = MouvementCaisse::where('user_id', $user->id)
-            ->where('type', 'encaissement')
+        
+        $mouvements = MouvementCaisse::where('user_id', $user->id)
+            ->whereIn('type', ['encaissement', 'penalite', 'epargne'])
             ->where('statut_validation', 'en_attente')
             ->whereNull('remise_id')
             ->orderByDesc('date_mouvement')
             ->get();
 
-        return response()->json($encaissements);
+        return response()->json([
+            'encaissements' => $mouvements->where('type', 'encaissement')->values(),
+            'penalites' => $mouvements->where('type', 'penalite')->values(),
+            'epargnes' => $mouvements->where('type', 'epargne')->values(),
+            'totaux' => [
+                'encaissements' => $mouvements->where('type', 'encaissement')->sum('montant'),
+                'penalites' => $mouvements->where('type', 'penalite')->sum('montant'),
+                'epargnes' => $mouvements->where('type', 'epargne')->sum('montant'),
+                'global' => $mouvements->sum('montant'),
+            ]
+        ]);
     }
 
     public function remisesAgent(Request $request)

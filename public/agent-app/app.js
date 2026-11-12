@@ -848,51 +848,105 @@ const AgentApp = {
   },
 
   async loadRemiseAgent() {
-    const [encours, remises] = await Promise.all([
+    const [data, remises] = await Promise.all([
       this.apiGet('/agent/encaissements-attente'),
       this.apiGet('/agent/remises'),
     ]);
 
     const money = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v||0);
-    const totalAttente = (encours.error ? [] : encours).reduce((s, m) => s + parseFloat(m.montant || 0), 0);
-
-    document.getElementById('remiseAgentContent').innerHTML = `
-      <div class="panel p-4 mb-3">
-        <h3 class="font-semibold">Encaissements en attente de remise</h3>
-        <div class="text-sm text-muted">Total : ${money(totalAttente)}</div>
-        <div id="listeEncaissementsAttente" class="mt-2">
-          ${encours.error || encours.length === 0
-            ? '<p class="text-muted text-sm">Aucun encaissement en attente.</p>'
-            : encours.map(m => `<div class="flex justify-between text-sm py-1 border-b"><span>${m.reference || m.motif}</span><strong>${money(m.montant)}</strong></div>`).join('')}
-        </div>
-      </div>
-
-      <div class="panel p-4">
-        <h3 class="font-semibold">Mes remises</h3>
-        <div id="listeRemisesAgent" class="mt-2">
-          ${remises.error || remises.length === 0
-            ? '<p class="text-muted text-sm">Aucune remise.</p>'
-            : remises.map(r => `<div class="flex justify-between text-sm py-1 border-b">
-                <span>${r.reference}</span>
-                <span class="badge ${r.statut === 'valide' ? 'badge-success' : 'badge-warning'}">${r.statut}</span>
-                <strong>${money(r.montant_declare)}</strong>
-              </div>`).join('')}
-        </div>
-      </div>
-    `;
-
-    document.getElementById('btnTransmettreRemise').disabled = (encours.error || encours.length === 0);
-  },
-
-  async soumettreRemise() {
-    const encours = await this.apiGet('/agent/encaissements-attente');
-    const total = (Array.isArray(encours) ? encours : []).reduce((s, m) => s + parseFloat(m.montant || 0), 0);
-    if (total <= 0) {
-      this.ui.showAlert('Aucun encaissement à remettre.');
+    
+    if (data.error) {
+      document.getElementById('remiseAgentContent').innerHTML = `<p class="text-red-500">Erreur: ${data.error}</p>`;
       return;
     }
 
-    const ok = await this.ui.confirm(`Transmettre ${total} FCFA à l'agence ?`);
+    const t = data.totaux;
+    
+    const renderSection = (title, items, total, icon, colorClass) => {
+      if (items.length === 0) return '';
+      return `
+        <div class="metric-card" style="flex-direction:column; align-items:flex-start; padding:16px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="metric-card__icon ${colorClass}">${icon}</div>
+              <strong style="font-size:15px;">${title}</strong>
+            </div>
+            <strong style="font-size:16px; color:var(--navy);">${money(total)}</strong>
+          </div>
+          <div style="width:100%; border-top:1px solid var(--line); padding-top:8px;">
+            ${items.map(i => `
+              <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0;">
+                <span style="color:var(--muted);">${i.motif || i.reference}</span>
+                <span style="font-weight:600;">${money(i.montant)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    };
+
+    let html = `
+      <div style="background:var(--navy); color:white; border-radius:16px; padding:20px; margin-bottom:20px; text-align:center;">
+        <div style="font-size:12px; text-transform:uppercase; letter-spacing:1px; opacity:0.8;">Total à remettre</div>
+        <div style="font-size:32px; font-weight:800; margin-top:8px;">${money(t.global)}</div>
+      </div>
+    `;
+
+    html += renderSection('Encaissements', data.encaissements, t.encaissements, '₣', 'metric-card__icon--green');
+    html += renderSection('Pénalités', data.penalites, t.penalites, '⚠', 'metric-card__icon--red');
+    html += renderSection('Épargnes', data.epargnes, t.epargnes, '🏦', 'metric-card__icon--blue');
+
+    if (t.global === 0) {
+      html += '<p class="muted text-center" style="padding:20px;">Aucun mouvement en attente de remise.</p>';
+    }
+
+    html += `
+      <h3 class="section-title" style="margin-top:24px;">Historique des remises</h3>
+      <div class="client-list">
+        ${remises.error || remises.length === 0
+          ? '<p class="text-muted text-sm text-center">Aucune remise.</p>'
+          : remises.map(r => `
+            <div class="client-card" style="padding:12px; align-items:center;">
+              <div class="avatar avatar--purple">💵</div>
+              <div class="client-card__main">
+                <div class="client-card__title">
+                  <div>
+                    <h3 style="font-size:14px;">${r.reference}</h3>
+                    <p>${new Date(r.created_at).toLocaleDateString('fr-FR')}</p>
+                  </div>
+                  <span class="status ${r.statut === 'valide' ? 'status--success' : 'status--warning'}">${r.statut}</span>
+                </div>
+                <div class="client-card__bottom" style="margin-top:8px;">
+                  <strong>${money(r.montant_declare)}</strong>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    `;
+
+    document.getElementById('remiseAgentContent').innerHTML = html;
+
+    // Gérer l'état du bouton
+    const btn = document.getElementById('btnTransmettreRemise');
+    if (btn) {
+      btn.disabled = (t.global === 0);
+      btn.style.opacity = (t.global === 0) ? '0.5' : '1';
+      btn.style.cursor = (t.global === 0) ? 'not-allowed' : 'pointer';
+      btn.textContent = t.global > 0 ? `Transmettre ${money(t.global)} à l'agence` : 'Rien à transmettre';
+    }
+  },
+
+  async soumettreRemise() {
+    const data = await this.apiGet('/agent/encaissements-attente');
+    const total = data.totaux ? data.totaux.global : 0;
+    
+    if (total <= 0) {
+      this.ui.showAlert('Aucun mouvement à remettre.');
+      return;
+    }
+
+    const ok = await this.ui.confirm(`Transmettre un total de ${total.toLocaleString('fr-FR')} FCFA à l'agence ?`);
     if (!ok) return;
 
     const res = await this.apiPostOrQueue('/agent/remises', {
