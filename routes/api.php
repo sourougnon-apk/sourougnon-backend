@@ -181,6 +181,7 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/sauvegarde/logs', [App\Http\Controllers\Api\SauvegardeController::class, 'listerLogs']);
     });
 
+    Route::middleware('role:gerante,chef_agence')->group(function () {
         // Gestion bancaire
         Route::get('/bancaire/comptes', [App\Http\Controllers\Api\BancaireController::class, 'comptes']);
         Route::post('/bancaire/comptes', [App\Http\Controllers\Api\BancaireController::class, 'storeCompte']);

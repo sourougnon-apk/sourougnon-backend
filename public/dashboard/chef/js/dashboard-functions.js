@@ -1,1 +1,61 @@
-function loadDashboard(c){apiFetch('/dashboard').then(function(d){var k=d.kpis;function f(v){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v);}var kpis=[{label:'Total Debiteurs',value:k.total_debiteurs,icon:'👥',color:'#0066ff'},{label:'Debiteurs Actifs',value:k.debiteurs_actifs,icon:'🔄',color:'#7c3aed'},{label:'A Jour',value:k.debiteurs_a_jour,icon:'✅',color:'#00c853'},{label:'En Retard',value:k.debiteurs_en_retard,icon:'⚠️',color:'#ef4444'},{label:'Encours Total',value:f(k.encours_total),icon:'💰',color:'#059669'},{label:'Creances Totales',value:f(k.creances_totales),icon:'📋',color:'#d97706'},{label:'Encaisse Aujourd hui',value:f(k.encaisse_aujourdhui),icon:'💵',color:'#00c853'},{label:'Attendu Aujourd hui',value:f(k.attendu_aujourdhui),icon:'🎯',color:'#0066ff'},{label:'Restant Aujourd hui',value:f(k.restant_aujourdhui),icon:'⏳',color:'#f59e0b'},{label:'Paye Aujourd hui',value:k.paye_aujourdhui,icon:'👍',color:'#00c853'},{label:'Non Paye Aujourd hui',value:k.non_paye_aujourdhui,icon:'❌',color:'#ef4444'},{label:'CA du Jour',value:f(k.chiffre_affaires_jour),icon:'📊',color:'#8b5cf6'},{label:'Taux Recouvrement',value:k.taux_recouvrement+'%',icon:'📈',color:'#06b6d4'},{label:'Stocks Faibles',value:k.stocks_faibles,icon:'📦',color:'#ef4444'}];c.innerHTML='<div class="space-y-6 fade-in"><div class="kpi-grid">'+kpis.map(function(x){return '<div class="kpi-card" style="border-left:3px solid '+x.color+'"><div class="kpi-label">'+x.icon+' '+x.label+'</div><div class="kpi-value">'+x.value+'</div></div>';}).join('')+'</div><div class="panel"><h3>📈 Evolution des Encaissements (7 jours)</h3><div class="chart-wrap"><canvas id="chart-evolution"></canvas></div></div><div class="row-grid"><div class="panel"><h3>🏆 Top Agents du Jour</h3><div class="table-wrapper"><table><thead><tr><th>Agent</th><th class="text-right">Encaisse</th></tr></thead><tbody>'+(d.top_agents.length>0?d.top_agents.slice(0,5).map(function(a){return '<tr><td class="font-medium">'+(a.agent?a.agent.nom:'--')+' '+(a.agent?a.agent.prenom:'')+'</td><td class="text-right font-semibold">'+f(a.total_encaisse)+'</td></tr>';}).join(''):'<tr><td colspan="2" class="text-center text-muted py-4">Aucun encaissement</td></tr>')+'</tbody></table></div></div><div class="panel"><h3>🚨 Alertes Retard</h3><div class="table-wrapper"><table><thead><tr><th>Debiteur</th><th>Quartier</th><th>Statut</th></tr></thead><tbody>'+(d.alertes_retard.length>0?d.alertes_retard.slice(0,5).map(function(a){return '<tr><td class="font-medium">'+(a.debiteur?a.debiteur.nom:'--')+'</td><td>'+(a.debiteur?a.debiteur.quartier:'--')+'</td><td><span class="badge badge-danger">Retard</span></td></tr>';}).join(''):'<tr><td colspan="3" class="text-center text-muted py-4">✅ Aucune alerte</td></tr>')+'</tbody></table></div></div></div><div class="row-grid"><div class="panel"><h3>📊 Performance Agents</h3><div class="table-wrapper"><table><thead><tr><th>Agent</th><th>Nb Debiteurs</th><th>Portefeuille</th></tr></thead><tbody>'+d.performance_agents.map(function(a){return '<tr><td class="font-medium">'+a.nom+' '+(a.prenom||'')+'</td><td>'+a.debiteurs_count+'</td><td class="font-semibold">'+f(a.portefeuille||0)+'</td></tr>';}).join('')+'</tbody></table></div></div><div class="panel"><h3>🛍️ Produits les Plus Vendus</h3><div class="table-wrapper"><table><thead><tr><th>Produit</th><th>Nb Ventes</th><th class="text-right">Total</th></tr></thead><tbody>'+(d.produits_plus_vendus.length>0?d.produits_plus_vendus.map(function(p){return '<tr><td class="font-medium">'+((p.produit&&p.produit.nom)||p.nom||'--')+'</td><td>'+p.nb_ventes+'</td><td class="font-semibold">'+f(p.total)+'</td></tr>';}).join(''):'<tr><td colspan="3" class="text-center text-muted py-4">Aucune vente</td></tr>')+'</tbody></table></div></div></div>';setTimeout(function(){var ctx=document.getElementById('chart-evolution');if(ctx&&d.evolution_encaissements){if(dashboardChart)dashboardChart.destroy();dashboardChart=new Chart(ctx,{type:'line',data:{labels:d.evolution_encaissements.labels,datasets:[{label:'Encaissements (FCFA)',data:d.evolution_encaissements.montants,borderColor:'#0066ff',backgroundColor:'rgba(0,102,255,0.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#0066ff'},{label:'Retards (FCFA)',data:d.evolution_retards?d.evolution_retards.montants:[],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return new Intl.NumberFormat('fr-FR',{notation:'compact',maximumFractionDigits:1}).format(v)+' FCFA';}}}}}});}},100);}).catch(function(e){c.innerHTML='<div class="panel text-center py-12"><p class="text-muted">Erreur de chargement.</p></div>';});}
+function loadDashboard(c) {
+    // On utilise la route spécifique au chef d'agence
+    apiFetch('/chef-agence/dashboard').then(function(d) {
+        var k = d.kpis || {};
+        function f(v) { return new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v || 0); }
+        
+        var kpis = [
+            {label:'Agents', value:k.agents_count || 0, icon:'👥', color:'#0066ff'},
+            {label:'Débiteurs Actifs', value:k.debiteurs_actifs || 0, icon:'🔄', color:'#7c3aed'},
+            {label:'A Jour', value:k.debiteurs_a_jour || 0, icon:'✅', color:'#00c853'},
+            {label:'En Retard', value:k.debiteurs_en_retard || 0, icon:'⚠️', color:'#ef4444'},
+            {label:'Encaissé Jour', value:f(k.encaisse_du_jour), icon:'💵', color:'#00c853'},
+            {label:'Créances Retard', value:f(k.creances_en_retard), icon:'📋', color:'#d97706'}
+        ];
+
+        c.innerHTML = `
+        <div class="space-y-6 fade-in">
+            <div class="kpi-grid">
+                ${kpis.map(x => `<div class="kpi-card" style="border-left:3px solid ${x.color}"><div class="kpi-label">${x.icon} ${x.label}</div><div class="kpi-value">${x.value}</div></div>`).join('')}
+            </div>
+
+            <div class="row-grid">
+                <div class="panel">
+                    <h3>👥 Mes Agents</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Agent</th><th>Nb Débiteurs</th><th>Statut</th></tr></thead>
+                            <tbody>
+                                ${(d.agents && d.agents.length > 0) ? d.agents.map(a => `<tr>
+                                    <td class="font-medium">${a.nom} ${a.prenom || ''}</td>
+                                    <td>${a.debiteurs_count || 0}</td>
+                                    <td><span class="badge ${a.actif ? 'badge-success' : 'badge-danger'}">${a.actif ? 'Actif' : 'Inactif'}</span></td>
+                                </tr>`).join('') : '<tr><td colspan="3" class="text-center text-muted py-4">Aucun agent</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>🚨 Alertes Retard</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Débiteur</th><th>Agent</th><th>Jours</th><th>Montant</th></tr></thead>
+                            <tbody>
+                                ${(d.alertes && d.alertes.length > 0) ? d.alertes.map(a => `<tr>
+                                    <td class="font-medium">${a.debiteur}</td>
+                                    <td>${a.agent}</td>
+                                    <td><span class="badge badge-danger">${a.jours_retard} j</span></td>
+                                    <td class="font-semibold">${f(a.montant)}</td>
+                                </tr>`).join('') : '<tr><td colspan="4" class="text-center text-muted py-4">✅ Aucune alerte</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).catch(function(e) {
+        console.error('Erreur dashboard chef:', e);
+        c.innerHTML = '<div class="panel text-center py-12"><p class="text-red-500 font-bold">Erreur de chargement des données.</p><p class="text-sm text-muted mt-2">Veuillez vérifier les logs serveur.</p></div>';
+    });
+}
