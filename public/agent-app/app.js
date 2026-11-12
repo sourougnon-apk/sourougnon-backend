@@ -786,7 +786,7 @@ const AgentApp = {
   },
 
   openHistoriqueGPS() {
-    window.open('mes-tournees.html?v=' + Date.now(), '_blank');
+    window.location.href = 'mes-tournees.html?v=' + Date.now();
   },
 
   async openPenalites() {
