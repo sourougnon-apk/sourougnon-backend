@@ -20,10 +20,21 @@ class AgentSpaceController extends Controller
     {
         $user = $request->user();
         $aujourdhui = now()->toDateString();
+        // On récupère toutes les ventes actives de l'agent
+        // On inclut celles qui ont des échéances à traiter aujourd'hui ou en retard
         $query = Vente::where('statut', 'en_cours')
             ->whereDate('date_debut', '<=', $aujourdhui)
-            ->whereDate('date_fin', '>=', $aujourdhui)
-            ->with(['debiteur', 'echeances' => fn($q) => $q->whereDate('date_echeance', $aujourdhui)]);
+            ->where(function($q) use ($aujourdhui) {
+                // Soit la vente est toujours dans sa période active
+                $q->whereDate('date_fin', '>=', $aujourdhui)
+                  // Soit la vente est finie mais il reste des échéances impayées
+                  ->orWhereHas('echeances', fn($sq) => $sq->whereIn('statut', ['en_attente', 'en_retard', 'partiel']));
+            })
+            ->with(['debiteur', 'echeances' => function($q) use ($aujourdhui) {
+                // On charge les échéances du jour OU en retard
+                $q->whereDate('date_echeance', '<=', $aujourdhui)
+                  ->whereIn('statut', ['en_attente', 'en_retard', 'partiel']);
+            }]);
 
         if ($user->role === 'agent') {
             $query->where('agent_id', $user->id);
@@ -33,9 +44,9 @@ class AgentSpaceController extends Controller
 
         $ventes = $ventesModeles->map(function($v) use ($aujourdhui) {
             $echeance = $v->echeances->first();
-            $enRetard = $v->echeances()
-                ->whereDate('date_echeance', '<', $aujourdhui)
-                ->whereNotIn('statut', ['paye'])
+            // Le client est en retard s'il a au moins une échéance dépassée non payée
+            $enRetard = $v->echeances()->whereDate('date_echeance', '<', $aujourdhui)
+                ->whereIn('statut', ['en_retard', 'partiel', 'en_attente'])
                 ->exists();
 
             $joursTotal = max(1, $v->nombre_jours);
@@ -49,7 +60,7 @@ class AgentSpaceController extends Controller
                 'quartier' => $v->debiteur?->quartier,
                 'montant_journalier' => $echeance?->montant_prevu ?? $v->montant_journalier,
                 'reste_a_payer' => $v->resteAPayer(),
-                'statut_visite' => $echeance?->statut ?? 'en_attente',
+                'statut_visite' => $enRetard ? 'en_retard' : ($echeance?->statut ?? 'en_attente'),
                 'statut_global' => $enRetard ? 'en_retard' : 'a_jour',
                 'epargne_par_jour' => $v->epargne_par_jour,
                 'penalite_par_jour' => $v->penalite_par_jour,
