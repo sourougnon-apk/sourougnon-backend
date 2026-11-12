@@ -1,4 +1,4 @@
-const CACHE = 'sourougnon-agent-v202608262045';
+const CACHE = 'sourougnon-agent-v202611122100';
 const ASSETS = ['./','./login.html','./index.html','./styles.css','./app.js','./db.js','./manifest.json','./assets/logo_sourougnon1.png'];
 
 self.addEventListener('install', (e) => {
