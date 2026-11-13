@@ -28,6 +28,8 @@ class RemboursementController extends Controller
             'vente_id' => 'required|exists:ventes,uuid',
         ]);
 
+            \App\Services\NotificationService::notifierRemboursement($demande, 'rejetee');
+
         $vente = Vente::where('uuid', $request->vente_id)->firstOrFail();
 
         if ($vente->montantCreditPaye() <= 0) { abort(422, 'Aucun paiement à rembourser.'); }
@@ -116,6 +118,8 @@ class RemboursementController extends Controller
                 'date_validation' => now(),
                 'commentaire_gerante' => $request->commentaire,
             ]);
+
+            \App\Services\NotificationService::notifierRemboursement($demande, 'validee');
         });
 
         if ($demande->vente->debiteur) {
