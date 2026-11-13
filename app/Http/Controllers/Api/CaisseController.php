@@ -563,4 +563,27 @@ class CaisseController extends Controller
         };
         return response()->stream($callback, 200, $headers);
     }
+
+    public function mouvementsRecents(Request $request)
+    {
+        $mouvements = \App\Models\MouvementCaisse::with('user:id,uuid,nom,prenom')
+            ->whereIn('type', ['encaissement', 'decaissement', 'salaire', 'epargne', 'penalite', 'remise', 'versement'])
+            ->orderByDesc('date_mouvement')
+            ->limit(15)
+            ->get()
+            ->map(function($m) {
+                return [
+                    'id' => $m->id,
+                    'date_mouvement' => $m->date_mouvement?->toIso8601String(),
+                    'type' => $m->type,
+                    'montant' => $m->montant,
+                    'statut_validation' => $m->statut_validation,
+                    'user_nom' => $m->user?->nom . ' ' . $m->user?->prenom,
+                    'agence_id' => $m->agence_id,
+                ];
+            });
+
+        return response()->json($mouvements);
+    }
+
 }

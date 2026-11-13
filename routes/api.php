@@ -131,6 +131,7 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/caisse/remises-en-attente', [CaisseController::class, 'remisesEnAttente']);
         Route::get('/caisse/restitutions-attente', [CaisseController::class, 'restitutionsAttente']);
         Route::get('/caisse/historique', [CaisseController::class, 'historique']);
+        Route::get('/caisse/mouvements-recents', [CaisseController::class, 'mouvementsRecents']);
         Route::get('/caisse/export', [CaisseController::class, 'export']);
         Route::post('/caisse/decaisser', [CaisseController::class, 'decaisser']);
         Route::post('/caisse/cloturer', [CaisseController::class, 'cloturer']);

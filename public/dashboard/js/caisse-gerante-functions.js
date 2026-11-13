@@ -89,7 +89,7 @@ function chargerRemisesEnAttenteGerante() {
 }
 
 function chargerMouvementsRecentsGerante() {
-    apiFetch('/caisse/historique').then(mouvements => {
+    apiFetch('/caisse/mouvements-recents').then(mouvements => {
         const el = document.getElementById('mouvements-recents');
         if (!mouvements || mouvements.length === 0) {
             el.innerHTML = '<p class="text-muted text-sm">Aucun mouvement récent.</p>';
@@ -99,13 +99,14 @@ function chargerMouvementsRecentsGerante() {
         el.innerHTML = `
             <div class="table-wrapper">
                 <table>
-                    <thead><tr><th>Date</th><th>Type</th><th>Montant</th><th>Utilisateur</th></tr></thead>
-                    <tbody>${mouvements.slice(0, 10).map(m => `
+                    <thead><tr><th>Date</th><th>Type</th><th>Montant</th><th>Utilisateur</th><th>Statut</th></tr></thead>
+                    <tbody>${mouvements.map(m => `
                         <tr>
-                            <td class="text-xs">${new Date(m.date_mouvement).toLocaleDateString('fr-FR')}</td>
-                            <td><span class="badge badge-info">${m.type}</span></td>
+                            <td class="text-xs">${m.date_mouvement ? new Date(m.date_mouvement).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '--'}</td>
+                            <td><span class="badge ${m.type === 'encaissement' ? 'badge-success' : (m.type === 'epargne' ? 'badge-info' : 'badge-warning')}">${m.type}</span></td>
                             <td class="font-bold">${f(m.montant)}</td>
-                            <td class="text-xs">${m.user ? m.user.nom : '--'}</td>
+                            <td class="text-xs">${m.user_nom || '--'}</td>
+                            <td><span class="badge ${m.statut_validation === 'valide' ? 'badge-success' : 'badge-warning'}">${m.statut_validation}</span></td>
                         </tr>
                     `).join('')}</tbody>
                 </table>
