@@ -1,15 +1,20 @@
 function loadStocks(c) {
     var isGerante = (currentUser.role === 'gerante');
+    var titreSuffix = isGerante ? "Globaux" : "de l'Agence";
     
+    var boutonEntree = isGerante 
+        ? `<button onclick="showStockEntreeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ Approvisionner</button>` 
+        : '';
+
     c.innerHTML = `
         <div class="fade-in space-y-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-xl font-bold text-slate-800">Gestion des Stocks ${isGerante ? 'Globaux' : 'de l\\'Agence'}</h3>
-                    <p class="text-sm text-muted mt-1">${isGerante ? 'Allouez les stocks aux différentes agences.' : 'Gérez les entrées et sorties de votre agence.'}</p>
+                    <h3 class="text-xl font-bold text-slate-800">Gestion des Stocks ${titreSuffix}</h3>
+                    <p class="text-sm text-muted mt-1">${isGerante ? 'Allouez les stocks aux différentes agences.' : 'Consultez votre stock et enregistrez les sorties.'}</p>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="showStockEntreeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ Entrée</button>
+                    ${boutonEntree}
                     <button onclick="showStockSortieModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700">- Sortie</button>
                 </div>
             </div>
@@ -84,14 +89,13 @@ function showStockEntreeModal() {
 
         var prodOptions = produits.map(p => `<option value="${p.uuid}">${p.nom}</option>`).join('');
         var agenceOptions = agences.map(a => `<option value="${a.id}">${a.nom}</option>`).join('');
-        var isGerante = (currentUser.role === 'gerante');
 
         var html = `
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-entree">
                 <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
-                    <h3 class="text-lg font-bold mb-4">Entrée de Stock</h3>
+                    <h3 class="text-lg font-bold mb-4">Approvisionner une agence</h3>
                     <form onsubmit="submitStockEntree(event)" class="space-y-3">
-                        ${isGerante ? `<div><label class="block text-xs font-semibold mb-1">Agence destinataire</label><select id="se-agence" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${agenceOptions}</select></div>` : ''}
+                        <div><label class="block text-xs font-semibold mb-1">Agence destinataire</label><select id="se-agence" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${agenceOptions}</select></div>
                         <div><label class="block text-xs font-semibold mb-1">Produit</label><select id="se-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${prodOptions}</select></div>
                         <div class="grid grid-cols-2 gap-3">
                             <div><label class="block text-xs font-semibold mb-1">Quantité</label><input type="number" id="se-quantite" required min="1" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div>
@@ -115,13 +119,11 @@ function submitStockEntree(e) {
         produit_id: document.getElementById('se-produit').value,
         quantite: parseInt(document.getElementById('se-quantite').value),
         prix_achat: parseFloat(document.getElementById('se-prix-achat').value) || 0,
+        agence_id: parseInt(document.getElementById('se-agence').value)
     };
-    var agenceSelect = document.getElementById('se-agence');
-    if (agenceSelect) data.agence_id = parseInt(agenceSelect.value);
-
     apiFetch('/stocks/entree', {method:'POST', body:JSON.stringify(data)}).then(function() {
         document.getElementById('modal-entree').remove();
-        showAlert('Entrée de stock enregistrée.');
+        showAlert('Stock alloué avec succès.');
         loadStocks(document.getElementById('page-content'));
     }).catch(function(err){ showAlert('Erreur : ' + err.message); });
 }

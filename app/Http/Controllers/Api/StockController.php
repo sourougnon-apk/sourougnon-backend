@@ -44,40 +44,54 @@ class StockController extends Controller
 
     public function entree(Request $request)
     {
+        // SÉCURITÉ : Seule la gérante peut approvisionner les stocks des agences
+        if ($request->user()->role !== 'gerante') {
+            return response()->json(['error' => 'Seule la gérante peut approvisionner les stocks.'], 403);
+        }
+
         $request->validate([
             'produit_id' => 'required|exists:produits,uuid',
-            'quantite' => 'required|numeric|min:0.01',
+            'quantite' => 'required|integer|min:1',
+            'prix_achat' => 'nullable|numeric|min:0',
+            'fournisseur' => 'nullable|string',
+            'reference' => 'nullable|string',
+            'agence_id' => 'required|exists:agences,id', // Obligatoire pour la gérante
         ]);
 
         $produit = Produit::where('uuid', $request->produit_id)->firstOrFail();
-        $quantite = $request->quantite;
-        $prixAchat = $request->prix_achat ?? $produit->prix_achat ?? 0;
-        $prixVente = $request->prix_vente ?? $produit->prix_vente ?? 0;
+        
+        \Illuminate\Support\Facades\DB::transaction(function() use ($request, $produit) {
+            $agenceId = $request->agence_id;
+            
+            $stockAgence = StockAgence::firstOrCreate(
+                ['agence_id' => $agenceId, 'produit_id' => $produit->id],
+                ['quantite' => 0, 'seuil_alerte' => $produit->seuil_alerte ?? 5]
+            );
 
-        $stockAvant = $produit->stock;
-        $stockApres = $stockAvant + $quantite;
+            $stockAvant = $stockAgence->quantite;
+            $stockAgence->increment('quantite', $request->quantite);
+            $stockApres = $stockAgence->quantite;
 
-        MouvementStock::create([
-            'uuid' => Str::uuid(),
-            'produit_id' => $produit->id,
-            'user_id' => $request->user()->id,
-            'type' => 'entree',
-            'action' => 'creation',
-            'quantite' => $quantite,
-            'prix_unitaire' => $prixAchat,
-            'stock_avant' => $stockAvant,
-            'stock_apres' => $stockApres,
-            'fournisseur' => $request->fournisseur,
-            'reference' => $request->reference,
-            'created_at' => now(),
-        ]);
+            // Le stock global est synchronisé automatiquement par l'Observer,
+            // mais on garde la trace du mouvement
+            \App\Models\MouvementStock::create([
+                'uuid' => \Illuminate\Support\Str::uuid(),
+                'produit_id' => $produit->id,
+                'user_id' => $request->user()->id,
+                'agence_id' => $agenceId,
+                'type' => 'entree',
+                'action' => 'creation',
+                'quantite' => $request->quantite,
+                'prix_unitaire' => $request->prix_achat ?? $produit->prix_achat,
+                'fournisseur' => $request->fournisseur,
+                'reference' => $request->reference,
+                'stock_avant' => $stockAvant,
+                'stock_apres' => $stockApres,
+                'date_mouvement' => now(),
+            ]);
+        });
 
-        $produit->prix_achat = $prixAchat;
-        $produit->prix_vente = $prixVente;
-        $produit->stock = $stockApres;
-        $produit->save();
-
-        return response()->json(['success' => true, 'stock' => $stockApres]);
+        return response()->json(['success' => true, 'message' => 'Stock alloué avec succès à l agence.']);
     }
 
     public function sortie(Request $request)
