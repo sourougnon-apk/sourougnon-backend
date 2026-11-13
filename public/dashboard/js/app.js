@@ -140,6 +140,9 @@ function loadPage(page) {
         'comptabilite': loadComptabilite,
         'remboursements': loadRemboursements,
         'alertes': loadAlertes,
+        'stocks': loadStocks,
+        'produits': loadProduits,
+
         'parametres': loadParametres,
         'statistiques': loadStatistiques,
         'notifications': loadNotificationsPage,

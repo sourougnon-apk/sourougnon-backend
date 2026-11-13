@@ -1,118 +1,164 @@
-function loadStocks(c){
-    apiFetch('/stocks').then(function(d){
-        function f(v){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v);}
-        var p=d.produits;
-        var produitsEnStock = p.filter(function(x){return (x.stock || 0) > 0;});
-        var nbEnStock = produitsEnStock.length;
-        var al=produitsEnStock.filter(function(x){return x.stock<=x.seuil_alerte;});
+function loadStocks(c) {
+    var isGerante = (currentUser.role === 'gerante');
+    
+    c.innerHTML = `
+        <div class="fade-in space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Gestion des Stocks ${isGerante ? 'Globaux' : 'de l\\'Agence'}</h3>
+                    <p class="text-sm text-muted mt-1">${isGerante ? 'Allouez les stocks aux différentes agences.' : 'Gérez les entrées et sorties de votre agence.'}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="showStockEntreeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ Entrée</button>
+                    <button onclick="showStockSortieModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700">- Sortie</button>
+                </div>
+            </div>
+            <div class="kpi-grid" id="stocks-kpis">
+                <div class="panel text-center py-4 text-muted text-sm col-span-2">Chargement...</div>
+            </div>
+            <div class="panel">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Mouvements de stock</h3>
+                </div>
+                <div id="mouvements-stock-content">
+                    <p class="text-center text-muted py-4">Chargement...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    loadMouvementsStock();
+    
+    apiFetch('/stocks').then(function(d) {
+        var p = d.produits || [];
+        var f = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v || 0);
+        var totalValeur = p.reduce((s, x) => s + (x.prix_vente || 0) * (x.stock || 0), 0);
         
-        c.innerHTML='<div class="fade-in space-y-6">'+
-            '<div class="flex items-center justify-between"><h3 class="text-xl font-bold">Stock</h3>'+
-            '<div class="flex gap-2">'+
-                '<button onclick="showStockEntreeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">+ Entree</button>'+
-                '<button onclick="showStockSortieModal()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700">- Sortie</button>'+
-                '<button onclick="showInventaireModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700">Inventaire</button>'+
-            '</div></div>'+
-            '<div class="kpi-grid">'+
-                '<div class="kpi-card" style="border-left:3px solid #0066ff"><div class="kpi-label">Produits en stock</div><div class="kpi-value">'+nbEnStock+' / '+p.length+'</div></div>'+
-                '<div class="kpi-card" style="border-left:3px solid #059669"><div class="kpi-label">Valeur Achat</div><div class="kpi-value">'+f(d.valeur_totale_achat)+'</div></div>'+
-                '<div class="kpi-card" style="border-left:3px solid #8b5cf6"><div class="kpi-label">Valeur Vente</div><div class="kpi-value">'+f(d.valeur_totale_vente)+'</div></div>'+
-                '<div class="kpi-card" style="border-left:3px solid #00c853"><div class="kpi-label">CA Attendu</div><div class="kpi-value">'+f(d.ca_attendu)+'</div></div>'+
-            '</div>'+
-            '<div class="panel">'+
-                '<div class="flex items-center justify-between mb-4"><h3 class="text-lg font-semibold">Mouvements de stock</h3></div>'+
-                '<div id="mouvements-stock-content"><p class="text-center text-muted py-4">Chargement...</p></div>'+
-            '</div>'+
-        '</div>';
-        loadMouvementsStock();
-    }).catch(function(e){c.innerHTML='<div class="panel text-center py-12"><p class="text-muted">Erreur de chargement.</p></div>';});
+        document.getElementById('stocks-kpis').innerHTML = `
+            <div class="panel p-4 border-l-4 border-blue-600">
+                <div class="text-xs text-muted font-semibold uppercase">Produits en stock</div>
+                <div class="text-2xl font-bold text-slate-800">${p.filter(x => x.stock > 0).length} / ${p.length}</div>
+            </div>
+            <div class="panel p-4 border-l-4 border-green-600">
+                <div class="text-xs text-muted font-semibold uppercase">Valeur du stock (vente)</div>
+                <div class="text-2xl font-bold text-slate-800">${f(totalValeur)}</div>
+            </div>
+        `;
+    });
 }
 
 function loadMouvementsStock() {
     apiFetch('/stocks/mouvements').then(function(m) {
-        window.allMouvementsStock = m;
-        renderMouvementsStock(m);
-    });
-}
-
-function renderMouvementsStock(m) {
-    function f(v) {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(v);
-    }
-    var c = document.getElementById('mouvements-stock-content');
-    if (!c) return;
-    var tb = { entree: 'badge-success', vente: 'badge-danger', sortie: 'badge-danger', perte: 'badge-danger', retour: 'badge-warning', inventaire: 'badge-info' };
-    var actionBadge = { creation: 'badge-success', modification: 'badge-warning', suppression: 'badge-danger', inventaire: 'badge-info' };
-    
-    c.innerHTML = '<div class="table-wrapper"><table><thead><tr><th>Date</th><th>Type</th><th>Action</th><th>Produit</th><th>Qte</th><th>Prix Unit.</th><th>Fournisseur</th><th>Actions</th></tr></thead><tbody>' +
-    (m.length > 0 ? m.map(function(x) {
-        return '<tr>' +
-        '<td class="text-xs">' + new Date(x.created_at).toLocaleDateString('fr-FR') + ' ' + new Date(x.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}) + '</td>' +
-        '<td><span class="badge ' + (tb[x.type] || 'badge-info') + '">' + x.type + '</span></td>' +
-        '<td><span class="badge ' + (actionBadge[x.action] || 'badge-success') + '">' + (x.action || 'creation') + '</span></td>' +
-        '<td class="font-medium">' + (x.produit ? x.produit.nom : '-') + '</td>' +
-        '<td>' + x.quantite + '</td>' +
-        '<td>' + f(x.prix_unitaire) + '</td>' +
-        '<td>' + (x.fournisseur || '-') + '</td>' +
-        '<td><div class="flex gap-1">' +
-        '<button onclick="openModifierMouvementModal(' + x.id + ',' + x.quantite + ',' + x.prix_unitaire + ',\'' + (x.fournisseur || '').replace(/'/g, "\\'") + '\')" class="text-amber-600 text-xs font-semibold px-2 py-1 bg-amber-50 rounded hover:bg-amber-100">Mod.</button>' +
-        '<button onclick="openSupprimerMouvementModal(' + x.id + ')" class="text-red-600 text-xs font-semibold px-2 py-1 bg-red-50 rounded hover:bg-red-100">Suppr.</button>' +
-        '</div></td></tr>';
-    }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">Aucun mouvement trouve</td></tr>') +
-    '</tbody></table></div>';
-}
-
-function openModifierMouvementModal(id, qte, prix, fournisseur) {
-    document.getElementById('modif-mouvement-id').value = id;
-    document.getElementById('modif-quantite').value = qte;
-    document.getElementById('modif-prix').value = prix;
-    document.getElementById('modif-fournisseur').value = fournisseur;
-    document.getElementById('modifier-mouvement-modal').classList.remove('hidden');
-}
-
-function closeModifierMouvementModal() {
-    document.getElementById('modifier-mouvement-modal').classList.add('hidden');
-}
-
-function submitModifierMouvement(e) {
-    e.preventDefault();
-    var id = document.getElementById('modif-mouvement-id').value;
-    apiFetch('/stocks/mouvements/' + id, {
-        method: 'PUT',
-        body: {
-            quantite: parseFloat(document.getElementById('modif-quantite').value),
-            prix_unitaire: parseFloat(document.getElementById('modif-prix').value),
-            fournisseur: document.getElementById('modif-fournisseur').value
+        var c = document.getElementById('mouvements-stock-content');
+        if (!m || m.length === 0) {
+            c.innerHTML = '<p class="text-center text-muted py-4">Aucun mouvement enregistré.</p>';
+            return;
         }
-    }).then(function() {
-        closeModifierMouvementModal();
-        loadPage('stocks');
+        var f = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v || 0);
+        var badges = { entree: 'badge-success', sortie: 'badge-danger', inventaire: 'badge-info', vente: 'badge-warning', perte: 'badge-danger' };
+
+        c.innerHTML = `
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Date</th><th>Type</th><th>Produit</th><th>Qté</th><th>Prix Unit.</th><th>Action par</th></tr></thead>
+                    <tbody>${m.map(x => `
+                        <tr>
+                            <td class="text-xs">${new Date(x.created_at).toLocaleDateString('fr-FR')}</td>
+                            <td><span class="badge ${badges[x.type] || 'badge-info'}">${x.type}</span></td>
+                            <td class="font-medium">${x.produit ? x.produit.nom : '--'}</td>
+                            <td class="font-bold">${x.quantite}</td>
+                            <td>${f(x.prix_unitaire)}</td>
+                            <td class="text-xs">${x.user ? x.user.nom : '--'}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+            </div>
+        `;
     });
 }
 
-function openSupprimerMouvementModal(id) {
-    document.getElementById('suppr-mouvement-id').value = id;
-    document.getElementById('supprimer-mouvement-modal').classList.remove('hidden');
-}
+function showStockEntreeModal() {
+    Promise.all([apiFetch('/produits'), apiFetch('/parametres')]).then(function(results) {
+        var produits = results[0] || [];
+        var parametres = results[1] || {};
+        var agences = parametres.agences || [];
 
-function closeSupprimerMouvementModal() {
-    document.getElementById('supprimer-mouvement-modal').classList.add('hidden');
-}
+        var prodOptions = produits.map(p => `<option value="${p.uuid}">${p.nom}</option>`).join('');
+        var agenceOptions = agences.map(a => `<option value="${a.id}">${a.nom}</option>`).join('');
+        var isGerante = (currentUser.role === 'gerante');
 
-function confirmerSupprimerMouvement() {
-    var id = document.getElementById('suppr-mouvement-id').value;
-    apiFetch('/stocks/mouvements/' + id, { method: 'DELETE' }).then(function() {
-        closeSupprimerMouvementModal();
-        loadPage('stocks');
+        var html = `
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-entree">
+                <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+                    <h3 class="text-lg font-bold mb-4">Entrée de Stock</h3>
+                    <form onsubmit="submitStockEntree(event)" class="space-y-3">
+                        ${isGerante ? `<div><label class="block text-xs font-semibold mb-1">Agence destinataire</label><select id="se-agence" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${agenceOptions}</select></div>` : ''}
+                        <div><label class="block text-xs font-semibold mb-1">Produit</label><select id="se-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${prodOptions}</select></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="block text-xs font-semibold mb-1">Quantité</label><input type="number" id="se-quantite" required min="1" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div>
+                            <div><label class="block text-xs font-semibold mb-1">Prix Achat</label><input type="number" id="se-prix-achat" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button type="button" onclick="document.getElementById('modal-entree').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+                            <button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold">Valider</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
     });
 }
 
-function showStockEntreeModal(){document.getElementById('stock-entree-modal').classList.remove('hidden');apiFetch('/produits').then(function(p){document.getElementById('se-produit').innerHTML='<option value="">-- Produit --</option>'+p.map(function(x){return '<option value="'+x.uuid+'">'+x.nom+' (Stock: '+x.stock+')</option>';}).join('');});}
-function closeStockEntreeModal(){document.getElementById('stock-entree-modal').classList.add('hidden');}
-function submitStockEntree(e){e.preventDefault();apiFetch('/stocks/entree',{method:'POST',body:{produit_id:document.getElementById('se-produit').value,quantite:parseInt(document.getElementById('se-quantite').value),prix_achat:parseFloat(document.getElementById('se-prix-achat').value)||0,prix_vente:parseFloat(document.getElementById('se-prix-vente').value)||0,fournisseur:document.getElementById('se-fournisseur').value,reference:document.getElementById('se-reference').value}}).then(function(){closeStockEntreeModal();loadPage('stocks');});}
-function showStockSortieModal(){document.getElementById('stock-sortie-modal').classList.remove('hidden');apiFetch('/produits').then(function(p){document.getElementById('ss-produit').innerHTML='<option value="">-- Produit --</option>'+p.map(function(x){return '<option value="'+x.uuid+'">'+x.nom+' (Stock: '+x.stock+')</option>';}).join('');});}
-function closeStockSortieModal(){document.getElementById('stock-sortie-modal').classList.add('hidden');}
-function submitStockSortie(e){e.preventDefault();apiFetch('/stocks/sortie',{method:'POST',body:{produit_id:document.getElementById('ss-produit').value,quantite:parseInt(document.getElementById('ss-quantite').value),type:document.getElementById('ss-type').value,prix_vente_unitaire:parseFloat(document.getElementById('ss-prix-vente').value)||0,motif:document.getElementById('ss-motif').value}}).then(function(r){if(r&&r.error){showAlert(r.error);return;}closeStockSortieModal();loadPage('stocks');});}
-function showInventaireModal(){document.getElementById('inventaire-modal').classList.remove('hidden');apiFetch('/produits').then(function(p){document.getElementById('inv-produit').innerHTML='<option value="">-- Produit --</option>'+p.map(function(x){return '<option value="'+x.uuid+'">'+x.nom+' (Stock: '+x.stock+')</option>';}).join('');});}
-function closeInventaireModal(){document.getElementById('inventaire-modal').classList.add('hidden');}
-function submitInventaire(e){e.preventDefault();apiFetch('/stocks/inventaire',{method:'POST',body:{produit_id:document.getElementById('inv-produit').value,stock_reel:parseInt(document.getElementById('inv-stock-reel').value),prix_achat:parseFloat(document.getElementById('inv-prix-achat').value)||0,prix_vente:parseFloat(document.getElementById('inv-prix-vente').value)||0,motif:document.getElementById('inv-motif').value}}).then(function(r){closeInventaireModal();loadPage('stocks');});}
+function submitStockEntree(e) {
+    e.preventDefault();
+    var data = {
+        produit_id: document.getElementById('se-produit').value,
+        quantite: parseInt(document.getElementById('se-quantite').value),
+        prix_achat: parseFloat(document.getElementById('se-prix-achat').value) || 0,
+    };
+    var agenceSelect = document.getElementById('se-agence');
+    if (agenceSelect) data.agence_id = parseInt(agenceSelect.value);
+
+    apiFetch('/stocks/entree', {method:'POST', body:JSON.stringify(data)}).then(function() {
+        document.getElementById('modal-entree').remove();
+        showAlert('Entrée de stock enregistrée.');
+        loadStocks(document.getElementById('page-content'));
+    }).catch(function(err){ showAlert('Erreur : ' + err.message); });
+}
+
+function showStockSortieModal() {
+    apiFetch('/produits').then(function(produits) {
+        var prodOptions = produits.map(p => `<option value="${p.uuid}">${p.nom}</option>`).join('');
+        var html = `
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-sortie">
+                <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+                    <h3 class="text-lg font-bold mb-4">Sortie de Stock</h3>
+                    <form onsubmit="submitStockSortie(event)" class="space-y-3">
+                        <div><label class="block text-xs font-semibold mb-1">Produit</label><select id="ss-produit" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${prodOptions}</select></div>
+                        <div><label class="block text-xs font-semibold mb-1">Quantité</label><input type="number" id="ss-quantite" required min="1" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></div>
+                        <div><label class="block text-xs font-semibold mb-1">Motif</label><select id="ss-type" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"><option value="vente">Vente</option><option value="perte">Perte / Avarie</option></select></div>
+                        <div class="flex gap-3 pt-2">
+                            <button type="button" onclick="document.getElementById('modal-sortie').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+                            <button type="submit" class="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold">Valider</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
+    });
+}
+
+function submitStockSortie(e) {
+    e.preventDefault();
+    var data = {
+        produit_id: document.getElementById('ss-produit').value,
+        quantite: parseInt(document.getElementById('ss-quantite').value),
+        type: document.getElementById('ss-type').value,
+    };
+    apiFetch('/stocks/sortie', {method:'POST', body:JSON.stringify(data)}).then(function() {
+        document.getElementById('modal-sortie').remove();
+        showAlert('Sortie de stock enregistrée.');
+        loadStocks(document.getElementById('page-content'));
+    }).catch(function(err){ showAlert('Erreur : ' + err.message); });
+}
