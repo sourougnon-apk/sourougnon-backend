@@ -209,7 +209,12 @@ class IndicateursService
                 'nombre' => (int) $attente->nb,
                 'remises' => (int) $remises,
             ],
-            'stocks_faibles' => (int) DB::table('produits')->where('actif', 1)->whereColumn('stock', '<=', 'seuil_alerte')->count(),
+            'stocks_faibles' => (int) DB::table('stocks_agences')
+                ->join('produits', 'produits.id', '=', 'stocks_agences.produit_id')
+                ->where('produits.actif', 1)
+                ->whereColumn('stocks_agences.quantite', '<=', 'stocks_agences.seuil_alerte')
+                ->when($agenceId, fn ($q) => $q->where('stocks_agences.agence_id', $agenceId))
+                ->count(),
             'debiteurs_actifs' => (int) DB::table('debiteurs')->where('actif', 1)
                 ->when($agenceId, fn ($q) => $q->where('agence_id', $agenceId))->count(),
         ];
