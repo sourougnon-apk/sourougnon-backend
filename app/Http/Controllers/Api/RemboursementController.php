@@ -116,7 +116,7 @@ class RemboursementController extends Controller
                 'statut' => 'validee',
                 'validateur_id' => auth()->id(),
                 'date_validation' => now(),
-                'commentaire_gerante' => $request->commentaire,
+                'motif_validation' => $request->input('motif_validation') ?? $request->input('commentaire'),
             ]);
 
             \App\Services\NotificationService::notifierRemboursement($demande, 'validee');
@@ -141,7 +141,7 @@ class RemboursementController extends Controller
             'statut' => 'rejetee',
             'validateur_id' => auth()->id(),
             'date_validation' => now(),
-            'commentaire_gerante' => $request->commentaire,
+            'motif_validation' => $request->input('motif_validation') ?? $request->input('commentaire'),
         ]);
 
         return response()->json(['success' => true, 'message' => 'Demande rejetée.']);

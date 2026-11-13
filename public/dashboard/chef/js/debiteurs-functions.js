@@ -181,17 +181,24 @@ function voirDebiteur(uuid){
 
         // Historique des achats
         // Situation des échéances
+        
         html += '<div class="mt-3 border-t pt-3">';
         if (d.ventes && d.ventes.length > 0) {
             d.ventes.forEach(function(v) {
-                html += '<div class="text-xs">Jours payés : ' + (v.jours_payes || 0) + '/' + (v.jours_total || 0) + '</div>';
-                html += '<div class="text-xs">Impayés : ' + (v.jours_impayes || 0) + ' jour(s)</div>';
-                html += '<div class="text-xs">Pénalités dues : ' + f(v.penalites_en_attente || 0) + '</div>';
+                if (v.statut === 'en_cours') {
+                    html += '<div class="mb-3 p-2 bg-slate-50 rounded-lg">';
+                    html += '<div class="text-xs">Jours payés : ' + (v.jours_payes || 0) + '/' + (v.jours_total || 0) + '</div>';
+                    html += '<div class="text-xs">Impayés : ' + (v.jours_impayes || 0) + ' jour(s)</div>';
+                    html += '<div class="text-xs mb-2">Pénalités dues : ' + f(v.penalites_en_attente || 0) + '</div>';
+                    html += '<button onclick="demanderRemboursementChef(\'' + v.uuid + '\', \'' + d.nom + '\')" class="w-full px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold hover:bg-amber-200">↩ Demander un remboursement</button>';
+                    html += '</div>';
+                }
             });
         } else {
             html += '<p class="text-xs text-muted">Aucune échéance</p>';
         }
         html += '</div>';
+        
         
         html += '<div class="border-t pt-3 mt-3">';
         html += '<h4 class="font-semibold text-sm mb-2">Historique des achats</h4>';
@@ -262,5 +269,46 @@ async function supprimerDebiteur(uuid, nom) {
     if (!(await showConfirm('Supprimer ' + nom + ' ?'))) return;
     apiFetch('/debiteurs/'+uuid, {method:'DELETE'}).then(function(){
         loadPage('debiteurs');
+    });
+}
+
+function demanderRemboursementChef(venteUuid, nomDebiteur) {
+    var html = `
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-remboursement">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Demande de remboursement</h3>
+                    <button onclick="document.getElementById('modal-remboursement').remove()" class="text-slate-400 hover:text-slate-700">✕</button>
+                </div>
+                <p class="text-sm mb-4">Débiteur : <strong>${nomDebiteur}</strong></p>
+                <form onsubmit="submitDemandeRemboursement(event, '${venteUuid}')" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Motif de la demande</label>
+                        <textarea id="remb-motif" required rows="3" placeholder="Ex: Client dans l'incapacité de payer, souhaite solder son crédit..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button type="button" onclick="document.getElementById('modal-remboursement').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold">Envoyer la demande</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function submitDemandeRemboursement(e, venteUuid) {
+    e.preventDefault();
+    var motif = document.getElementById('remb-motif').value;
+    apiFetch('/remboursements', {
+        method: 'POST',
+        body: JSON.stringify({ vente_id: venteUuid, motif: motif })
+    }).then(function(res) {
+        document.getElementById('modal-remboursement').remove();
+        showAlert('Demande envoyée à la gérante pour validation.');
+        var modal = document.getElementById('detail-modal');
+        if (modal) modal.remove();
+    }).catch(function(err) {
+        showAlert('Erreur : ' + err.message);
     });
 }
