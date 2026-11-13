@@ -1,206 +1,163 @@
 function loadComptabilite(c) {
-    var journalPage = 1;
-    var journalCompte = '';
-    var journalDebut = '';
-    var journalFin = '';
+    c.innerHTML = `
+        <div class="fade-in space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Comptabilité</h3>
+                    <p class="text-sm text-muted mt-1">Journaux, Grand Livre et États Financiers.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="apiDownload('/comptabilite/export', 'journal.csv')" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200">Export Journal</button>
+                    <button onclick="apiDownload('/comptabilite/export-etats-financiers', 'etats.csv')" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200">Export États</button>
+                </div>
+            </div>
 
-    function chargerJournal() {
-        var params = '?page=' + journalPage + '&par_page=50';
-        if (journalCompte) params += '&compte=' + journalCompte;
-        if (journalDebut) params += '&date_debut=' + journalDebut;
-        if (journalFin) params += '&date_fin=' + journalFin;
-        return apiFetch('/comptabilite/journal' + params);
+            <!-- Tabs -->
+            <div class="flex gap-2 border-b border-slate-200 overflow-x-auto">
+                <button onclick="switchComptaTab('journal')" class="compta-tab px-4 py-2 text-sm font-semibold border-b-2 border-blue-600 text-blue-600" data-tab="journal">Journal</button>
+                <button onclick="switchComptaTab('grand-livre')" class="compta-tab px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800" data-tab="grand-livre">Grand Livre</button>
+                <button onclick="switchComptaTab('balance')" class="compta-tab px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800" data-tab="balance">Balance</button>
+                <button onclick="switchComptaTab('etats')" class="compta-tab px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800" data-tab="etats">États Financiers</button>
+            </div>
+
+            <div id="compta-content">
+                <div class="text-center py-12 text-muted">Chargement des données...</div>
+            </div>
+        </div>
+    `;
+    chargerComptaTab('journal');
+}
+
+function switchComptaTab(tab) {
+    document.querySelectorAll('.compta-tab').forEach(t => {
+        t.classList.remove('border-blue-600', 'text-blue-600');
+        t.classList.add('border-transparent', 'text-slate-500');
+    });
+    var btn = document.querySelector(`.compta-tab[data-tab="${tab}"]`);
+    if (btn) {
+        btn.classList.remove('border-transparent', 'text-slate-500');
+        btn.classList.add('border-blue-600', 'text-blue-600');
     }
+    chargerComptaTab(tab);
+}
 
-    function money(v) {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(v || 0);
-    }
+function chargerComptaTab(tab) {
+    var el = document.getElementById('compta-content');
+    el.innerHTML = '<div class="text-center py-8 text-muted">Chargement...</div>';
+    
+    var f = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v || 0);
 
-    function formatDate(iso) {
-        if (!iso) return '-';
-        const d = new Date(iso);
-        if (isNaN(d.getTime())) return iso;
-        return d.toLocaleDateString('fr-FR');
-    }
-
-    function renderJournalRows(journal) {
-        if (!Array.isArray(journal) || journal.length === 0) {
-            return '<tr><td colspan="7" class="text-center text-muted py-4">Aucune écriture</td></tr>';
-        }
-        return journal.map(function(j) {
-            return '<tr><td>' + formatDate(j.date_ecriture) + '</td><td>' + j.numero_ecriture + '</td><td>' + j.compte_debit + '</td><td>' + j.compte_credit + '</td><td>' + j.libelle + '</td><td class="text-right">' + money(j.montant) + '</td><td>' + j.reference + '</td></tr>';
-        }).join('');
-    }
-
-    function renderPagination(jr) {
-        var page = Number(jr.page || 1);
-        var totalPages = Math.max(1, Number(jr.total_pages || 1));
-        return '<div class="flex gap-2 items-center">' +
-            '<button id="journal-page-precedente" class="px-3 py-1 border rounded-lg text-sm" ' + (page <= 1 ? 'disabled' : '') + '>Précédente</button>' +
-            '<span class="text-sm">Page ' + page + ' / ' + totalPages + '</span>' +
-            '<button id="journal-page-suivante" class="px-3 py-1 border rounded-lg text-sm" ' + (page >= totalPages ? 'disabled' : '') + '>Suivante</button>' +
-        '</div>';
-    }
-
-    function renderGrandLivre(grandLivre) {
-        if (!Array.isArray(grandLivre) || grandLivre.length === 0) {
-            return '<tr><td colspan="5" class="text-center text-muted py-4">Aucune écriture</td></tr>';
-        }
-        return grandLivre.map(function(x) {
-            var solde = Number(x.solde || 0);
-            var classeSolde = solde >= 0 ? 'text-green-600' : 'text-red-600';
-            return '<tr><td>' + x.compte + '</td><td>' + x.libelle + '</td><td class="text-right">' + money(x.debit) + '</td><td class="text-right">' + money(x.credit) + '</td><td class="text-right font-semibold ' + classeSolde + '">' + money(solde) + '</td></tr>';
-        }).join('');
-    }
-
-    function chargerEtAfficher() {
-        Promise.all([
-            apiFetch('/comptabilite/balance'),
-            apiFetch('/comptabilite/grand-livre'),
-            chargerJournal(),
-            apiFetch('/comptabilite/etats-financiers')
-        ]).then(function(resultats) {
-            var balance = resultats[0] || {};
-            var grandLivre = Array.isArray(resultats[1]) ? resultats[1] : [];
-            var journalData = resultats[2] || {};
-            var etats = resultats[3] || {};
-
-            var totalDebit = Number(balance.total_debit || 0);
-            var totalCredit = Number(balance.total_credit || 0);
-            var balanceEstEquilibree = balance.equilibree === true || balance.equilibre === true;
-
-            var compteResultat = etats.compte_resultat || {};
-            var bilan = etats.bilan_synthetique || {};
-
-            c.innerHTML = '<div class="fade-in space-y-6">' +
-                '<div class="flex items-center justify-between">' +
-                    '<h3 class="text-xl font-bold">Comptabilité</h3>' +
-                    '<div class="flex gap-2">' +
-                        '<button onclick="exportJournal()" class="bg-accent text-white px-3 py-2 rounded-lg text-xs font-semibold">Journal CSV</button>' +
-                        '<button onclick="exportGrandLivre()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold">Grand Livre CSV</button>' +
-                        '<button onclick="exportEtatsFinanciers()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-semibold">États Financiers CSV</button>' +
-                    '</div>' +
-                '</div>' +
-
-                '<div class="kpi-grid">' +
-                    '<div class="kpi-card" style="border-left:3px solid #0066ff"><div class="kpi-label">Total Débit</div><div class="kpi-value">' + money(totalDebit) + '</div></div>' +
-                    '<div class="kpi-card" style="border-left:3px solid #00c853"><div class="kpi-label">Total Crédit</div><div class="kpi-value">' + money(totalCredit) + '</div></div>' +
-                    '<div class="kpi-card" style="border-left:3px solid ' + (balanceEstEquilibree ? '#00c853' : '#ef4444') + '"><div class="kpi-label">Balance</div><div class="kpi-value">' + (balanceEstEquilibree ? 'Équilibrée' : 'Déséquilibrée') + '</div></div>' +
-                '</div>' +
-
-                '<div class="panel"><h3>Grand Livre</h3><div class="table-wrapper"><table><thead><tr><th>Compte</th><th>Libellé</th><th class="text-right">Débit</th><th class="text-right">Crédit</th><th class="text-right">Solde</th></tr></thead><tbody>' + renderGrandLivre(grandLivre) + '</tbody></table></div></div>' +
-
-                '<div class="panel"><div class="flex items-center justify-between mb-3"><h3>Journal Comptable</h3><div id="journal-pagination">' + renderPagination(journalData) + '</div></div>' +
-                '<div class="table-wrapper" style="max-height:450px;overflow:auto"><table><thead><tr><th>Date</th><th>N°</th><th>Débit</th><th>Crédit</th><th>Libellé</th><th class="text-right">Montant</th><th>Référence</th></tr></thead><tbody id="journal-table">' + renderJournalRows(journalData.donnees) + '</tbody></table></div></div>' +
-
-                '<div class="panel"><h3>États Financiers</h3><div class="grid grid-cols-2 gap-4">' +
-                    '<div><p class="text-sm text-muted">Chiffre d\'affaires</p><p class="text-lg font-bold">' + money(compteResultat.chiffre_affaires) + '</p></div>' +
-                    '<div><p class="text-sm text-muted">Encaissements</p><p class="text-lg font-bold">' + money(compteResultat.encaissements) + '</p></div>' +
-                    '<div><p class="text-sm text-muted">Charges</p><p class="text-lg font-bold">' + money(compteResultat.charges) + '</p></div>' +
-                    '<div><p class="text-sm text-muted">Bénéfice brut</p><p class="text-lg font-bold">' + money(compteResultat.benefice_brut) + '</p></div>' +
-                    '<div><p class="text-sm text-muted">Valeur stock</p><p class="text-lg font-bold">' + money(compteResultat.valeur_stock) + '</p></div>' +
-                    '<div><p class="text-sm text-muted">Actif total</p><p class="text-lg font-bold">' + money(bilan.actif_total) + '</p></div>' +
-                '</div></div>' +
-            '</div>';
-
-            // Ajouter les sections Comptabilité 2 et Consolidée
-            var sec = document.createElement('div');
-            sec.id = 'compta-secondaire-content';
-            var cons = document.createElement('div');
-            cons.id = 'compta-consolidee-content';
-            c.appendChild(sec);
-            c.appendChild(cons);
-            loadComptabiliteSecondaire();
-            loadComptabiliteConsolidee();
-
-            // Pagination
-            var btnPrec = document.getElementById('journal-page-precedente');
-            var btnSuiv = document.getElementById('journal-page-suivante');
-            if (btnPrec) btnPrec.onclick = function() { if (journalPage > 1) { journalPage--; chargerEtAfficher(); } };
-            if (btnSuiv) btnSuiv.onclick = function() { var tp = Number(journalData.total_pages || 1); if (journalPage < tp) { journalPage++; chargerEtAfficher(); } };
-        }).catch(function(err) {
-            console.error(err);
-            c.innerHTML = '<div class="panel text-center py-12"><p class="text-muted">Erreur de chargement de la comptabilité.</p></div>';
+    if (tab === 'journal') {
+        apiFetch('/comptabilite/journal').then(data => {
+            var rows = data.data ? data.data : data; // Gérer la pagination ou non
+            if (!Array.isArray(rows) || rows.length === 0) {
+                el.innerHTML = '<div class="panel text-center py-8 text-muted">Aucune écriture enregistrée.</div>';
+                return;
+            }
+            el.innerHTML = `
+                <div class="panel">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Date</th><th>N°</th><th>Débit</th><th>Crédit</th><th>Libellé</th><th class="text-right">Montant</th></tr></thead>
+                            <tbody>${rows.map(r => `
+                                <tr>
+                                    <td class="text-xs">${new Date(r.date_ecriture).toLocaleDateString('fr-FR')}</td>
+                                    <td class="text-xs font-mono">${r.numero_ecriture}</td>
+                                    <td class="text-xs font-semibold">${r.compte_debit}</td>
+                                    <td class="text-xs font-semibold">${r.compte_credit}</td>
+                                    <td class="text-sm">${r.libelle}</td>
+                                    <td class="text-right font-bold text-slate-800">${f(r.montant)}</td>
+                                </tr>
+                            `).join('')}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }).catch(() => el.innerHTML = '<div class="panel text-center py-8 text-red-500">Erreur de chargement.</div>');
+    } 
+    else if (tab === 'grand-livre') {
+        apiFetch('/comptabilite/grand-livre').then(data => {
+            if (!Array.isArray(data) || data.length === 0) {
+                el.innerHTML = '<div class="panel text-center py-8 text-muted">Aucune écriture.</div>';
+                return;
+            }
+            el.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${data.map(c => `
+                        <div class="panel border-t-4 ${c.solde >= 0 ? 'border-t-blue-500' : 'border-t-red-500'}">
+                            <div class="flex justify-between items-center border-b pb-2 mb-3">
+                                <h4 class="font-bold text-slate-800">${c.compte} - ${c.libelle}</h4>
+                                <span class="text-lg font-bold ${c.solde >= 0 ? 'text-blue-600' : 'text-red-600'}">${f(c.solde)}</span>
+                            </div>
+                            <div class="text-xs text-muted flex justify-between">
+                                <span>Débit : ${f(c.debit)}</span>
+                                <span>Crédit : ${f(c.credit)}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         });
     }
-
-    chargerEtAfficher();
-}
-
-function loadComptabiliteSecondaire() {
-    apiFetch('/comptabilite/secondaire').then(function(data) {
-        const conteneur = document.getElementById('compta-secondaire-content');
-        if (!conteneur) return;
-        const f = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);
-
-        conteneur.innerHTML = `
-            <div class="panel">
-                <h3>Comptabilité 2 — Épargnes & Pénalités</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><p class="text-sm text-muted">Total Débit</p><p class="text-lg font-bold">${f(data.balance?.total_debit)}</p></div>
-                    <div><p class="text-sm text-muted">Total Crédit</p><p class="text-lg font-bold">${f(data.balance?.total_credit)}</p></div>
+    else if (tab === 'balance') {
+        apiFetch('/comptabilite/balance').then(data => {
+            var totalD = 0, totalC = 0;
+            data.forEach(d => { totalD += d.debit; totalC += d.credit; });
+            el.innerHTML = `
+                <div class="panel">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Compte</th><th>Libellé</th><th class="text-right">Débit</th><th class="text-right">Crédit</th><th class="text-right">Solde</th></tr></thead>
+                            <tbody>
+                                ${data.map(b => `
+                                    <tr>
+                                        <td class="font-mono text-xs font-bold">${b.compte}</td>
+                                        <td class="text-sm">${b.libelle}</td>
+                                        <td class="text-right">${f(b.debit)}</td>
+                                        <td class="text-right">${f(b.credit)}</td>
+                                        <td class="text-right font-bold ${b.solde >= 0 ? 'text-slate-800' : 'text-red-600'}">${f(b.solde)}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="bg-slate-50 font-bold border-t-2 border-slate-200">
+                                    <td colspan="2">TOTAUX</td>
+                                    <td class="text-right">${f(totalD)}</td>
+                                    <td class="text-right">${f(totalC)}</td>
+                                    <td class="text-right">${f(totalD - totalC)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="table-wrapper mt-4">
-                    <table>
-                        <thead><tr><th>Compte</th><th>Libellé</th><th class="text-right">Débit</th><th class="text-right">Crédit</th><th class="text-right">Solde</th></tr></thead>
-                        <tbody>
-                            ${(data.grand_livre||[]).map(l => `<tr>
-                                <td>${l.compte}</td>
-                                <td>${l.libelle}</td>
-                                <td class="text-right">${f(l.debit)}</td>
-                                <td class="text-right">${f(l.credit)}</td>
-                                <td class="text-right font-semibold">${f(l.solde)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
+            `;
+        });
+    }
+    else if (tab === 'etats') {
+        apiFetch('/comptabilite/etats-financiers').then(data => {
+            // On suppose que data renvoie un objet avec des sections. Si c'est différent, on adapte.
+            el.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="panel border-t-4 border-t-green-500">
+                        <h4 class="text-lg font-bold text-green-700 mb-4">Produits (Recettes)</h4>
+                        ${(data.produits || []).map(p => `<div class="flex justify-between py-1 border-b border-slate-100 text-sm"><span>${p.libelle}</span> <span class="font-semibold">${f(p.montant)}</span></div>`).join('') || '<p class="text-muted text-sm">Aucune donnée</p>'}
+                        <div class="flex justify-between mt-4 pt-2 border-t-2 border-slate-200 font-bold text-green-700">
+                            <span>Total Produits</span> <span>${f(data.total_produits || 0)}</span>
+                        </div>
+                    </div>
+                    <div class="panel border-t-4 border-t-red-500">
+                        <h4 class="text-lg font-bold text-red-700 mb-4">Charges (Dépenses)</h4>
+                        ${(data.charges || []).map(p => `<div class="flex justify-between py-1 border-b border-slate-100 text-sm"><span>${p.libelle}</span> <span class="font-semibold">${f(p.montant)}</span></div>`).join('') || '<p class="text-muted text-sm">Aucune donnée</p>'}
+                        <div class="flex justify-between mt-4 pt-2 border-t-2 border-slate-200 font-bold text-red-700">
+                            <span>Total Charges</span> <span>${f(data.total_charges || 0)}</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `;
-    }).catch(function(err) { console.error(err); });
-}
-
-function loadComptabiliteConsolidee() {
-    apiFetch('/comptabilite/consolidee').then(function(data) {
-        const conteneur = document.getElementById('compta-consolidee-content');
-        if (!conteneur) return;
-        const f = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);
-
-        conteneur.innerHTML = `
-            <div class="panel">
-                <h3>Comptabilité Consolidée</h3>
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div><p class="text-sm text-muted">Total Débit</p><p class="text-lg font-bold">${f(data.total_debit)}</p></div>
-                    <div><p class="text-sm text-muted">Total Crédit</p><p class="text-lg font-bold">${f(data.total_credit)}</p></div>
+                <div class="panel mt-4 bg-slate-800 text-white text-center py-6">
+                    <div class="text-sm uppercase tracking-wider opacity-80">Résultat Net de la période</div>
+                    <div class="text-4xl font-extrabold mt-2">${f((data.total_produits || 0) - (data.total_charges || 0))}</div>
                 </div>
-                <div class="table-wrapper">
-                    <table>
-                        <thead><tr><th>Compte</th><th>Libellé</th><th class="text-right">Débit</th><th class="text-right">Crédit</th><th class="text-right">Solde</th></tr></thead>
-                        <tbody>
-                            ${(data.comptes||[]).map(l => `<tr>
-                                <td>${l.compte}</td>
-                                <td>${l.libelle}</td>
-                                <td class="text-right">${f(l.debit)}</td>
-                                <td class="text-right">${f(l.credit)}</td>
-                                <td class="text-right font-semibold">${f(l.solde)}</td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    }).catch(function(err) { console.error(err); });
-}
-
-function exportJournal() {
-    window.open('/api/comptabilite/export', '_blank');
-}
-
-function exportGrandLivre() {
-    var token = localStorage.getItem('sourougnon_token') || '';
-    window.open('/api/comptabilite/export-grand-livre?token=' + encodeURIComponent(token), '_blank');
-}
-
-function exportEtatsFinanciers() {
-    var token = localStorage.getItem('sourougnon_token') || '';
-    window.open('/api/comptabilite/export-etats-financiers?token=' + encodeURIComponent(token), '_blank');
+            `;
+        }).catch(() => {
+            el.innerHTML = '<div class="panel text-center py-8 text-muted">Les états financiers nécessitent une configuration comptable plus poussée ou ne renvoient pas les données attendues.</div>';
+        });
+    }
 }

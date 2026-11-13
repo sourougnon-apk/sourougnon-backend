@@ -1,130 +1,105 @@
 function loadRapports(c) {
     c.innerHTML = `
         <div class="fade-in space-y-6">
-            <h3 class="text-xl font-bold">Rapports et Exports</h3>
-            <div class="flex flex-wrap gap-2">
-                <button class="chip chip--active" data-type="ventes" onclick="switchRapport('ventes')">Ventes</button>
-                <button class="chip" data-type="recouvrements" onclick="switchRapport('recouvrements')">Paiements</button>
-                <button class="chip" data-type="resume" onclick="switchRapport('resume')">Résumé</button>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Générateur de Rapports</h3>
+                    <p class="text-sm text-muted mt-1">Extrayez les données de ventes et de recouvrement.</p>
+                </div>
             </div>
-            <div id="rapport-filtres" class="flex flex-wrap gap-2">
-                <select id="rapport-periode" class="chip">
-                    <option value="mois">Mois</option>
-                    <option value="jour">Jour</option>
-                    <option value="annee">Année</option>
-                </select>
-                <input type="date" id="rapport-debut" class="chip" placeholder="Début">
-                <input type="date" id="rapport-fin" class="chip" placeholder="Fin">
-                <button class="small-btn small-btn--primary" onclick="chargerRapport()">Appliquer</button>
-                <button class="small-btn small-btn--secondary" onclick="exporterCSV()">Export CSV</button>
-                <button class="small-btn small-btn--primary" onclick="exporterPDF()">Export PDF</button>
+
+            <div class="panel bg-slate-50 border-slate-200">
+                <form onsubmit="genererRapport(event)" class="flex flex-wrap items-end gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Type de rapport</label>
+                        <select id="rap-type" class="px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                            <option value="ventes">Ventes</option>
+                            <option value="recouvrements">Recouvrements (Paiements)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Date de début</label>
+                        <input type="date" id="rap-debut" required class="px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Date de fin</label>
+                        <input type="date" id="rap-fin" required class="px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                    </div>
+                    <button type="submit" class="bg-accent text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm">Générer</button>
+                    <button type="button" onclick="exporterRapportCSV()" class="bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-slate-900 shadow-sm ml-auto">Exporter CSV</button>
+                </form>
             </div>
-            <div id="rapport-contenu"></div>
+
+            <div id="rapport-resultat" class="panel hidden">
+                <!-- Les résultats s'afficheront ici -->
+            </div>
         </div>
     `;
-    switchRapport('ventes');
+    // Initialiser les dates par défaut (aujourd'hui)
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('rap-debut').value = today;
+    document.getElementById('rap-fin').value = today;
+    
+    genererRapport(new Event('submit')); // Charger le rapport par défaut
 }
 
-let rapportType = 'ventes';
+var currentRapportData = [];
 
-function switchRapport(type) {
-    rapportType = type;
-    document.querySelectorAll('#rapport-filtres .chip').forEach(ch => ch.classList.remove('chip--active'));
-    const btn = document.querySelector(`[data-type="${type}"]`);
-    if (btn) btn.classList.add('chip--active');
-    chargerRapport();
-}
+function genererRapport(e) {
+    if (e) e.preventDefault();
+    var type = document.getElementById('rap-type').value;
+    var debut = document.getElementById('rap-debut').value;
+    var fin = document.getElementById('rap-fin').value;
+    var el = document.getElementById('rapport-resultat');
+    
+    el.classList.remove('hidden');
+    el.innerHTML = '<div class="text-center py-8 text-muted">Génération en cours...</div>';
 
-function chargerRapport() {
-    const debut = document.getElementById('rapport-debut').value;
-    const fin = document.getElementById('rapport-fin').value;
-    let params = '';
-    if (debut) params += '&date_debut=' + debut;
-    if (fin) params += '&date_fin=' + fin;
-
-    let endpoint = '/rapports/' + rapportType;
-    if (rapportType === 'ventes') endpoint += '?' + params.slice(1);
-    else if (rapportType === 'recouvrements') endpoint += '?' + params.slice(1);
-    else endpoint = '/rapports/resume';
-
-    apiFetch(endpoint).then(r => {
-        if (rapportType === 'resume') {
-            afficherResume(r);
-        } else {
-            afficherTableauRapport(r);
+    apiFetch('/rapports/' + type + '?debut=' + debut + '&fin=' + fin).then(function(data) {
+        currentRapportData = data;
+        if (!data || data.length === 0) {
+            el.innerHTML = '<div class="text-center py-8 text-muted">Aucun résultat pour cette période.</div>';
+            return;
         }
-    }).catch(e => showAlert('Erreur : ' + e.message));
+
+        var f = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(v || 0);
+        var html = '<div class="table-wrapper"><table><thead>';
+
+        if (type === 'ventes') {
+            html += '<tr><th>Date</th><th>Client</th><th>Type</th><th>Montant</th><th>Statut</th></tr></thead><tbody>';
+            data.forEach(r => {
+                html += `<tr>
+                    <td class="text-xs">${new Date(r.date_debut).toLocaleDateString('fr-FR')}</td>
+                    <td class="font-medium">${r.client || 'Client'}</td>
+                    <td><span class="badge badge-info">${r.type_vente}</span></td>
+                    <td class="font-bold">${f(r.montant_total)}</td>
+                    <td><span class="badge ${r.statut === 'termine' ? 'badge-success' : 'badge-warning'}">${r.statut}</span></td>
+                </tr>`;
+            });
+        } else {
+            html += '<tr><th>Date</th><th>Client</th><th>Montant</th><th>Mode</th><th>Agent</th></tr></thead><tbody>';
+            data.forEach(r => {
+                html += `<tr>
+                    <td class="text-xs">${new Date(r.date).toLocaleDateString('fr-FR')}</td>
+                    <td class="font-medium">${r.client || 'Client'}</td>
+                    <td class="font-bold text-green-600">${f(r.montant)}</td>
+                    <td><span class="badge badge-info">${r.mode}</span></td>
+                    <td class="text-xs">${r.agent || '-'}</td>
+                </tr>`;
+            });
+        }
+        html += '</tbody></table></div>';
+        el.innerHTML = html;
+    }).catch(function(err) {
+        el.innerHTML = '<div class="text-center py-8 text-red-500">Erreur : ' + err.message + '</div>';
+    });
 }
 
-function afficherTableauRapport(data) {
-    const conteneur = document.getElementById('rapport-contenu');
-    if (!Array.isArray(data) || data.length === 0) {
-        conteneur.innerHTML = '<p class="text-muted text-center py-4">Aucune donnée</p>';
+function exporterRapportCSV() {
+    if (currentRapportData.length === 0) {
+        showAlert('Veuillez générer un rapport avant de l\'exporter.');
         return;
     }
-    const f = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);
-
-    let html = '<div class="table-wrapper"><table><thead><tr>';
-    if (rapportType === 'ventes') {
-        html += '<th>Date</th><th>Débiteur</th><th>Agent</th><th>Type</th><th>Montant</th><th>Payé</th><th>Restant</th><th>Statut</th>';
-    } else if (rapportType === 'recouvrements') {
-        html += '<th>Date</th><th>Débiteur</th><th>Agent</th><th>Montant</th><th>Mode</th><th>Statut</th>';
-    }
-    html += '</tr></thead><tbody>';
-
-    data.forEach(v => {
-        if (rapportType === 'ventes') {
-            html += `<tr><td>${new Date(v.date_debut).toLocaleDateString('fr-FR')}</td><td>${v.debiteur?.nom || '--'} ${v.debiteur?.prenom || ''}</td><td>${v.agent?.nom || '--'}</td><td>${v.type_vente}</td><td>${f(v.montant_total)}</td><td>${f(v.total_paye)}</td><td>${f(v.reste_a_payer)}</td><td>${v.statut}</td></tr>`;
-        } else if (rapportType === 'recouvrements') {
-            html += `<tr><td>${new Date(v.date_recouvrement).toLocaleDateString('fr-FR')}</td><td>${v.vente?.debiteur?.nom || '--'} ${v.vente?.debiteur?.prenom || ''}</td><td>${v.agent?.nom || '--'}</td><td>${f(v.montant)}</td><td>${v.mode_paiement}</td><td>${v.statut}</td></tr>`;
-        }
-    });
-
-    html += '</tbody></table></div>';
-    conteneur.innerHTML = html;
-}
-
-function afficherResume(r) {
-    const f = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF',maximumFractionDigits:0}).format(v||0);
-    const conteneur = document.getElementById('rapport-contenu');
-    conteneur.innerHTML = `
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="kpi-card"><div class="kpi-label">Encaissements (mois)</div><div class="kpi-value">${f(r.mois.encaissements)}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Paiements (mois)</div><div class="kpi-value">${r.mois.nb_paiements}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Ventes (mois)</div><div class="kpi-value">${r.mois.ventes_mois}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Créances</div><div class="kpi-value">${f(r.mois.creances)}</div></div>
-        </div>
-        <div class="panel mt-4"><h4>Top Agents du Mois</h4>
-            <div class="table-wrapper"><table><thead><tr><th>Agent</th><th class="text-right">Total encaissé</th></tr></thead><tbody>
-                ${r.top_agents_mois.map(a => `<tr><td>${a.agent?.nom || '--'} ${a.agent?.prenom || ''}</td><td class="text-right">${f(a.total)}</td></tr>`).join('')}
-            </tbody></table></div>
-        </div>
-    `;
-}
-
-function exporterCSV() {
-    const token = localStorage.getItem('sourougnon_token') || '';
-    const debut = document.getElementById('rapport-debut').value;
-    const fin = document.getElementById('rapport-fin').value;
-    let url = `/api/rapports/${rapportType}?format=csv`;
-    if (debut) url += '&date_debut=' + debut;
-    if (fin) url += '&date_fin=' + fin;
-    url += '&token=' + encodeURIComponent(token);
-    window.open(url, '_blank');
-}
-
-function exporterPDF() {
-    const token = localStorage.getItem('sourougnon_token') || '';
-    const debut = document.getElementById('rapport-debut').value;
-    const fin = document.getElementById('rapport-fin').value;
-    let url = (rapportType === 'resume') ? '/api/rapports/resume-pdf' : `/api/rapports/${rapportType}?format=pdf`;
-    if (debut) url += (url.includes('?')?'&':'?') + 'date_debut=' + debut;
-    if (fin) url += (url.includes('?')?'&':'?') + 'date_fin=' + fin;
-    url += (url.includes('?')?'&':'?') + 'token=' + encodeURIComponent(token);
-    window.open(url, '_blank');
-}
-
-function loadResume(b) {
-    b.textContent = 'Chargement...';
-    apiFetch('/rapports/resume').then(r => afficherResume(r));
+    var type = document.getElementById('rap-type').value;
+    apiDownload('/rapports/' + type + '?format=csv&debut=' + document.getElementById('rap-debut').value + '&fin=' + document.getElementById('rap-fin').value, 'rapport_' + type + '.csv');
 }
