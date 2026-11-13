@@ -1,5 +1,6 @@
 <?php
 namespace App\Http\Controllers\Api;
+use App\Models\MouvementCaisse;
 use App\Services\SyntheseService;
 use App\Http\Controllers\Controller;
 use App\Models\Recouvrement;

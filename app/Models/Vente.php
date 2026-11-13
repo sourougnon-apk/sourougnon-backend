@@ -5,6 +5,7 @@ use App\Observers\VenteObserver;
 
 class Vente extends Model
 {
+    use \App\Models\Concerns\BelongsToAgence;
     protected static function booted(): void
     {
         static::observe(VenteObserver::class);

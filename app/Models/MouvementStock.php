@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MouvementStock extends Model
 {
+    use \App\Models\Concerns\BelongsToAgence;
     protected $table = 'mouvements_stock';
     
     protected $fillable = [

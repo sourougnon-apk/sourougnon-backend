@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Debiteur extends Model
 {
+    use \App\Models\Concerns\BelongsToAgence;
     protected $attributes = [
         'credits_autorises' => 1,
         'actif' => true,

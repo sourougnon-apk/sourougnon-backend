@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Recouvrement extends Model
 {
+    use \App\Models\Concerns\BelongsToAgence;
     protected $fillable = [
         'uuid', 'vente_id', 'agent_id', 'montant',
         'date_recouvrement', 'mode_paiement', 'statut',

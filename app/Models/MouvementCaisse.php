@@ -4,6 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MouvementCaisse extends Model
 {
+    use \App\Models\Concerns\BelongsToAgence;
     protected $table = 'mouvements_caisse';
     protected $fillable = [
         'uuid','caisse_id','user_id','recouvrement_id','remise_id','sync_uuid',
