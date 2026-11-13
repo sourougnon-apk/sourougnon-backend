@@ -2,15 +2,31 @@
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Produit;
+use App\Models\StockAgence;
 use App\Models\Approvisionnement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ProduitController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Produit::where('actif', true)->get();
+        $user = $request->user();
+        $agenceId = $user->agence_id ?? 1;
+
+        $produits = Produit::with('categorie')->where('actif', true)->orderBy('nom')->get();
+
+        // Si ce n'est pas la gérante, on affiche le stock de son agence
+        if ($user->role !== 'gerante') {
+            $stocks = StockAgence::where('agence_id', $agenceId)->get()->keyBy('produit_id');
+            $produits->each(function($p) use ($stocks) {
+                $stock = $stocks->get($p->id);
+                $p->stock = $stock ? $stock->quantite : 0;
+                $p->seuil_alerte = $stock ? $stock->seuil_alerte : 5;
+            });
+        }
+
+        return response()->json($produits);
     }
 
     public function store(Request $request)
