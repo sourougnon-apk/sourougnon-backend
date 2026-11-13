@@ -101,4 +101,44 @@ class ParametreController extends Controller
         return response()->json(['success' => true, 'message' => 'Mot de passe réinitialisé avec succès.']);
     }
 
+
+    public function storeUtilisateur(Request $request)
+    {
+        $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'nullable|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'telephone' => 'nullable|string|max:20',
+            'role' => 'required|in:agent,chef_agence',
+            'agence_id' => 'required|exists:agences,id',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user = User::create([
+            'uuid' => Str::uuid(),
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'email' => $request->email,
+            'telephone' => $request->telephone,
+            'role' => $request->role,
+            'agence_id' => $request->agence_id,
+            'password' => bcrypt($request->password),
+            'actif' => true,
+        ]);
+
+        // Créer automatiquement une fiche employé RH pour les agents
+        if ($request->role === 'agent') {
+            \App\Models\Employe::create([
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'poste' => 'Agent de terrain',
+                'date_embauche' => now()->toDateString(),
+                'salaire_base' => 0,
+                'mode_calcul' => 'journalier',
+            ]);
+        }
+
+        return response()->json(['success' => true, 'user' => $user]);
+    }
+
 }

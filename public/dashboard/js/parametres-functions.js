@@ -24,7 +24,7 @@ function loadParametres(c) {
             <div class="panel mt-6">
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="text-lg font-bold text-slate-800">Utilisateurs</h4>
-                    <!-- Le bouton Ajouter utilisateur ira dans Paramètres ou Agents selon le besoin -->
+                    <button onclick="showAddUserForm()" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm">+ Nouvel Utilisateur</button>
                 </div>
                 <div class="table-wrapper">
                     <table>
@@ -347,5 +347,78 @@ function changeOwnPassword(e) {
         document.getElementById('own-password-confirm').value = '';
     }).catch(function(e){
         msg.innerHTML = '<span class="text-red-500">Erreur : ' + e.message + '</span>';
+    });
+}
+
+
+function showAddUserForm() {
+    var agences = window._allAgences || [];
+    if (agences.length === 0) {
+        showAlert('Veuillez créer une agence avant d\'ajouter des utilisateurs.');
+        return;
+    }
+
+    var agenceOptions = agences.map(a => `<option value="${a.id}">${a.nom}</option>`).join('');
+    
+    var html = `
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-user">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Nouvel Utilisateur</h3>
+                    <button onclick="document.getElementById('modal-user').remove()" class="text-slate-400 hover:text-slate-700">✕</button>
+                </div>
+                <form onsubmit="submitNewUser(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="usr-nom" placeholder="Nom *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                        <input type="text" id="usr-prenom" placeholder="Prénom" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    </div>
+                    <input type="email" id="usr-email" placeholder="Email *" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    <input type="text" id="usr-tel" placeholder="Téléphone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Rôle</label>
+                            <select id="usr-role" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                                <option value="agent">Agent</option>
+                                <option value="chef_agence">Chef d'agence</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Agence</label>
+                            <select id="usr-agence" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${agenceOptions}</select>
+                        </div>
+                    </div>
+
+                    <input type="password" id="usr-password" placeholder="Mot de passe initial (min 6 car.) *" required minlength="6" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    
+                    <div class="flex gap-3 pt-2">
+                        <button type="button" onclick="document.getElementById('modal-user').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold">Créer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function submitNewUser(e) {
+    e.preventDefault();
+    var data = {
+        nom: document.getElementById('usr-nom').value,
+        prenom: document.getElementById('usr-prenom').value,
+        email: document.getElementById('usr-email').value,
+        telephone: document.getElementById('usr-tel').value,
+        role: document.getElementById('usr-role').value,
+        agence_id: parseInt(document.getElementById('usr-agence').value),
+        password: document.getElementById('usr-password').value
+    };
+
+    apiFetch('/parametres/utilisateurs', { method: 'POST', body: JSON.stringify(data) }).then(function(res) {
+        document.getElementById('modal-user').remove();
+        showAlert('Utilisateur créé avec succès.');
+        loadParametresData(); // Recharge la liste des utilisateurs
+    }).catch(function(err) {
+        showAlert('Erreur : ' + err.message);
     });
 }

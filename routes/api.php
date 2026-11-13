@@ -217,6 +217,7 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/parametres', [ParametreController::class, 'index']);
         Route::get('/dashboard/groupe', [\App\Http\Controllers\Api\DashboardGroupeController::class, 'index']);
         Route::post('/parametres/agences', [ParametreController::class, 'storeAgence']);
+        Route::post('/parametres/utilisateurs', [ParametreController::class, 'storeUtilisateur']);
         Route::put('/parametres/agences/{id}', [ParametreController::class, 'updateAgence']);
         Route::put('/parametres/utilisateurs/{uuid}/agence', [ParametreController::class, 'assignerAgence']);
         Route::put('/parametres/utilisateurs/{uuid}/password', [ParametreController::class, 'resetPassword']);
