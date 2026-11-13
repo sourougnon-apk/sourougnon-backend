@@ -30,18 +30,6 @@
     <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         <a href="#" data-page="dashboard" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors active"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a>
         <a href="#" data-page="notifications" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span>Notifications</span><span id="notif-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"></span></a>
-        <a href="#" data-page="chef-agence" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-7h6v7M8 10h.01M12 10h.01M16 10h.01"/></svg><span>Chef d'agence</span></a>
-        <a href="#" data-page="agents" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><circle cx="15" cy="7" r="3"/><path d="M2 21v-1a5 5 0 0 1 5-5h2m6 0h2a5 5 0 0 1 5 5v1"/></svg><span>Agents</span></a>
-        <a href="#" data-page="debiteurs" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0 1 7-7h0a7 7 0 0 1 7 7v1"/></svg><span>Débiteurs</span></a>
-        <a href="#" data-page="epargnes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M6 6h12v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/></svg><span>Épargnes</span></a>
-        <a href="#" data-page="penalites" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M6 6h12v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/></svg><span>Pénalités</span></a>
-        <a href="#" data-page="tournees" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M6 6h12v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/></svg><span>Tournées</span></a>
-        <a href="#" data-page="suivi" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span>Suivi</span></a>
-        <a href="#" data-page="caisse" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8m-4-4h8"/></svg><span>Caisse</span></a>
-        <a href="#" data-page="stocks" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Stocks</span></a>
-        <a href="#" data-page="produits" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Produits</span></a>
-        <a href="#" data-page="ventes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 7h18M3 11h18M3 15h10m-8 4h6"/></svg><span>Ventes</span></a>
-        <a href="#" data-page="comptant" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 100 4h4a2 2 0 110 4H8m4 2v-2m0-8V6"/></svg><span>Ventes Comptant</span></a>
         <a href="#" data-page="alertes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg><span>Alertes</span><span id="alert-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-alert rounded-full animate-pulse"></span></a>
         <a href="#" data-page="parametres" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>Paramètres</span></a>
         <a href="#" data-page="remboursements" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 6h16v2H4zm0 6h10v2H4z"/></svg><span>Remboursements</span></a>
@@ -151,34 +139,18 @@
 <div id="caisse-cloture-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"><div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in"><h3 class="text-lg font-bold mb-4">Clôturer la caisse</h3><form onsubmit="submitCloture(event)" class="space-y-3"><p class="text-sm text-muted">Le solde réel vous sera demandé après validation.</p><textarea id="cloture-notes" placeholder="Notes" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm"></textarea><div class="flex gap-3 pt-2"><button type="button" onclick="closeClotureModal()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button><button type="submit" class="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold">Clôturer</button></div></form></div></div>
 
         <script src="js/dashboard-functions.js?v=20261113"></script>
-    <script src="js/agents-functions.js?v=202608701"></script>
-    <script src="js/debiteurs-functions.js?v=202608261836"></script>
-    <script src="js/epargnes-penalites-functions.js?v=2026082515"></script>
-    <script src="js/tournees-functions.js?v=2026082001"></script>
-    <script src="js/suivi-functions.js?v=202608701"></script>
-    <script src="js/caisse-functions.js?v=202611130001"></script>
     <script src="js/remboursement-functions.js?v=20260818a"></script>
     <script src="js/comptabilite-functions.js?v=20261114003"></script>
-    <script src="js/stocks-functions.js?v=20260818201146"></script>
-    <script src="js/produits-functions.js?v=202608701"></script>
-    <script src="js/ventes-functions.js?v=20260818a"></script>
-    <script src="js/comptant-functions.js?v=202609021500"></script>
     <script src="js/alertes-functions.js?v=20261114001"></script>
     <script src="js/parametres-functions.js?v=20261114002"></script>
     <script src="js/statistiques-functions.js?v=20261114003"></script>
     <script src="js/notifications-functions.js?v=202608701"></script>
     <script src="js/rapports-functions.js?v=20261114003"></script>
-    <script src="js/vente-modals-functions.js?v=20260814091247"></script>
-    <script src="js/agent-functions.js?v=20260819025157"></script>
-    <script src="js/chef-functions.js?v=202608701"></script>
-    <script src="js/localisation-loader.js?v=202608500"></script>
-    
-    
     <script src="js/Sauvegarde-functions.js?v=20261114004"></script>
     <script src="js/GestionBancaire-functions.js?v=20261114001"></script>
     <script src="js/RessourcesHumaines-functions.js?v=20261114004"></script>
     <script src="js/recherche-globale.js"></script>
-    <script src="js/app.js?v=202609040100"></script>
+    <script src="js/app.js?v=20261114005"></script>
 
 <div id="encaisser-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in" style="max-height:90vh;overflow-y:auto">
