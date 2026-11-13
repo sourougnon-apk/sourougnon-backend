@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vente;
+use App\Models\StockAgence;
 use App\Models\Recouvrement;
 use App\Models\Debiteur;
 use App\Models\Echeance;
@@ -138,7 +139,7 @@ class ChefAgenceController extends Controller
                         'quantite' => $p['quantite'] ?? 1,
                         'prix_unitaire' => $prod->prix_vente ?? 0,
                     ]);
-                    if ($prod->stock > 0) $prod->decrement('stock', $p['quantite'] ?? 1);
+                    if ($prod) { $this->decrementerStockAgence($prod, $p['quantite'] ?? 1, $request->user()->agence_id ?? 1); }
                 }
             }
         } else if ($produit && $produit->stock > 0) {
@@ -157,7 +158,7 @@ class ChefAgenceController extends Controller
             'synced' => true,
         ]);
 
-        if ($produit && $produit->stock > 0) $produit->decrement('stock');
+        if ($produit) { $this->decrementerStockAgence($produit, 1, $request->user()->agence_id ?? 1); }
         CaisseService::enregistrerRecouvrement($rec, 'valide');
         ComptabiliteService::ecrireRecouvrement($rec);
         \App\Services\NotificationService::notifierNouvelleVente($vente);
@@ -254,7 +255,7 @@ class ChefAgenceController extends Controller
                     ]);
                     $qte = (int) ($p['quantite'] ?? 1);
                     $avant = (int) $prod->stock;
-                    $prod->decrement('stock', $qte);
+                    $this->decrementerStockAgence($prod, $qte, $request->user()->agence_id ?? 1);
                     \App\Models\MouvementStock::create([
                         'uuid' => Str::uuid(),
                         'produit_id' => $prod->id,

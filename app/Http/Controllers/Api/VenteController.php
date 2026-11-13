@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Vente;
+use App\Models\StockAgence;
 use App\Models\Debiteur;
 use App\Models\User;
 use App\Models\Produit;
@@ -147,6 +148,7 @@ class VenteController extends Controller
                 $avant = (int) $vp->produit->stock;
                 \App\Models\Produit::whereKey($vp->produit_id)
                     ->update(['stock' => DB::raw('stock + ' . (int) $vp->quantite)]);
+                    \App\Models\StockAgence::where('agence_id', $vente->agence_id)->where('produit_id', $vp->produit_id)->increment('quantite', $vp->quantite);
                 \App\Models\MouvementStock::create([
                     'uuid' => Str::uuid(), 'produit_id' => $vp->produit_id, 'user_id' => $userId,
                     'type' => 'retour', 'action' => 'annulation',
@@ -161,6 +163,7 @@ class VenteController extends Controller
                 $avant = (int) $vente->produit->stock;
                 \App\Models\Produit::whereKey($vente->produit_id)
                     ->update(['stock' => DB::raw('stock + 1')]);
+                    \App\Models\StockAgence::where('agence_id', $vente->agence_id)->where('produit_id', $vente->produit_id)->increment('quantite', 1);
                 \App\Models\MouvementStock::create([
                     'uuid' => Str::uuid(), 'produit_id' => $vente->produit_id, 'user_id' => $userId,
                     'type' => 'retour', 'action' => 'annulation', 'quantite' => 1,

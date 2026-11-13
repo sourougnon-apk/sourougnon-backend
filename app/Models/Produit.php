@@ -29,4 +29,10 @@ class Produit extends Model
         $totalVentes = $this->ventes()->sum('quantite') ?? 0;
         return $this->stock_initial + $totalAppros - $totalVentes;
     }
+
+    public function stocksAgences()
+    {
+        return $this->hasMany(StockAgence::class);
+    }
+
 }
