@@ -1,9 +1,15 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+use App\Observers\ProduitObserver;
 
 class Produit extends Model
 {
+    protected static function booted()
+    {
+        static::observe(ProduitObserver::class);
+    }
+
     protected $fillable = [
         'uuid', 'categorie_id', 'code', 'nom', 'description',
         'conditionnement', 'unite', 'prix_achat', 'prix_vente',
