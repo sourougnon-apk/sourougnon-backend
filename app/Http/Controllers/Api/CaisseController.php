@@ -72,6 +72,10 @@ class CaisseController extends Controller
 
     public function decaisser(Request $request)
     {
+        if ($request->user()->role === 'gerante') {
+            return response()->json(['error' => 'La gérante ne peut pas effectuer cette action.'], 403);
+        }
+
         $request->validate(['montant' => 'required|numeric|min:0', 'motif' => 'required|string']);
         $caisse = Caisse::where('user_id', $request->user()->id)->where('statut', 'ouverte')->whereDate('date_ouverture', now()->toDateString())->orderByDesc('date_ouverture')->firstOrFail();
         MouvementCaisse::create([
@@ -83,6 +87,10 @@ class CaisseController extends Controller
 
     public function payerSalaire(Request $request)
     {
+        if ($request->user()->role === 'gerante') {
+            return response()->json(['error' => 'La gérante ne peut pas effectuer cette action.'], 403);
+        }
+
         $request->validate(['montant' => 'required|numeric|min:0', 'beneficiaire' => 'required|string', 'motif' => 'nullable|string']);
         $caisse = Caisse::where('user_id', $request->user()->id)->where('statut', 'ouverte')->whereDate('date_ouverture', now()->toDateString())->orderByDesc('date_ouverture')->firstOrFail();
         MouvementCaisse::create([
@@ -95,6 +103,10 @@ class CaisseController extends Controller
 
     public function cloturer(Request $request)
     {
+        if ($request->user()->role === 'gerante') {
+            return response()->json(['error' => 'La gérante ne peut pas effectuer cette action.'], 403);
+        }
+
         $request->validate(['solde_reel' => 'required|numeric|min:0', 'notes' => 'nullable|string']);
         $caisse = Caisse::where('user_id', $request->user()->id)->where('statut', 'ouverte')->whereDate('date_ouverture', now()->toDateString())->orderByDesc('date_ouverture')->firstOrFail();
         $mouvements = $caisse->mouvements;
@@ -118,6 +130,10 @@ class CaisseController extends Controller
      */
     public function remise(Request $request)
     {
+        if ($request->user()->role === 'gerante') {
+            return response()->json(['error' => 'La gérante ne peut pas effectuer cette action.'], 403);
+        }
+
         $request->validate([
             'montant' => 'required|numeric|min:0',
             'agent_id' => 'nullable|exists:users,uuid',
@@ -351,6 +367,10 @@ class CaisseController extends Controller
 
     public function validerRemise(Request $request, string $reference)
     {
+        if ($request->user()->role === 'gerante') {
+            return response()->json(['error' => 'La gérante ne peut pas effectuer cette action.'], 403);
+        }
+
         $chef = $request->user();
 
         if (!in_array($chef->role, ['chef_agence', 'gerante'], true)) {
