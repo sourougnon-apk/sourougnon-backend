@@ -118,6 +118,7 @@ function loadPage(page) {
         'debiteurs': loadDebiteurs,
         'suivi': loadSuivi,
         'caisse': loadCaisse,
+        'remboursements': loadRemboursements,
         'comptabilite': loadComptabilite,
         'stocks': loadStocks,
         'produits': loadProduits,

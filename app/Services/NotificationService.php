@@ -144,4 +144,41 @@ class NotificationService
         }
     }
 
+
+    public static function notifierRemboursement(\App\Models\DemandeRemboursement $demande, string $action): void
+    {
+        try {
+            $vente = $demande->vente;
+            $debiteur = $vente?->debiteur;
+            $chef = $demande->demandeur;
+            
+            // Notifier le chef qui a fait la demande
+            if ($chef) {
+                Notification::create([
+                    'uuid' => \Illuminate\Support\Str::uuid(),
+                    'user_id' => $chef->id,
+                    'type' => 'remboursement',
+                    'titre' => 'Demande de remboursement ' . ($action === 'validee' ? 'validée' : 'rejetée'),
+                    'message' => 'La gérante a ' . ($action === 'validee' ? 'validé' : 'rejeté') . ' la demande pour ' . ($debiteur?->nom ?? 'le client') . '.',
+                    'lien' => '/dashboard/chef/',
+                ]);
+            }
+
+            // Notifier la gérante (récapitulatif)
+            $gerante = \App\Models\User::where('role', 'gerante')->first();
+            if ($gerante) {
+                Notification::create([
+                    'uuid' => \Illuminate\Support\Str::uuid(),
+                    'user_id' => $gerante->id,
+                    'type' => 'remboursement',
+                    'titre' => 'Remboursement ' . $action,
+                    'message' => 'Remboursement ' . $action . ' pour ' . ($debiteur?->nom ?? 'le client') . ' (Chef: ' . ($chef?->nom ?? '?') . ').',
+                    'lien' => '#remboursements',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Erreur notif remboursement: ' . $e->getMessage());
+        }
+    }
+
 }

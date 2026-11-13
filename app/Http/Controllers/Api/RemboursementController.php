@@ -47,6 +47,7 @@ class RemboursementController extends Controller
             'montant_rembourse' => round($vente->montantCreditPaye() * 0.5, 2),
             'montant_epargne_rembourse' => $vente->montantEpargnePaye(),
             'statut' => 'en_attente',
+            'motif_demande' => $request->input('motif'),
         ]);
 
         return response()->json([
