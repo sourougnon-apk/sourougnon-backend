@@ -139,6 +139,7 @@ function loadPage(page) {
         'dashboard': loadDashboard,
         'comptabilite': loadComptabilite,
         'remboursements': loadRemboursements,
+        'caisse': loadCaisseGerante,
         'alertes': loadAlertes,
         'stocks': loadStocks,
         'produits': loadProduits,
