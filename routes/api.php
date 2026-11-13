@@ -151,7 +151,10 @@ Route::middleware('auth.token')->group(function () {
         Route::put('/alertes/toutes-lues', [AlerteController::class, 'marquerToutesLues']);
         Route::put('/alertes/{uuid}/lue', [AlerteController::class, 'marquerLue']);
 
-        // Comptabilite
+    });
+
+    Route::middleware('role:gerante')->group(function () {
+        // Comptabilite (Gérante uniquement)
         Route::get('/comptabilite/journal', [ComptabiliteController::class, 'journal']);
         Route::get('/comptabilite/grand-livre', [ComptabiliteController::class, 'grandLivre']);
         Route::get('/comptabilite/balance', [ComptabiliteController::class, 'balance']);
@@ -181,8 +184,8 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/sauvegarde/logs', [App\Http\Controllers\Api\SauvegardeController::class, 'listerLogs']);
     });
 
-    Route::middleware('role:gerante,chef_agence')->group(function () {
-        // Gestion bancaire
+    Route::middleware('role:gerante')->group(function () {
+        // Gestion bancaire (Gérante uniquement)
         Route::get('/bancaire/comptes', [App\Http\Controllers\Api\BancaireController::class, 'comptes']);
         Route::post('/bancaire/comptes', [App\Http\Controllers\Api\BancaireController::class, 'storeCompte']);
         Route::get('/bancaire/comptes/{uuid}/solde', [App\Http\Controllers\Api\BancaireController::class, 'solde']);
@@ -214,6 +217,7 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/parametres', [ParametreController::class, 'index']);
         Route::get('/dashboard/groupe', [\App\Http\Controllers\Api\DashboardGroupeController::class, 'index']);
         Route::post('/parametres/agences', [ParametreController::class, 'storeAgence']);
+        Route::put('/parametres/agences/{id}', [ParametreController::class, 'updateAgence']);
         Route::post('/parametres/magasins', [ParametreController::class, 'storeMagasin']);
         Route::post('/parametres/permissions', [ParametreController::class, 'togglePermission']);
     });

@@ -64,4 +64,46 @@ class ParametreController extends Controller
         
         return response()->json(['success' => true]);
     }
+
+    public function storeAgence(Request $request)
+    {
+        $request->validate([
+            'nom' => 'required|string|max:150',
+            'adresse' => 'nullable|string',
+            'telephone' => 'nullable|string|max:20',
+            'chef_uuid' => 'nullable|exists:users,uuid'
+        ]);
+
+        $agence = \App\Models\Agence::create([
+            'uuid' => \Illuminate\Support\Str::uuid(),
+            'nom' => $request->nom,
+            'adresse' => $request->adresse,
+            'telephone' => $request->telephone,
+            'actif' => true
+        ]);
+
+        if ($request->chef_uuid) {
+            $chef = \App\Models\User::where('uuid', $request->chef_uuid)->first();
+            if ($chef) {
+                $chef->update(['agence_id' => $agence->id, 'role' => 'chef_agence']);
+            }
+        }
+
+        return response()->json(['success' => true, 'agence' => $agence]);
+    }
+
+    public function updateAgence(Request $request, $id)
+    {
+        $agence = \App\Models\Agence::findOrFail($id);
+        $request->validate([
+            'nom' => 'required|string|max:150',
+            'adresse' => 'nullable|string',
+            'telephone' => 'nullable|string|max:20',
+            'actif' => 'boolean'
+        ]);
+        
+        $agence->update($request->all());
+        return response()->json(['success' => true]);
+    }
+
 }
