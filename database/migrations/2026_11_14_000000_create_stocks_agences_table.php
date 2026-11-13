@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('stocks_agences', function (Blueprint $table) {
             $table->id();
-            // agences.id est un int(11), on doit utiliser unsignedInteger
-            $table->unsignedInteger('agence_id');
-            // produits.id est un bigint unsigned, foreignId est parfait
+            // agences.id est un int(11) SIGNÉ, on utilise integer()
+            $table->integer('agence_id');
+            // produits.id est un bigint(20) unsigned
             $table->foreignId('produit_id')->constrained('produits')->cascadeOnDelete();
             
             $table->integer('quantite')->default(0);
