@@ -212,6 +212,7 @@ Route::middleware('auth.token')->group(function () {
     // --- Gerante exclusivement : parametres et pages futures (Banque, etc.) ---
     Route::middleware('role:gerante')->group(function () {
         Route::get('/parametres', [ParametreController::class, 'index']);
+        Route::get('/dashboard/groupe', [\App\Http\Controllers\Api\DashboardGroupeController::class, 'index']);
         Route::post('/parametres/agences', [ParametreController::class, 'storeAgence']);
         Route::post('/parametres/magasins', [ParametreController::class, 'storeMagasin']);
         Route::post('/parametres/permissions', [ParametreController::class, 'togglePermission']);
