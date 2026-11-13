@@ -218,6 +218,7 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/dashboard/groupe', [\App\Http\Controllers\Api\DashboardGroupeController::class, 'index']);
         Route::post('/parametres/agences', [ParametreController::class, 'storeAgence']);
         Route::put('/parametres/agences/{id}', [ParametreController::class, 'updateAgence']);
+        Route::put('/parametres/utilisateurs/{uuid}/agence', [ParametreController::class, 'assignerAgence']);
         Route::post('/parametres/magasins', [ParametreController::class, 'storeMagasin']);
         Route::post('/parametres/permissions', [ParametreController::class, 'togglePermission']);
     });
