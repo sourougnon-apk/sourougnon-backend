@@ -219,6 +219,7 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/parametres/agences', [ParametreController::class, 'storeAgence']);
         Route::put('/parametres/agences/{id}', [ParametreController::class, 'updateAgence']);
         Route::put('/parametres/utilisateurs/{uuid}/agence', [ParametreController::class, 'assignerAgence']);
+        Route::put('/parametres/utilisateurs/{uuid}/password', [ParametreController::class, 'resetPassword']);
         Route::post('/parametres/magasins', [ParametreController::class, 'storeMagasin']);
         Route::post('/parametres/permissions', [ParametreController::class, 'togglePermission']);
     });

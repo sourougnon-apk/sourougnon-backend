@@ -124,7 +124,10 @@ function loadParametresData() {
                     <td><span class="badge ${roleBadge}">${x.role}</span></td>
                     <td class="font-semibold text-sm">${agNom}</td>
                     <td>
-                        ${x.role !== 'gerante' ? `<button onclick="showAssignerAgenceModal('${x.uuid}', '${x.nom}', ${x.agence_id || 0})" class="text-blue-600 hover:underline text-xs font-semibold">Changer d'agence</button>` : '<span class="text-xs text-muted">Groupe (Global)</span>'}
+                        <div class="flex gap-2">
+                            ${x.role !== 'gerante' ? `<button onclick="showAssignerAgenceModal('${x.uuid}', '${x.nom}', ${x.agence_id || 0})" class="text-blue-600 hover:underline text-xs font-semibold">Agence</button>` : '<span class="text-xs text-muted">Global</span>'}
+                            ${x.role !== 'gerante' ? `<button onclick="showResetPasswordModal('${x.uuid}', '${x.nom}')" class="text-amber-600 hover:underline text-xs font-semibold">Réinit. MDP</button>` : ''}
+                        </div>
                     </td>
                 </tr>
             `;
@@ -282,6 +285,53 @@ function submitAssignAgence(e, userUuid) {
 }
 
 // Fonction de changement de mot de passe (existante)
+
+function showResetPasswordModal(uuid, nom) {
+    var html = `
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-reset-pwd">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">Réinitialiser le mot de passe</h3>
+                    <button onclick="document.getElementById('modal-reset-pwd').remove()" class="text-slate-400 hover:text-slate-700">✕</button>
+                </div>
+                <p class="text-sm text-slate-600 mb-4">Utilisateur : <strong>${nom}</strong></p>
+                <form onsubmit="submitResetPassword(event, '${uuid}')" class="space-y-3">
+                    <input type="password" id="reset-pass" placeholder="Nouveau mot de passe" required minlength="6" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    <input type="password" id="reset-pass-conf" placeholder="Confirmer le mot de passe" required minlength="6" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                    <div id="reset-pass-msg" class="text-xs"></div>
+                    <div class="flex gap-3 pt-2">
+                        <button type="button" onclick="document.getElementById('modal-reset-pwd').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold">Réinitialiser</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function submitResetPassword(e, uuid) {
+    e.preventDefault();
+    var pass = document.getElementById('reset-pass').value;
+    var conf = document.getElementById('reset-pass-conf').value;
+    var msg = document.getElementById('reset-pass-msg');
+
+    if (pass !== conf) {
+        msg.innerHTML = '<span class="text-red-500">Les mots de passe ne correspondent pas.</span>';
+        return;
+    }
+
+    apiFetch('/parametres/utilisateurs/' + uuid + '/password', {
+        method: 'PUT',
+        body: JSON.stringify({ password: pass, password_confirmation: conf })
+    }).then(function(res) {
+        document.getElementById('modal-reset-pwd').remove();
+        showAlert('Mot de passe réinitialisé avec succès.');
+    }).catch(function(err) {
+        msg.innerHTML = '<span class="text-red-500">' + err.message + '</span>';
+    });
+}
+
 function changeOwnPassword(e) {
     e.preventDefault();
     var pass = document.getElementById('own-password').value;

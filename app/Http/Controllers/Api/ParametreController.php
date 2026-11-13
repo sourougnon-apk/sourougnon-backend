@@ -82,4 +82,23 @@ class ParametreController extends Controller
     {
         // Logique existante
     }
+
+    public function resetPassword(Request $request, $uuid)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6|confirmed'
+        ]);
+
+        $user = User::where('uuid', $uuid)->firstOrFail();
+        
+        // Sécurité : la gérante ne peut pas se réinitialiser elle-même par cette route
+        if ($user->role === 'gerante') {
+            return response()->json(['error' => 'Utilisez le formulaire de sécurité de votre propre compte pour changer votre mot de passe.'], 422);
+        }
+
+        $user->update(['password' => bcrypt($request->password)]);
+
+        return response()->json(['success' => true, 'message' => 'Mot de passe réinitialisé avec succès.']);
+    }
+
 }
