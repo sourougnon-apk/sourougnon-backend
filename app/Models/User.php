@@ -25,6 +25,7 @@ class User extends Authenticatable
     public function debiteurs() { return $this->hasMany(Debiteur::class, 'agent_id'); }
     public function ventes() { return $this->hasMany(Vente::class, 'agent_id'); }
     public function recouvrements() { return $this->hasMany(Recouvrement::class, 'agent_id'); }
+    public function permissions() { return $this->hasMany(Permission::class); }
     public function isGerante(): bool { return $this->role === 'gerante'; }
     public function isChefAgence(): bool { return $this->role === 'chef_agence'; }
     public function isAgent(): bool { return $this->role === 'agent'; }

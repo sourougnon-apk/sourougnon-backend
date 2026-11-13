@@ -24,7 +24,7 @@ function loadGestionBancaire(c) {
                 <div class="table-wrapper">
                     <table>
                         <thead>
-                            <tr><th>Date</th><th>Type</th><th>Compte Débit</th><th>Compte Crédit</th><th>Montant</th><th>Auteur</th></tr>
+                            <tr><th>Date</th><th>Type</th><th>Compte Débit</th><th>Compte Crédit</th><th>Montant</th><th>Source</th><th>Auteur</th></tr>
                         </thead>
                         <tbody id="bancaire-historique">
                             <tr><td colspan="6" class="text-center text-muted py-4">Chargement...</td></tr>
@@ -93,6 +93,7 @@ function chargerHistoriqueBancaire() {
                     <td>${op.compte_debit ? op.compte_debit.nom : '-'}</td>
                     <td>${op.compte_credit ? op.compte_credit.nom : '-'}</td>
                     <td class="font-semibold ${op.type === 'depot' ? 'text-green-600' : 'text-slate-800'}">${f}</td>
+                    <td><span class="badge ${op.source === 'caisse' ? 'badge-warning' : 'badge-info'}">${op.source || 'externe'}</span></td>
                     <td class="text-xs">${auteur}</td>
                 </tr>
             `;
