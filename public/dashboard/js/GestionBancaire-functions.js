@@ -1,107 +1,174 @@
 function loadGestionBancaire(c) {
     c.innerHTML = `
         <div class="fade-in space-y-6">
-            <h3 class="text-xl font-bold">Gestion bancaire</h3>
-            <div class="flex flex-wrap gap-2">
-                <button onclick="bancaireNouvelleOperation('depot')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Dépôt</button>
-                <button onclick="bancaireNouvelleOperation('retrait')" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">- Retrait</button>
-                <button onclick="bancaireNouvelleOperation('transfert')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">⇄ Transfert</button>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Gestion Bancaire</h3>
+                    <p class="text-sm text-muted mt-1">Gérez vos comptes et opérations financières.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="showBanqueModal('depot')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 shadow-sm">+ Dépôt</button>
+                    <button onclick="showBanqueModal('retrait')" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 shadow-sm">- Retrait</button>
+                    <button onclick="showBanqueModal('transfert')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm">⇄ Transfert</button>
+                </div>
             </div>
-            <div id="bancaire-comptes" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
-            <div id="bancaire-historique" class="panel p-4"></div>
+
+            <!-- Comptes Cards -->
+            <div id="bancaire-comptes" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="panel text-center text-muted text-sm py-6">Chargement des comptes...</div>
+            </div>
+
+            <!-- Historique Table -->
+            <div class="panel">
+                <h4 class="text-lg font-bold text-slate-800 mb-4">Dernières opérations</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Type</th><th>Compte Débit</th><th>Compte Crédit</th><th>Montant</th><th>Auteur</th></tr>
+                        </thead>
+                        <tbody id="bancaire-historique">
+                            <tr><td colspan="6" class="text-center text-muted py-4">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     `;
-    bancaireChargerComptes();
-    bancaireChargerHistorique();
+    chargerComptesBancaires();
+    chargerHistoriqueBancaire();
 }
 
-async function bancaireChargerComptes() {
-    const comptes = await apiFetch('/bancaire/comptes');
-    const el = document.getElementById('bancaire-comptes');
-    if (!Array.isArray(comptes)) return;
-    el.innerHTML = comptes.map(cpt => `
-        <div class="panel p-3">
-            <h4>${cpt.nom}</h4>
-            <p class="text-sm text-muted">Solde : <span id="solde-${cpt.uuid}">...</span></p>
-        </div>
-    `).join('');
-    for (const cpt of comptes) {
-        try {
-            const res = await apiFetch(`/bancaire/comptes/${cpt.uuid}/solde`);
-            document.getElementById(`solde-${cpt.uuid}`).textContent = new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF'}).format(res.solde);
-        } catch(e) {}
-    }
-}
-
-async function bancaireChargerHistorique() {
-    try {
-        const ops = await apiFetch('/bancaire/historique');
-        const el = document.getElementById('bancaire-historique');
-        if (!Array.isArray(ops) || ops.length === 0) {
-            el.innerHTML = '<p class="text-muted">Aucune opération</p>';
+function chargerComptesBancaires() {
+    apiFetch('/bancaire/comptes').then(function(comptes) {
+        var el = document.getElementById('bancaire-comptes');
+        if (!comptes || comptes.length === 0) {
+            el.innerHTML = '<div class="panel text-center text-muted text-sm py-6 col-span-3">Aucun compte configuré.</div>';
             return;
         }
-        el.innerHTML = `<table class="min-w-full">
-            <thead><tr><th>Date</th><th>Type</th><th>Compte débit</th><th>Compte crédit</th><th>Montant</th><th>Source</th><th>Auteur</th></tr></thead>
-            <tbody>${ops.map(op => `
+        
+        el.innerHTML = comptes.map(function(cpt) {
+            return `
+                <div class="panel p-5 border-t-4 border-t-blue-600 relative">
+                    <h4 class="font-bold text-slate-800">${cpt.nom}</h4>
+                    <p class="text-xs text-muted uppercase mt-1">${cpt.type}</p>
+                    <div class="mt-4">
+                        <div class="text-xs text-muted mb-1">Solde disponible</div>
+                        <div class="text-2xl font-bold text-slate-800" id="solde-${cpt.uuid}">...</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        comptes.forEach(function(cpt) {
+            apiFetch('/bancaire/comptes/' + cpt.uuid + '/solde').then(function(res) {
+                var el = document.getElementById('solde-' + cpt.uuid);
+                if (el) {
+                    var montant = new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(res.solde || 0);
+                    el.textContent = montant;
+                    if (res.solde < 0) el.classList.replace('text-slate-800', 'text-red-600');
+                }
+            }).catch(() => {});
+        });
+    });
+}
+
+function chargerHistoriqueBancaire() {
+    apiFetch('/bancaire/historique').then(function(ops) {
+        var tb = document.getElementById('bancaire-historique');
+        if (!ops || ops.length === 0) {
+            tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Aucune opération enregistrée.</td></tr>';
+            return;
+        }
+        
+        tb.innerHTML = ops.slice(0, 10).map(function(op) {
+            var date = new Date(op.date_operation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            var f = new Intl.NumberFormat('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0}).format(op.montant || 0);
+            var typeBadge = op.type === 'depot' ? 'badge-success' : (op.type === 'retrait' ? 'badge-danger' : 'badge-info');
+            var auteur = op.user ? op.user.nom : 'Système';
+
+            return `
                 <tr>
-                    <td>${new Date(op.date_operation).toLocaleString('fr-FR')}</td>
-                    <td>${op.type}</td>
-                    <td>${op.compte_debit?.nom || '-'}</td>
-                    <td>${op.compte_credit?.nom || '-'}</td>
-                    <td>${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'XOF'}).format(op.montant)}</td>
-                    <td>${op.source}</td>
-                    <td>${op.user ? op.user.nom + ' ' + op.user.prenom : '--'}</td>
+                    <td class="text-xs">${date}</td>
+                    <td><span class="badge ${typeBadge}">${op.type}</span></td>
+                    <td>${op.compte_debit ? op.compte_debit.nom : '-'}</td>
+                    <td>${op.compte_credit ? op.compte_credit.nom : '-'}</td>
+                    <td class="font-semibold ${op.type === 'depot' ? 'text-green-600' : 'text-slate-800'}">${f}</td>
+                    <td class="text-xs">${auteur}</td>
                 </tr>
-            `).join('')}</tbody>
-        </table>`;
-    } catch(e) {
-        document.getElementById('bancaire-historique').innerHTML = '<p class="text-red-600">Erreur</p>';
-    }
+            `;
+        }).join('');
+    });
 }
 
-async function bancaireNouvelleOperation(type) {
-    const montant = await showPrompt('Montant (FCFA) :', '');
-    if (!montant) return;
-    const montantNum = parseFloat(montant);
-    if (isNaN(montantNum) || montantNum <= 0) { showAlert('Montant invalide'); return; }
+function showBanqueModal(type) {
+    var isDepot = type === 'depot';
+    var isTransfert = type === 'transfert';
+    var title = isDepot ? 'Nouveau Dépôt' : (isTransfert ? 'Nouveau Transfert' : 'Nouveau Retrait');
+    
+    apiFetch('/bancaire/comptes').then(function(comptes) {
+        if (!comptes || comptes.length === 0) {
+            showAlert('Veuillez créer un compte bancaire d\'abord.');
+            return;
+        }
+        var options = comptes.map(c => `<option value="${c.uuid}">${c.nom}</option>`).join('');
+        var optionsSrc = '<option value="">-- Sélectionner --</option>' + options;
+        var optionsDest = '<option value="">-- Sélectionner --</option>' + options;
 
-    const motif = await showPrompt('Motif / description :', '');
-    const beneficiaire = await showPrompt('Bénéficiaire / personne concernée :', '');
+        var html = `
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-banque">
+                <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold">${title}</h3>
+                        <button onclick="document.getElementById('modal-banque').remove()" class="text-slate-400 hover:text-slate-700">✕</button>
+                    </div>
+                    <form onsubmit="submitBanqueOp(event, '${type}')" class="space-y-4">
+                        ${!isDepot ? `<div><label class="block text-xs font-semibold text-slate-600 mb-1">Compte source</label><select id="bq-src" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${optionsSrc}</select></div>` : ''}
+                        ${isDepot || isTransfert ? `<div><label class="block text-xs font-semibold text-slate-600 mb-1">Compte destinataire</label><select id="bq-dest" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">${optionsDest}</select></div>` : ''}
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Montant (FCFA)</label>
+                            <input type="number" id="bq-montant" min="1" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Motif / Bénéficiaire</label>
+                            <input type="text" id="bq-motif" placeholder="Ex: Dépôt recettes" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm">
+                        </div>
+                        ${!isTransfert ? `<div><label class="flex items-center gap-2 text-sm"><input type="checkbox" id="bq-caisse" class="rounded text-accent"> Lier à la caisse physique ?</label></div>` : ''}
 
-    if (type === 'transfert') {
-        apiFetch('/bancaire/comptes').then(async comptes => {
-            if (!comptes.length) { showAlert('Aucun compte'); return; }
-            const options = comptes.map(c => c.uuid + ' : ' + c.nom).join('\n');
-            const srcUuid = await showPrompt('Compte source (UUID) :\n' + options, '');
-            if (!srcUuid) return;
-            const destUuid = await showPrompt('Compte destinataire (UUID) :\n' + options, '');
-            if (!destUuid) return;
-            apiFetch('/bancaire/transfert', {
-                method:'POST', body: JSON.stringify({
-                    compte_source_uuid: srcUuid,
-                    compte_destinataire_uuid: destUuid,
-                    montant: montantNum,
-                    motif: motif,
-                    beneficiaire: beneficiaire
-                })
-            }).then(res => { if(res.success) { showAlert('Transfert effectué.'); bancaireChargerComptes(); bancaireChargerHistorique(); } else showAlert(res.error || 'Erreur'); });
-        });
+                        <div class="flex gap-3 pt-2">
+                            <button type="button" onclick="document.getElementById('modal-banque').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50">Annuler</button>
+                            <button type="submit" class="flex-1 px-4 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-900 shadow-md">Valider</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', html);
+    });
+}
+
+function submitBanqueOp(e, type) {
+    e.preventDefault();
+    var montant = parseFloat(document.getElementById('bq-montant').value);
+    var motif = document.getElementById('bq-motif').value;
+    var payload = { montant: montant, motif: motif };
+    
+    if (type === 'depot') {
+        payload.compte_destinataire_uuid = document.getElementById('bq-dest').value;
+        payload.source = document.getElementById('bq-caisse') && document.getElementById('bq-caisse').checked ? 'caisse' : 'externe';
+    } else if (type === 'retrait') {
+        payload.compte_source_uuid = document.getElementById('bq-src').value;
+        payload.source = document.getElementById('bq-caisse') && document.getElementById('bq-caisse').checked ? 'caisse' : 'externe';
     } else {
-        const isDepot = type === 'depot';
-        const endpoint = isDepot ? '/bancaire/depot' : '/bancaire/retrait';
-        const compteField = isDepot ? 'compte_destinataire_uuid' : 'compte_source_uuid';
-
-        apiFetch('/bancaire/comptes').then(async comptes => {
-            if (!comptes.length) { showAlert('Aucun compte'); return; }
-            const options = comptes.map(c => c.uuid + ' : ' + c.nom).join('\n');
-            const uuid = await showPrompt('Choisir un compte (UUID exact) :\n' + options, '');
-            if (!uuid) return;
-            const source = await showConfirm('Depuis la caisse ?') ? 'caisse' : 'externe';
-            const body = { [compteField]: uuid, montant: montantNum, motif: motif, beneficiaire: beneficiaire, source: source };
-            apiFetch(endpoint, {method:'POST', body: JSON.stringify(body)})
-                .then(res => { if(res.success) { showAlert('Opération enregistrée.'); bancaireChargerComptes(); bancaireChargerHistorique(); } else showAlert(res.error || 'Erreur'); });
-        });
+        payload.compte_source_uuid = document.getElementById('bq-src').value;
+        payload.compte_destinataire_uuid = document.getElementById('bq-dest').value;
     }
-}
 
+    apiFetch('/bancaire/' + type, { method: 'POST', body: JSON.stringify(payload) }).then(function() {
+        document.getElementById('modal-banque').remove();
+        showAlert('Opération enregistrée avec succès.');
+        loadGestionBancaire(document.getElementById('page-content'));
+    }).catch(function(err) {
+        showAlert('Erreur : ' + err.message);
+    });
+}
