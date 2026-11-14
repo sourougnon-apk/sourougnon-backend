@@ -145,6 +145,7 @@ function loadPage(page) {
         'produits': loadProduits,
 
         'parametres': loadParametres,
+        'base-donnees-clients': loadBaseDonneesClients,
         'statistiques': loadStatistiques,
         'notifications': loadNotificationsPage,
         'rapports': loadRapports,

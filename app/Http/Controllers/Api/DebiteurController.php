@@ -4,6 +4,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Debiteur;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\ClientsImport;
+use Illuminate\Support\Str;
 use Illuminate\Support\Str;
 
 class DebiteurController extends Controller
@@ -140,4 +143,55 @@ class DebiteurController extends Controller
         $debiteur->update(['actif' => false]);
         return response()->json(['success' => true]);
     }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240' // Max 10 Mo
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $nomFichier = 'import_clients_' . time() . '.' . $file->getClientOriginalExtension();
+            $file->move(storage_path('app/imports'), $nomFichier);
+            
+            Excel::import(new ClientsImport, storage_path('app/imports/' . $nomFichier));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Importation terminée avec succès.',
+                'count' => \App\Models\Debiteur::count(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Erreur d\'importation : ' . $e->getMessage()], 500);
+        }
+    }
+
+
+    public function searchByCodes(Request $request)
+    {
+        $codes = array_map('trim', explode(',', $request->input('codes', '')));
+        $codes = array_filter($codes);
+
+        $debiteurs = \App\Models\Debiteur::with('agence')
+            ->whereIn('code_client', $codes)
+            ->get();
+
+        return response()->json($debiteurs);
+    }
+
+    public function attribuerAgence(Request $request)
+    {
+        $request->validate([
+            'uuids' => 'required|array',
+            'uuids.*' => 'exists:debiteurs,uuid',
+            'agence_id' => 'required|exists:agences,id',
+        ]);
+
+        \App\Models\Debiteur::whereIn('uuid', $request->uuids)
+            ->update(['agence_id' => $request->agence_id]);
+
+        return response()->json(['success' => true, 'count' => count($request->uuids)]);
+    }
+
 }

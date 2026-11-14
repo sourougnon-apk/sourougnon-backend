@@ -101,6 +101,10 @@ Route::middleware('auth.token')->group(function () {
         // Debiteurs
         Route::get('/debiteurs/{uuid}/historique', [ChefAgenceController::class, 'historiqueDebiteur']);
         Route::get('/debiteurs/{uuid}/score', [ChefAgenceController::class, 'scoreDebiteur']);
+        Route::post('/debiteurs/import', [DebiteurController::class, 'import']);
+        Route::post('/debiteurs/attribuer-agence', [App\Http\Controllers\Api\DebiteurController::class, 'attribuerAgence']);
+        Route::get('/debiteurs/search', [App\Http\Controllers\Api\DebiteurController::class, 'searchByCodes']);
+
         Route::apiResource('debiteurs', DebiteurController::class);
 
         // Ventes
