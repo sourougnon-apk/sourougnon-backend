@@ -9,6 +9,8 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class ClientsImport implements ToModel, WithHeadingRow
 {
+    public static $batchId = null;
+
     public function model(array $row)
     {
         // Nettoyage des données
@@ -30,6 +32,7 @@ class ClientsImport implements ToModel, WithHeadingRow
 
         return new Debiteur([
             'uuid' => (string) Str::uuid(),
+            'import_batch_id' => self::$batchId,
             'code_client' => $code,
             'nom' => $nom,
             'prenom' => $prenom,
@@ -37,8 +40,8 @@ class ClientsImport implements ToModel, WithHeadingRow
             'quartier' => $quartier,
             'sexe' => $sexe,
             'sexe' => $sexe,
-            'agent_id' => null, // Aucun agent pour l'instant
-            'agence_id' => null, // Aucune agence pour l'instant
+            'agent_id' => null,
+            'agence_id' => null,
             'actif' => true,
             'score_solvabilite' => 50,
             'limites_credit' => 0,

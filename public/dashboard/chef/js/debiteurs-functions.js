@@ -84,6 +84,10 @@ function loadDebiteurs(c){
         c.innerHTML='<div class="fade-in space-y-6">'+
             '<div class="flex items-center justify-between"><h3 class="text-xl font-bold">Debiteurs</h3>'+
             '<button onclick="showAddDebiteurModal()" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">+ Nouveau Debiteur</button></div>'+
+            '<div id="clients-en-attente-section" class="hidden">'+
+                '<h4 class="text-lg font-bold text-slate-800 mb-2">Clients en attente d\'affectation</h4>'+
+                '<div class="panel p-4" id="clients-en-attente-liste"></div>'+
+            '</div>'+
             '<div class="panel"><div class="table-wrapper"><table><thead><tr><th>Code</th><th>Nom</th><th>Telephone</th><th>Quartier</th><th>Agent</th><th>Score</th><th>Actions</th></tr></thead><tbody>'+
             (d.length>0?d.map(function(x){
                 var score = x.score_solvabilite !== undefined && x.score_solvabilite !== null ? x.score_solvabilite : 50;
@@ -99,7 +103,63 @@ function loadDebiteurs(c){
                 '</tr>';
             }).join(''):'<tr><td colspan="7" class="text-center text-muted py-4">Aucun debiteur</td></tr>')+
             '</tbody></table></div></div></div>';
+        chargerClientsEnAttente();
     });
+}
+
+function chargerClientsEnAttente() {
+    apiFetch('/debiteurs/en-attente').then(function(data) {
+        var section = document.getElementById('clients-en-attente-section');
+        var liste = document.getElementById('clients-en-attente-liste');
+        if (!section || !liste) return;
+        if (!data || data.length === 0) { section.classList.add('hidden'); return; }
+        section.classList.remove('hidden');
+        liste.innerHTML = data.map(function(c) {
+            var nomEnc = encodeURIComponent(c.nom || '');
+            return '<div class="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">' +
+                '<div><strong>' + c.nom + ' ' + (c.prenom || '') + '</strong><br>' +
+                '<small class="text-muted">' + (c.code_client || '') + ' - ' + (c.telephone || '') + '</small></div>' +
+                '<button onclick="ouvrirAffectationClient(\'' + c.uuid + '\', decodeURIComponent(\'' + nomEnc + '\'))" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold">Affecter</button>' +
+            '</div>';
+        }).join('');
+    }).catch(function(){});
+}
+
+function ouvrirAffectationClient(uuid, nom) {
+    apiFetch('/agents').then(function(agents) {
+        if (!agents || agents.length === 0) { showAlert('Aucun agent disponible dans votre agence.'); return; }
+        var options = agents.map(function(a) {
+            return '<option value="' + a.uuid + '">' + a.nom + ' ' + (a.prenom || '') + '</option>';
+        }).join('');
+        var html = '<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-affect-client">' +
+            '<div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">' +
+            '<h3 class="text-lg font-bold mb-3">Affecter le client</h3>' +
+            '<p class="text-sm mb-3">Choisissez un agent pour <strong>' + nom + '</strong>.</p>' +
+            '<select id="affect-agent-select" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm mb-4">' + options + '</select>' +
+            '<div class="flex gap-3">' +
+            '<button onclick="document.getElementById(\'modal-affect-client\').remove()" class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm">Annuler</button>' +
+            '<button onclick="confirmerAffectation(\'' + uuid + '\')" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Affecter</button>' +
+            '</div></div></div>';
+        document.body.insertAdjacentHTML('beforeend', html);
+    }).catch(function(err){ showAlert('Erreur : ' + err.message); });
+}
+
+function confirmerAffectation(uuid) {
+    var sel = document.getElementById('affect-agent-select');
+    if (!sel) return;
+    apiFetch('/debiteurs/' + uuid + '/attribuer-agent', {
+        method: 'PUT',
+        body: JSON.stringify({ agent_id: sel.value })
+    }).then(function(res) {
+        var m = document.getElementById('modal-affect-client');
+        if (m) m.remove();
+        if (res && res.success) {
+            showAlert(res.message || 'Client affecte.');
+            loadPage('debiteurs');
+        } else {
+            showAlert('Erreur : ' + ((res && res.error) || 'inconnue'));
+        }
+    }).catch(function(err){ showAlert('Erreur : ' + err.message); });
 }
 
 function voirDebiteur(uuid){

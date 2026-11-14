@@ -103,6 +103,9 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/debiteurs/{uuid}/score', [ChefAgenceController::class, 'scoreDebiteur']);
         Route::post('/debiteurs/import', [DebiteurController::class, 'import']);
         Route::post('/debiteurs/attribuer-agence', [App\Http\Controllers\Api\DebiteurController::class, 'attribuerAgence']);
+        Route::get('/debiteurs/en-attente', [App\Http\Controllers\Api\DebiteurController::class, 'indexEnAttente']);
+        Route::put('/debiteurs/{uuid}/attribuer-agent', [App\Http\Controllers\Api\DebiteurController::class, 'attribuerAgent']);
+        Route::post('/debiteurs/supprimer-import', [App\Http\Controllers\Api\DebiteurController::class, 'supprimerImport']);
         Route::get('/debiteurs/search', [App\Http\Controllers\Api\DebiteurController::class, 'searchByCodes']);
 
         Route::apiResource('debiteurs', DebiteurController::class);

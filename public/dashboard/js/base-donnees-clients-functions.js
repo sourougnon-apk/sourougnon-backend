@@ -86,13 +86,40 @@ function uploaderClients(e) {
         progress.classList.add('hidden');
         document.getElementById('modal-import').remove();
         if (data.success) {
-            showAlert('Importation réussie : ' + data.count + ' clients en base.');
+            var html = '<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" id="modal-import-success">' +
+                '<div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">' +
+                '<div class="text-center text-4xl mb-2">\u2705</div>' +
+                '<h3 class="text-lg font-bold text-center mb-2">Importation r\u00e9ussie</h3>' +
+                '<p class="text-sm text-slate-600 text-center mb-4">' + data.count + ' client(s) import\u00e9(s) dans la base.<br>Vous pouvez les attribuer aux agences.</p>' +
+                '<div class="flex flex-col gap-2">' +
+                '<button onclick="document.getElementById(\'modal-import-success\').remove()" class="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold">Continuer</button>' +
+                '<button onclick="annulerImport(\'' + data.batch_id + '\')" class="w-full py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold">Annuler cet import</button>' +
+                '</div></div></div>';
+            document.body.insertAdjacentHTML('beforeend', html);
         } else {
             showAlert('Erreur : ' + data.error);
         }
     }).catch(err => {
         progress.classList.add('hidden');
         showAlert('Erreur réseau : ' + err.message);
+    });
+}
+
+function annulerImport(batchId) {
+    if (!confirm('Supprimer tous les clients de cet import ? (uniquement ceux sans agent)')) return;
+    apiFetch('/debiteurs/supprimer-import', {
+        method: 'POST',
+        body: JSON.stringify({ batch_id: batchId })
+    }).then(function(res) {
+        var m = document.getElementById('modal-import-success');
+        if (m) m.remove();
+        if (res.success) {
+            showAlert(res.message || (res.count + ' client(s) supprim\u00e9(s).'));
+        } else {
+            showAlert('Erreur : ' + (res.error || 'inconnue'));
+        }
+    }).catch(function(err) {
+        showAlert('Erreur r\u00e9seau : ' + err.message);
     });
 }
 

@@ -12,7 +12,15 @@ class DebiteurController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Debiteur::where('actif', true)->with(['agent:id,uuid,nom,prenom', 'ancienAgent:id,uuid,nom,prenom']);
+        $user = $request->user();
+        $query = Debiteur::where('actif', true)
+            ->with(['agent:id,uuid,nom,prenom', 'ancienAgent:id,uuid,nom,prenom', 'agence:id,nom']);
+
+        // Filtrer par agence si c'est un chef
+        if ($user->role === 'chef_agence') {
+            $query->where('agence_id', $user->agence_id);
+        }
+
         if ($request->agent_id) {
             $query->whereHas('agent', fn($q) => $q->where('uuid', $request->agent_id));
         }
@@ -23,6 +31,49 @@ class DebiteurController extends Controller
             });
         }
         return response()->json($query->orderBy('nom')->get());
+    }
+
+    public function indexEnAttente(Request $request)
+    {
+        $user = $request->user();
+        $query = Debiteur::where('actif', true)
+            ->whereNull('agent_id')
+            ->with('agence:id,nom');
+
+        // Le chef ne voit que les clients de son agence
+        if ($user->role === 'chef_agence') {
+            $query->where('agence_id', $user->agence_id);
+        }
+
+        return response()->json($query->orderBy('nom')->get());
+    }
+
+    public function attribuerAgent(Request $request, string $uuid)
+    {
+        $request->validate(['agent_id' => 'required|exists:users,uuid']);
+        $debiteur = Debiteur::where('uuid', $uuid)->firstOrFail();
+        $agent = User::where('uuid', $request->agent_id)->firstOrFail();
+
+        // Sécurité : un chef ne peut affecter que dans son agence
+        $user = $request->user();
+        if ($user->role === 'chef_agence' && $agent->agence_id !== $user->agence_id) {
+            return response()->json(['error' => 'Cet agent n\'est pas dans votre agence.'], 403);
+        }
+
+        $debiteur->update(['agent_id' => $agent->id, 'agence_id' => $agent->agence_id]);
+        return response()->json(['success' => true, 'message' => 'Client affecté à ' . $agent->nom]);
+    }
+
+    public function supprimerImport(Request $request)
+    {
+        if ($request->user()->role !== 'gerante') {
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        $batchId = $request->input('batch_id');
+        $count = Debiteur::where('import_batch_id', $batchId)->whereNull('agent_id')->delete();
+
+        return response()->json(['success' => true, 'count' => $count, 'message' => "$count client(s) supprimé(s)."]);
     }
 
     public function showAgent(Request $request, string $uuid)
@@ -110,11 +161,26 @@ class DebiteurController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['agent_id' => 'required|exists:users,uuid', 'nom' => 'required|string|max:100']);
-        $agent = User::where('uuid', $request->agent_id)->firstOrFail();
+        $request->validate(['nom' => 'required|string|max:100']);
+        
+        $user = $request->user();
+        $agent = null;
+        if ($request->agent_id) {
+            $agent = User::where('uuid', $request->agent_id)->firstOrFail();
+        }
+
+        // Si c'est un chef, on force son agence. Si c'est la gérante, elle peut préciser l'agence
+        $agenceId = null;
+        if ($user->role === 'chef_agence') {
+            $agenceId = $user->agence_id;
+        } elseif ($request->agence_id) {
+            $agenceId = $request->agence_id;
+        }
+
         $debiteur = Debiteur::create([
             'uuid' => Str::uuid(),
-            'agent_id' => $agent->id,
+            'agent_id' => $agent?->id,
+            'agence_id' => $agenceId,
             'nom' => $request->nom,
             'prenom' => $request->prenom ?? '',
             'telephone' => $request->telephone ?? '',
@@ -123,7 +189,7 @@ class DebiteurController extends Controller
             'activite' => $request->activite ?? '',
             'personne_reference_nom' => $request->personne_reference_nom ?? '',
             'personne_reference_tel' => $request->personne_reference_tel ?? '',
-            'credits_autorises' => (int) ($request->credits_autorises ?? $request->limite_credit ?? 1),
+            'credits_autorises' => (int) ($request->credits_autorises ?? 1),
             'score_solvabilite' => 50,
         ]);
         return response()->json(['success' => true, 'uuid' => $debiteur->uuid], 201);
@@ -154,12 +220,17 @@ class DebiteurController extends Controller
             $nomFichier = 'import_clients_' . time() . '.' . $file->getClientOriginalExtension();
             $file->move(storage_path('app/imports'), $nomFichier);
             
+            $batchId = (string) Str::uuid();
+            \App\Imports\ClientsImport::$batchId = $batchId;
+            
             Excel::import(new ClientsImport, storage_path('app/imports/' . $nomFichier));
 
+            $imported = \App\Models\Debiteur::where('import_batch_id', $batchId)->count();
             return response()->json([
                 'success' => true,
                 'message' => 'Importation terminée avec succès.',
-                'count' => \App\Models\Debiteur::count(),
+                'count' => $imported,
+                'batch_id' => $batchId,
             ]);
         } catch (\Throwable $e) {
             return response()->json(['error' => 'Erreur d\'importation : ' . $e->getMessage()], 500);
